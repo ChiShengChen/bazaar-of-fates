@@ -14,6 +14,14 @@ from fortune.schemas import Chart
 
 KEY, ZH, EN, ORB = "astrology", "西洋占星", "Western Astrology", 6.0
 
+# traditional (7-body) rulerships — the engine tracks exactly these classical bodies
+_RULER = {
+    "Aries": "Mars", "Taurus": "Venus", "Gemini": "Mercury", "Cancer": "Moon",
+    "Leo": "Sun", "Virgo": "Mercury", "Libra": "Venus", "Scorpio": "Mars",
+    "Sagittarius": "Jupiter", "Capricorn": "Saturn", "Aquarius": "Saturn", "Pisces": "Jupiter",
+}
+_ANGULAR = {1, 4, 7, 10}
+
 
 def cast(birth: BirthInput, *, house_system: str = "whole_sign") -> Chart:
     d = birth.as_date
@@ -26,20 +34,31 @@ def cast(birth: BirthInput, *, house_system: str = "whole_sign") -> Chart:
     sun = next((r for r in chart_rows if r["body"] == "Sun"), None)
     moon = readings.get("moon_phase", "")
 
-    asc = AX.ascendant_block(birth, house_system=house_system)   # None if 時辰/出生地 missing
+    aspects = astro.aspects_for(d, ORB)
+    readings["aspects"] = aspects                                  # surface aspects to the 解讀
+    asc = AX.ascendant_block(birth, house_system=house_system)    # None if 時辰/出生地 missing
     if asc:
         cusps = asc["houses"]
-        place = (lambda lon: AX.house_of_cusps(lon, cusps)) if asc["house_system"] == "placidus" \
-            else (lambda lon: AX.house_of(lon, asc["longitude"]))
+        place = (lambda lon: AX.house_of(lon, asc["longitude"])) if asc["house_system"] == "whole_sign" \
+            else (lambda lon: AX.house_of_cusps(lon, cusps))      # cusp-based for equal + quadrant systems
         for r in chart_rows:
             r["house"] = place(r["ecliptic_lon"])
         hs_label = {"placidus": "Placidus 不等宮", "koch": "Koch 不等宮",
+                    "regiomontanus": "Regiomontanus 不等宮", "campanus": "Campanus 不等宮",
                     "equal": "Equal 等宮", "whole_sign": "whole-sign 整星座"}.get(
                         asc["house_system"], asc["house_system"])
         readings["ascendant"] = f"{asc['sign']} {asc['sign_zh']} {asc['longitude']:.1f}°"
         readings["house_system"] = hs_label
-        chain.insert(0, f"Ascendant 上升 {asc['sign']} {asc['sign_zh']} {asc['longitude']:.1f}° "
-                        f"({hs_label})")
+
+        # deeper structure: chart ruler (命主星) + angular planets
+        ruler = _RULER.get(asc["sign"])
+        rr = next((r for r in chart_rows if r["body"] == ruler), None)
+        if rr:
+            readings["chart_ruler"] = f"{ruler}（命主星）in {rr['sign']} {rr['sign_zh']}, house {rr.get('house', '?')}"
+        angular = [f"{r['body']} ({r['sign']}, H{r['house']})" for r in chart_rows if r.get("house") in _ANGULAR]
+        readings["angular_planets"] = angular or ["none 無"]
+        chain.insert(0, f"Ascendant 上升 {asc['sign']} {asc['sign_zh']} {asc['longitude']:.1f}° ({hs_label})"
+                        + (f"; chart ruler 命主星 {ruler}" if ruler else ""))
         asc_str = f"・上升 {asc['sign_zh']}"
     else:
         readings["ascendant"] = "unknown — needs birth time + place 需時辰＋出生地"
@@ -52,7 +71,7 @@ def cast(birth: BirthInput, *, house_system: str = "whole_sign") -> Chart:
     )
     return Chart(
         system=KEY, system_en=EN, system_zh=ZH, subject=birth.label(), cast_at=birth.dt,
-        chart={"planets": chart_rows, "aspects": astro.aspects_for(d, ORB)},
+        chart={"planets": chart_rows, "aspects": aspects},
         reasoning_chain=chain,
         readings=readings,
         summary=summary,

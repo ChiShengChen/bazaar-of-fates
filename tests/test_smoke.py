@@ -119,10 +119,28 @@ def test_koch_cusp1_is_ascendant_and_cusp10_is_mc():
     assert all(g > 0 for g in gaps) and abs(sum(gaps) - 360) < 0.01
 
 
-@pytest.mark.parametrize("hs", ["whole_sign", "equal", "placidus", "koch"])
+@pytest.mark.parametrize("hs", ["whole_sign", "equal", "placidus", "koch", "regiomontanus", "campanus"])
 def test_all_house_systems_castable(hs):
     c = casting.cast("astrology", BIRTH, house_system=hs)
     assert c.ascendant["house_system"] == hs
+
+
+@pytest.mark.parametrize("fn", ["regiomontanus_houses", "campanus_houses"])
+def test_quadrant_cusp1_asc_cusp10_mc(fn):
+    from fortune import astro_ext as AX
+    cusps = getattr(AX, fn)(BIRTH)
+    asc, mc = AX.ascendant_lon(BIRTH), AX.mc_lon(BIRTH)
+    assert abs((cusps[0]["longitude"] - asc + 180) % 360 - 180) < 0.01
+    assert abs((cusps[9]["longitude"] - mc + 180) % 360 - 180) < 0.01
+    gaps = [(cusps[(i + 1) % 12]["longitude"] - cusps[i]["longitude"]) % 360 for i in range(12)]
+    assert all(g > 0 for g in gaps) and abs(sum(gaps) - 360) < 0.01
+
+
+def test_chart_ruler_and_angular_in_readings():
+    c = casting.cast("astrology", BIRTH)   # has time + place
+    assert "chart_ruler" in c.readings and "命主星" in c.readings["chart_ruler"]
+    assert "angular_planets" in c.readings
+    assert "aspects" in c.readings
 
 
 # --- ③ streaming ---------------------------------------------------------------

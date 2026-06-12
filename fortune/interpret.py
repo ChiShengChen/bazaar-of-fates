@@ -27,7 +27,12 @@ _SYSTEM = (
     "Write the reading BILINGUALLY: an English section first, then a 中文 section "
     "(同樣內容的中文解讀). Keep the divination terms (干支/卦名/宮名…) in their original form.\n"
     "你是一位嚴謹而溫暖的命理師：只依據以上確定性排出的事實解讀，先英文、後中文，"
-    "術語保留原形，結尾各以一段白話總結。"
+    "術語保留原形，結尾各以一段白話總結。\n"
+    "When the facts include houses, an ascendant, a chart ruler (命主星), angular planets, "
+    "aspects, 喜用神, 四化, daśā or 大運/流年, weave those structures into the reading "
+    "(e.g. the chart ruler's sign & house, planets on the angles, the tightest aspects) "
+    "rather than reading planets in isolation. / 若事實含宮位、上升、命主星、四正星、相位、"
+    "喜用神、四化、大運流年，請把這些結構納入解讀，不要孤立論斷。"
 )
 
 

@@ -216,6 +216,78 @@ def koch_houses(birth: BirthInput) -> list[dict] | None:
     return [_cusp_row(lon, i + 1) for i, lon in enumerate(lons)]
 
 
+def _vec(ra_deg: float, dec_deg: float) -> tuple[float, float, float]:
+    a, d = math.radians(ra_deg), math.radians(dec_deg)
+    return (math.cos(d) * math.cos(a), math.cos(d) * math.sin(a), math.sin(d))
+
+
+def _cross(u, v):
+    return (u[1] * v[2] - u[2] * v[1], u[2] * v[0] - u[0] * v[2], u[0] * v[1] - u[1] * v[0])
+
+
+def _ecliptic_meet(normal, eps: float, anchor_lon: float) -> float:
+    """Ecliptic longitude where the plane with the given normal meets the ecliptic,
+    choosing the branch nearest `anchor_lon`."""
+    nx, ny, nz = normal
+    lam = math.degrees(math.atan2(-nx, ny * math.cos(eps) + nz * math.sin(eps))) % 360.0
+    if abs((lam - anchor_lon + 180.0) % 360.0 - 180.0) > 90.0:
+        lam = (lam + 180.0) % 360.0
+    return lam
+
+
+def _quadrant_through_horizon(birth: BirthInput, second_point) -> list[dict] | None:
+    """House cusps for any system whose circles pass through the N–S horizon points:
+    the cusp is where the circle (through the north horizon point and a system-specific
+    second point) meets the ecliptic. `second_point(offset)→(ra,dec)` defines the system."""
+    g = _ramc_eps_phi(birth)
+    if g is None:
+        return None
+    ramc, eps, phi = g
+    if abs(math.degrees(phi)) > 66.0:
+        return None
+    asc, mc = ascendant_lon(birth), mc_lon(birth)
+    if asc is None or mc is None:
+        return None
+    n_horizon = _vec(ramc + 180.0, 90.0 - math.degrees(phi))   # north point of the horizon
+
+    def cusp(k: int) -> float:
+        ra, dec = second_point(30.0 * k, ramc, math.degrees(phi))
+        normal = _cross(n_horizon, _vec(ra, dec))
+        return _ecliptic_meet(normal, eps, _lon_from_ra(ra, eps))
+
+    c11, c12, c2, c3 = cusp(1), cusp(2), cusp(4), cusp(5)
+    lons = [asc, c2, c3, (mc + 180.0) % 360.0, (c11 + 180.0) % 360.0, (c12 + 180.0) % 360.0,
+            (asc + 180.0) % 360.0, (c2 + 180.0) % 360.0, (c3 + 180.0) % 360.0, mc, c11, c12]
+    return [_cusp_row(lon, i + 1) for i, lon in enumerate(lons)]
+
+
+def _regio_point(off: float, ramc: float, phi_deg: float):
+    """Regiomontanus: equal divisions of the celestial equator from the MC."""
+    return (ramc + off) % 360.0, 0.0
+
+
+def _campanus_point(off: float, ramc: float, phi_deg: float):
+    """Campanus: equal divisions of the prime vertical. The Ascendant sits at ψ=0
+    (East point) and the MC at ψ=90 (zenith), so cusp angle ψ = 90 − offset."""
+    psi, phi = math.radians(90.0 - off), math.radians(phi_deg)
+    dec = math.asin(math.sin(phi) * math.sin(psi))               # az = 90° (due east)
+    cosd = math.cos(dec)
+    sin_h = -math.cos(psi) / cosd if abs(cosd) > 1e-9 else 0.0
+    cos_h = (math.sin(psi) - math.sin(phi) * math.sin(dec)) / (math.cos(phi) * cosd) if abs(cosd) > 1e-9 else 1.0
+    h = math.degrees(math.atan2(sin_h, cos_h))
+    return (ramc - h) % 360.0, math.degrees(dec)
+
+
+def regiomontanus_houses(birth: BirthInput) -> list[dict] | None:
+    """Regiomontanus: equal 30° equatorial divisions projected via circles of position."""
+    return _quadrant_through_horizon(birth, _regio_point)
+
+
+def campanus_houses(birth: BirthInput) -> list[dict] | None:
+    """Campanus: equal 30° prime-vertical divisions projected via circles of position."""
+    return _quadrant_through_horizon(birth, _campanus_point)
+
+
 def whole_sign_houses(asc_lon: float) -> list[dict]:
     """12 whole-sign houses: house 1 = the ascendant's whole sign, then sequential signs."""
     asc_sign = int(asc_lon // 30) % 12
@@ -244,10 +316,12 @@ def ascendant_block(birth: BirthInput, *, ayanamsa: float = 0.0,
 
     used = "whole_sign"
     houses = whole_sign_houses(lon)
+    _QUAD = {"placidus": placidus_houses, "koch": koch_houses,
+             "regiomontanus": regiomontanus_houses, "campanus": campanus_houses}
     if house_system == "equal":
         houses, used = equal_houses(lon), "equal"
-    elif house_system in ("placidus", "koch") and ayanamsa == 0.0:   # quadrant systems: tropical only
-        quad = placidus_houses(birth) if house_system == "placidus" else koch_houses(birth)
+    elif house_system in _QUAD and ayanamsa == 0.0:                   # quadrant systems: tropical only
+        quad = _QUAD[house_system](birth)
         if quad is not None:
             houses, used = quad, house_system
 
@@ -259,6 +333,6 @@ def ascendant_block(birth: BirthInput, *, ayanamsa: float = 0.0,
         "sidereal": ayanamsa > 0,
         "houses": houses,
     }
-    if used in ("placidus", "koch"):
+    if used in ("placidus", "koch", "regiomontanus", "campanus"):
         block["mc"] = mc_lon(birth)
     return block

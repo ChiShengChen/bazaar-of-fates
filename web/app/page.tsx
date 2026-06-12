@@ -48,6 +48,30 @@ export default function Page() {
     finally { setBusy(false); }
   }
 
+  function exportPng() {
+    const svg = document.querySelector("#chart-area svg") as SVGSVGElement | null;
+    if (!svg) return;
+    const w = Number(svg.getAttribute("width")) || svg.viewBox.baseVal.width || 340;
+    const h = Number(svg.getAttribute("height")) || svg.viewBox.baseVal.height || 340;
+    const xml = new XMLSerializer().serializeToString(svg);
+    const img = new Image();
+    img.onload = () => {
+      const scale = 2;
+      const cv = document.createElement("canvas"); cv.width = w * scale; cv.height = h * scale;
+      const ctx = cv.getContext("2d")!;
+      ctx.fillStyle = "#0b0b10"; ctx.fillRect(0, 0, cv.width, cv.height);
+      ctx.scale(scale, scale); ctx.drawImage(img, 0, 0, w, h);
+      cv.toBlob((b) => {
+        if (!b) return;
+        const a = document.createElement("a");
+        a.href = URL.createObjectURL(b); a.download = `${sys}-chart.png`; a.click();
+        URL.revokeObjectURL(a.href);
+      });
+    };
+    img.src = "data:image/svg+xml;base64," + btoa(unescape(encodeURIComponent(xml)));
+  }
+  const hasSvgChart = reading && ["astrology", "qizheng", "jyotish"].includes(reading.system);
+
   return (
     <div className="wrap">
       <h1>Bazaar of Fates · 算命</h1>
@@ -87,6 +111,8 @@ export default function Page() {
                 <option value="equal">Equal 等宮</option>
                 <option value="placidus">Placidus 不等宮</option>
                 <option value="koch">Koch 不等宮</option>
+                <option value="regiomontanus">Regiomontanus 不等宮</option>
+                <option value="campanus">Campanus 不等宮</option>
               </select>
             </div>
           )}
@@ -99,11 +125,19 @@ export default function Page() {
 
       {reading && (
         <>
+          <div className="card noprint" style={{ display: "flex", gap: 8, alignItems: "center" }}>
+            <span className="muted">Share 分享：</span>
+            {hasSvgChart && <button onClick={exportPng}>Download chart PNG 下載星盤</button>}
+            <button onClick={() => window.print()} style={{ background: "#27272a", color: "var(--ink)" }}>
+              Print / Save PDF 列印・存 PDF
+            </button>
+          </div>
+
           <div className="card">
             <h3>{reading.system_en} · {reading.system_zh} · {reading.subject}</h3>
             <div className="summary">{reading.summary}</div>
             <div className="cols">
-              <div><ChartView r={reading} /></div>
+              <div id="chart-area"><ChartView r={reading} /></div>
               <div>
                 <h3>Casting steps 排盤步驟</h3>
                 <ul className="chain">{reading.reasoning_chain.map((c, i) => <li key={i}>{c}</li>)}</ul>

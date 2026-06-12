@@ -32,6 +32,20 @@ button:disabled { opacity: .5; cursor: default; }
 .interp { white-space: pre-wrap; font-size: 14px; line-height: 1.85; }
 .cursor { color: var(--accent); animation: blink 1s steps(2) infinite; }
 @keyframes blink { 50% { opacity: 0; } }
+
+@media print {
+  body { background: #fff; color: #111; }
+  .wrap { max-width: 100%; padding: 0; }
+  .card { border-color: #ddd; background: #fff; break-inside: avoid; }
+  .sub, .muted { color: #555; }
+  .noprint, form, .pills, .row, input, select, button { display: none !important; }
+  /* the form card is the first .card — hide it whole */
+  .wrap > .card:first-of-type { display: none !important; }
+  h3 { color: #555; }
+  .nat-benefic, .nat-favourable { background: #e6f4ea; color: #14532d; }
+  .nat-malefic, .nat-unfavourable { background: #fdeaec; color: #4c0519; }
+  .nat-neutral { background: #eee; color: #333; }
+}
 .muted { color: var(--dim); font-size: 12px; }
 .err { color: var(--bad); }
 .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
