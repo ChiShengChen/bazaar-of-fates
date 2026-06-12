@@ -1,11 +1,11 @@
 # Bazaar of Fates · 算命 Divination Suite
 
-**Eleven traditional divination systems as deterministic Python engines**, behind one input — your **birth moment** (date + time + place) — each producing a reproducible chart plus an optional bilingual AI reading.
+**Eleven traditional divination systems as deterministic Python engines**, behind one input — your **birth moment** (date + time + place) — each producing a reproducible chart plus an optional bilingual (English + 中文) AI reading. Plus a full **Western-astrology stack**: six house systems, transits, life timelines, and relationship charts (synastry / composite / Davison / group).
 
-**十一套傳統命理系統**，寫成確定性 Python 排盤引擎，只吃一個輸入：**生辰**（出生日期＋時辰＋出生地），各自排出可重現的命盤＋可選的雙語 AI 解讀。
+**十一套傳統命理系統**，寫成確定性 Python 排盤引擎，只吃一個輸入：**生辰**（日期＋時辰＋出生地），各自排出可重現的命盤＋可選的雙語 AI 解讀；外加完整的西洋占星套件（六種宮位制、行運、大運時間軸、關係合盤）。
 
-> **Origin / 起源.** These engines began life as *placebo controls* in a larger quant project — divination cast as date-keyed trading signals, run through a lookahead-free backtest to prove they were noise. Here the **chart math is lifted out**, all trading/backtest stripped, and restored to its real purpose: **telling fortunes**. The 排盤 math is synced from the parent monorepo (single source of truth) via `scripts/sync_from_main.sh`; the product shell (birth input, API, readings, web) is native to this repo.
-> 這些引擎原本是某量化專案裡的「對照組／安慰劑」（把命理當訊號跑無未來函數回測，證明它們是雜訊）。這裡把排盤數學抽出、去掉交易回測，還原它本來的用途——算命。
+> **Origin / 起源.** These engines began life as *placebo controls* in a larger quant project — divination cast as date-keyed trading signals, run through a lookahead-free backtest to prove they were noise. Here the **chart math is lifted out**, all trading/backtest stripped, and restored to its real purpose: **telling fortunes**. The 排盤 math is synced from the parent monorepo (single source of truth) via `scripts/sync_from_main.sh`; everything else — birth input, ascendant/house geometry, API, readings, web — is native to this repo.
+> 這些引擎原本是某量化專案的「對照組／安慰劑」（把命理當訊號跑無未來函數回測，證明它們是雜訊）。這裡把排盤數學抽出、去掉交易回測，還原它本來的用途——算命。
 
 ## The eleven systems / 十一系
 
@@ -23,7 +23,7 @@
 | `taiyi` | Tai Yi Shen Shu | 太乙神數 | 太乙九宮 | — | — |
 | `jyotish` | Jyotiṣa (Vedic) | 吠陀占星 | sidereal + Vimśottarī daśā | ✅ Lagna + bhāva | ✅ Lagna |
 
-> **Ascendant & houses / 上升與宮位.** The synced engines compute planetary longitudes from the *date* alone (a stock has no birth hour or birthplace). The native `fortune/astro_ext.py` adds the **ascendant** (rising degree, validated so that at sunrise the Sun sits on the ascendant) and **whole-sign houses**, shared by astrology · qizheng · jyotish; `fortune/ziwei_ext.py` threads the real 時辰 into 紫微's 命宮/身宮/五行局/星位. These live natively (not in the monorepo) because they are meaningless for the trading placebo, and `sync_from_main.sh` never touches them. **House system is whole-sign** (Vedic default; Placidus is a planned Western option). When birth time or place is missing, ascendant-based systems gracefully degrade to date-only and flag it. / 缺時辰或出生地時自動退回只看日期並標註。
+> The synced engines compute planetary longitudes from the *date* alone (a stock has no hour or birthplace). The native `fortune/astro_ext.py` adds the **ascendant** and **houses** (needs time + place); `fortune/ziwei_ext.py` threads the real 時辰 into 紫微. When birth time or place is missing, ascendant-based systems gracefully degrade to date-only and flag it. / 缺時辰或出生地時自動退回只看日期並標註。
 
 ## Quickstart / 快速開始
 
@@ -32,39 +32,15 @@ python -m venv .venv && source .venv/bin/activate
 pip install -e ".[dev,llm]"          # drop "llm" to stay on the mock reader / 省略 llm 即用 mock
 cp .env.example .env
 
-# Backend API / 後端
-uvicorn fortune.api.main:app --reload
+uvicorn fortune.api.main:app --reload         # backend API / 後端
 
 # Front end — choose one / 前端二選一：
-
-# (a) Next.js app with SVG charts + timelines / 含星盤命盤與大運時間軸（需 node ≥ 20）
-cd web && npm install && npm run dev      # http://localhost:3000
-# build check: npm run build
-
-# (b) Static page, no node build / 靜態頁，免 node build
-python -m http.server 5500 --directory web   # http://localhost:5500/index.html
+cd web && npm install && npm run dev          # (a) Next.js, full UI (node ≥ 20) → :3000
+python -m http.server 5500 --directory web    # (b) static page, no build → :5500/index.html
 ```
 
-The Next.js app draws the **circular 星盤** (astrology), **南印度 rāśi chart** (Jyotiṣa), **七政星盤**, 四柱/紫微 grids, ascendant + houses, the bilingual reading, and a **大運/流年 timeline**. Point it at a non-default API with `NEXT_PUBLIC_API_BASE`.
-
-Runs with **no LLM key**: every chart casts deterministically; only the prose reading is a mocked facts digest. Set `LLM_BACKEND=anthropic` + `ANTHROPIC_API_KEY` for a real **bilingual (English + 中文)** AI reading.
-不接 LLM 也能跑：命盤照排，只有解讀走 mock。設金鑰後即得真正的雙語 AI 解讀。
-
-## API
-
-| method | path | |
-|---|---|---|
-| `GET` | `/systems` | the 11 systems + which cast cleanly / 11 系清單＋可用狀態 |
-| `POST` | `/cast/{system}?house_system=placidus` | deterministic chart, no LLM → `Chart` / 純命盤 |
-| `POST` | `/reading/{system}` | chart + bilingual reading (`house_system` in body) → `Reading` |
-| `POST` | `/reading/{system}/stream` | SSE: a `chart` event then `delta` text events → progressive 解讀 |
-| `POST` | `/timeline/{system}` | 大運 / Mahādaśā / 流年 sequence → `Timeline` (kind=`none` if N/A) |
-| `POST` | `/synastry` | two births → bi-wheel + composite + Davison (+ returns) + readings → `Synastry` |
-| `POST` | `/group` | 2–8 births → pairwise cross-aspect net-score matrix + group reading → `Group` |
-
-**Star wheel 星盤** — the astrology SVG draws the 12 house cusps as spokes (ASC/MC emphasised, house numbers), natal planets on an inner ring, and aspect lines **graded by orb** (tight aspects thicker & brighter, wide ones thin & faint). **Transits 行運** — an outer ring overlays the sky on any date; the UI has a **time slider** that scrubs ±5 years and live-refreshes the ring via the LLM-free `/cast` (so dragging is instant). **Major transits 重要行運** — when a slow planet (Jupiter/Saturn) sits on a natal angle (ASC/MC/DSC/IC) within 3°, the wheel marks it with a gold halo + bold line, **graded by potency** (a conjunction outweighs a square; tighter orbs glow stronger) and by **phase**: a solid line ▸ for *applying* (the contact is building) vs a dashed line ▹ for *separating* (fading). **Group 團體合盤** (`/group`, 2–8 people) — scores every pair by their cross-aspects into a clickable **matrix** you can switch between net / total / harmonious / challenging dimensions (green = in-sync, red = tension), flags the standout pairs, writes a group reading, and casts the **group composite** (every planet at the circular mean of all members). **Davison returns** — the Davison chart carries a Saturn/Jupiter-return timeline (the relationship's own milestones). **Synastry 合盤** (`/synastry`) gives three charts, each with its own bilingual reading: the **bi-wheel** with cross-aspects, the **composite 組合中點盤** (longitude midpoints), and the **Davison 時空中點盤** (a real ephemeris chart cast for the midpoint moment in UT and the midpoint location of the two births — distinct from the composite).
-
-**Houses 宮位制** — astrology takes `house_system`: `whole_sign` (default), `equal`, `placidus`, `koch`, `regiomontanus`, or `campanus`. The four quadrant systems are **validated against Swiss Ephemeris to <0.006°** across five charts incl. high-latitude (Reykjavik 64°N) and southern-hemisphere (Sydney); swisseph is a **dev-only oracle, not a runtime dependency**. Quadrant systems fall back to whole-sign past the polar circle. **Deeper reading** — the astrology 解讀 also gets the chart ruler (命主星), angular planets, and aspect list folded into the prompt. **Streaming 串流** — `/reading/.../stream` streams the reading token-by-token (real Anthropic stream when keyed, chunked stub on mock). **Export 匯出** — the web app downloads the star/rāśi/七政 chart as PNG and prints the whole reading to PDF. **Timelines 時間軸** — Jyotiṣa Vimśottarī Mahādaśā (120-yr), BaZi 大運 (10-yr luck pillars, direction by 年干陰陽 × gender), 紫微 流年四化.
+Runs with **no LLM key**: every chart casts deterministically; only the prose reading is a mocked facts digest. Set `LLM_BACKEND=anthropic` + `ANTHROPIC_API_KEY` for a real bilingual AI reading. Point the web app at a non-default backend with `NEXT_PUBLIC_API_BASE`.
+不接 LLM 也能跑：命盤照排，解讀走 mock；設金鑰即得真正的雙語 AI 解讀。
 
 ```bash
 curl -s localhost:8000/cast/bazi -H 'content-type: application/json' -d '{
@@ -74,43 +50,70 @@ curl -s localhost:8000/cast/bazi -H 'content-type: application/json' -d '{
 # "日主 辛金・身弱（喜生扶）・喜用 土、金"
 ```
 
+## Features / 功能
+
+**Charts & houses 命盤與宮位.** Each system renders its own visual: the circular 星盤 (astrology), 南印度 rāśi chart (Jyotiṣa), 七政星盤, the traditional 4×4 紫微 命盤, 四柱 pillars, hexagram lines. Astrology takes six **house systems** via `house_system`: `whole_sign` (default), `equal`, `placidus`, `koch`, `regiomontanus`, `campanus`. The four quadrant systems are **validated against Swiss Ephemeris to <0.006°** across five charts incl. high-latitude (Reykjavik 64°N) and southern-hemisphere (Sydney) — swisseph is a **dev-only oracle, not a runtime dependency** — and fall back to whole-sign past the polar circle. The star wheel draws house cusps as spokes (ASC/MC emphasised, house numbers), planets on an inner ring, and aspect lines **graded by orb** (tight = thick & bright).
+
+**Readings 解讀.** Every chart gets a bilingual (English-then-中文) interpretation that reads only the deterministic facts. The astrology reading also folds in the chart ruler (命主星), angular planets, and the aspect list. Readings **stream** token-by-token over SSE (real Anthropic stream when keyed, chunked stub on mock).
+
+**Timelines 時間軸.** Jyotiṣa Vimśottarī Mahādaśā (120-yr), BaZi 大運 (10-yr luck pillars, direction by 年干陰陽 × gender), 紫微 流年四化 — rendered as a dated bar timeline.
+
+**Transits 行運.** An outer ring overlays the sky on any date; a **time slider** scrubs ±5 years and live-refreshes the ring via the LLM-free `/cast` (instant). **Major transits 重要行運**: a slow planet (Jupiter/Saturn) within 3° of a natal angle (ASC/MC/DSC/IC) is highlighted with a gold halo + line, **graded by potency** (conjunction > square; tighter orbs glow stronger) and by **phase** — solid ▸ *applying* (building) vs dashed ▹ *separating* (fading).
+
+**Relationships 合盤.** `POST /synastry` returns three charts, each with its own reading: the **bi-wheel** with cross-aspects (harmonious vs challenging), the **composite 組合中點盤** (longitude midpoints), and the **Davison 時空中點盤** (a real ephemeris chart for the midpoint moment in UT and midpoint location — distinct from the composite, with a Saturn/Jupiter-return timeline). `POST /group` (2–8 people) scores every pair into a clickable **matrix** switchable between net / total / harmonious / challenging, flags the standout pairs, writes a group reading, and casts the **group composite** (circular mean of all members).
+
+**Export 匯出.** Download any star/rāśi/七政 wheel as PNG (SVG→canvas, dependency-free) or print the whole reading to PDF.
+
+## API
+
+| method | path | |
+|---|---|---|
+| `GET` | `/systems` | the 11 systems + which cast cleanly / 11 系清單＋可用狀態 |
+| `POST` | `/cast/{system}` | deterministic chart, no LLM → `Chart`（query: `house_system`, `transits`, `transit_date`）|
+| `POST` | `/reading/{system}` | chart + bilingual reading → `Reading`（body: `focus`, `house_system`, `transits`）|
+| `POST` | `/reading/{system}/stream` | SSE: a `chart` event then `delta` text events → progressive 解讀 |
+| `POST` | `/timeline/{system}` | 大運 / Mahādaśā / 流年 → `Timeline` (kind=`none` if N/A) |
+| `POST` | `/synastry` | two births → bi-wheel + composite + Davison (+ returns) + readings → `Synastry` |
+| `POST` | `/group` | 2–8 births → pairwise cross-aspect matrix + group composite + reading → `Group` |
+
 ## Architecture / 架構
 
 ```
 fortune/
   birth.py            BirthInput — the single input / 生辰輸入
-  schemas.py          Chart / Reading envelope
-  shared/             native: config / logging / llm (mock + anthropic)
-  engines/<system>/   ← synced 排盤 math from the monorepo (do NOT hand-edit)
-  astro_ext.py        native: ascendant + whole-sign + Placidus houses (astrology/qizheng/jyotish)
-  ziwei_ext.py        native: 紫微 with the real birth 時辰 (reuses ziwei_core primitives)
+  schemas.py          Chart / Reading / Timeline / Synastry / Group envelopes
+  shared/             native: config / logging / llm (mock + anthropic, streaming)
+  engines/<system>/   ← SYNCED 排盤 math from the monorepo (do NOT hand-edit)
+  astro_ext.py        native: ascendant + 6 house systems (swisseph-validated)
+  ziwei_ext.py        native: 紫微 with the real birth 時辰
   timeline.py         native: 大運 / Mahādaśā / 流年 sequences
-  casting/<system>.py per-system adapter: birth → engine fns → Chart
+  casting/<system>.py per-system adapter: birth → engine fns → Chart (+ transits, aspects)
   casting/__init__.py registry of the 11 systems (lazy import)
-  interpret.py        chart facts + tradition prompt → bilingual reading
-  api/main.py         FastAPI (/systems /cast /reading /timeline)
-prompts/<system>/     ← synced reading prompts from the monorepo
-web/                  Next.js app (app/page.tsx, lib/api.ts, _components/) + static index.html
-  app/_charts/        ← synced SVG chart renderers (StarChart/RashiChart/QizhengChart)
+  synastry.py         native: synastry + composite + Davison (+ returns)
+  group.py            native: group matrix + group composite
+  interpret.py        chart facts + tradition prompt → bilingual reading (sync + stream)
+  api/main.py         FastAPI (/systems /cast /reading[/stream] /timeline /synastry /group)
+prompts/<system>/     ← SYNCED reading prompts from the monorepo
+web/                  Next.js app (app/page.tsx, lib/api.ts, app/_components/, app/_charts/)
+                      + static index.html (no-build fallback)
 scripts/sync_from_main.sh   re-sync the 排盤 math
 ```
 
 ### Re-syncing the engine math / 重新同步排盤數學
-
-After the parent monorepo changes a system's casting logic:
 
 ```bash
 scripts/sync_from_main.sh                 # default monorepo ~/Desktop/威鯨面試_LLMEng
 scripts/sync_from_main.sh /path/to/monorepo
 ```
 
-Only `fortune/engines/*`, `prompts/*`, `web/app/_charts/*` are overwritten (the 排盤 math + chart visuals). The birth input, API, readings, and web shell are native and **untouched**.
-只覆蓋排盤數學與命盤視覺；生辰輸入、API、解讀、前端殼不會被動到。
+Sync overwrites **only** `fortune/engines/*` and `prompts/*` (the 排盤 math + author prompts). Everything native — birth input, ascendant/house geometry, transits, synastry/group, API, readings, the web app **including the chart renderers** (they carry house/transit/synastry overlays the monorepo's trading charts don't) — is never touched.
+sync 只覆蓋排盤數學與門派 prompt；其餘原生檔（含星盤渲染器）不會被動到。
 
 ## Tests / 測試
 
 ```bash
-pytest -q     # all 11 systems cast a non-empty chart from one birth + a mock reading
+pytest -q     # 52 tests: every system casts; house systems vs swisseph; transits;
+              # timelines; synastry / composite / Davison; group matrix & composite
 ```
 
 ## License
