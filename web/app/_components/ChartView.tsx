@@ -9,13 +9,18 @@ import { QizhengChart } from "../_charts/QizhengChart";
 export function ChartView({ r }: { r: Chart }) {
   const c = r.chart || {};
 
-  if (r.system === "astrology")
+  if (r.system === "astrology") {
+    const prog = (c.progressions || []).length > 0;   // progressions take the outer ring if present
     return (
       <StarChart chart={c.planets || []} aspects={c.aspects || []} aspectsDetail={c.aspects_detail}
                  cusps={r.ascendant?.houses || []}
-                 outer={c.transits || []} crossAspects={c.transit_aspects || []} majorTransits={c.major_transits || []}
-                 outerLabel={c.transits?.length ? `transits 行運 ${r.readings?.transit_date || ""}` : undefined} />
+                 outer={prog ? c.progressions : (c.transits || [])}
+                 crossAspects={prog ? c.progression_aspects : (c.transit_aspects || [])}
+                 majorTransits={prog ? [] : (c.major_transits || [])}
+                 outerLabel={prog ? `progressions 推運 (age ${r.readings?.progressed_age ?? ""})`
+                   : c.transits?.length ? `transits 行運 ${r.readings?.transit_date || ""}` : undefined} />
     );
+  }
 
   if (r.system === "jyotish") {
     const grahas = (c.grahas || []).map((g: any) => ({ name: g.graha, sidereal_lon: g.sidereal_lon, rashi: g.rashi }));

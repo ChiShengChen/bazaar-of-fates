@@ -21,7 +21,7 @@ export default function Page() {
   const [sys, setSys] = useState("bazi");
   const [mode, setMode] = useState<"single" | "synastry" | "group">("single");
   const [houseSystem, setHouseSystem] = useState("whole_sign");
-  const [transits, setTransits] = useState(false);
+  const [overlay, setOverlay] = useState<"none" | "transits" | "progress">("none");
   const [transitOffset, setTransitOffset] = useState(0);   // days from today
   const [focus, setFocus] = useState("");
 
@@ -55,7 +55,8 @@ export default function Page() {
     try {
       let acc = "";
       await streamReading(
-        sys, b, focus || null, houseSystem, transits, transits ? transitDate : null,
+        sys, b, focus || null, houseSystem,
+        overlay === "transits", overlay !== "none" ? transitDate : null, overlay === "progress",
         (chart) => setReading({ ...(chart as Reading), interpretation: "" }),
         (delta) => { acc += delta; setReading((r) => (r ? { ...r, interpretation: acc } : r)); },
       );
@@ -63,16 +64,23 @@ export default function Page() {
     finally { setBusy(false); }
   }
 
-  // live transit scrubbing: refresh only the wheel's outer ring (no LLM), debounced
+  // live scrubbing of the transit/progression date: refresh only the outer ring (no LLM), debounced
   function scrubTransit(off: number) {
     setTransitOffset(off);
-    if (!reading || reading.system !== "astrology") return;
+    if (!reading || reading.system !== "astrology" || overlay === "none") return;
     const td = dateFromOffset(off);
     clearTimeout((scrubTransit as any)._t);
     (scrubTransit as any)._t = setTimeout(async () => {
       try {
-        const c = await getCast("astrology", toBirth(formA), { house_system: houseSystem, transits: true, transit_date: td });
-        setReading((r) => (r ? { ...r, chart: { ...r.chart, transits: c.chart.transits, transit_aspects: c.chart.transit_aspects, major_transits: c.chart.major_transits }, readings: { ...r.readings, transit_date: td, major_transits: c.readings.major_transits } } : r));
+        const c = await getCast("astrology", toBirth(formA), {
+          house_system: houseSystem, transit_date: td,
+          transits: overlay === "transits", progress: overlay === "progress",
+        });
+        setReading((r) => (r ? { ...r, chart: {
+          ...r.chart,
+          transits: c.chart.transits, transit_aspects: c.chart.transit_aspects, major_transits: c.chart.major_transits,
+          progressions: c.chart.progressions, progression_aspects: c.chart.progression_aspects,
+        }, readings: { ...r.readings, transit_date: td, major_transits: c.readings.major_transits, progressed_age: c.readings.progressed_age } } : r));
       } catch { /* ignore scrub errors */ }
     }, 120);
   }
@@ -181,11 +189,12 @@ export default function Page() {
             </div>
           )}
           {mode === "single" && sys === "astrology" && (
-            <div style={{ flex: 0 }}><label>&nbsp;</label>
-              <label style={{ display: "flex", gap: 6, alignItems: "center", cursor: "pointer" }}>
-                <input type="checkbox" checked={transits} onChange={(e) => setTransits(e.target.checked)} style={{ width: "auto" }} />
-                Transits 行運
-              </label>
+            <div style={{ flex: 0, minWidth: 150 }}><label>Overlay 疊加</label>
+              <select value={overlay} onChange={(e) => setOverlay(e.target.value as any)}>
+                <option value="none">none 無</option>
+                <option value="transits">transits 行運</option>
+                <option value="progress">progressions 二次推運</option>
+              </select>
             </div>
           )}
           <div style={{ flex: 0 }}>
@@ -194,9 +203,9 @@ export default function Page() {
             {mode === "group" && <button onClick={compareGroup} disabled={busy}>{busy ? "Comparing… 合盤中" : "Compare group 團體合盤"}</button>}
           </div>
         </div>
-        {mode === "single" && sys === "astrology" && transits && (
+        {mode === "single" && sys === "astrology" && overlay !== "none" && (
           <div style={{ marginTop: 12 }}>
-            <label>Transit date 行運日期 — drag to scrub 拖曳任意日期 · <b>{transitDate}</b>{transitOffset === 0 ? " (today 今天)" : ` (${transitOffset > 0 ? "+" : ""}${transitOffset}d)`}</label>
+            <label>{overlay === "progress" ? "Progress-to date 推運至" : "Transit date 行運日期"} — drag to scrub 拖曳 · <b>{transitDate}</b>{transitOffset === 0 ? " (today 今天)" : ` (${transitOffset > 0 ? "+" : ""}${transitOffset}d)`}</label>
             <input type="range" min={-1825} max={1825} value={transitOffset}
                    onChange={(e) => scrubTransit(Number(e.target.value))} style={{ width: "100%" }} />
           </div>

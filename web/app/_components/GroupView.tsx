@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { GroupResult } from "@/lib/api";
 import { MidpointBlock } from "./MidpointBlock";
 
@@ -22,11 +22,20 @@ export function GroupView({ g }: { g: GroupResult }) {
   const [sel, setSel] = useState<number | null>(null);
   const [dim, setDim] = useState<Dim>("net");
   const n = g.people.length;
+  const [order, setOrder] = useState<number[]>(() => g.people.map((_, i) => i));
+  useEffect(() => { setOrder(g.people.map((_, i) => i)); }, [g]);
+
   const pairOf = (i: number, j: number) => g.pairs.find((x) => (x.i === i && x.j === j) || (x.i === j && x.j === i));
   const valueOf = (i: number, j: number) => {
     const p = pairOf(i, j); if (!p) return 0;
     return dim === "total" ? p.harmonious + p.challenging : dim === "harmonious" ? p.harmonious : dim === "challenging" ? p.challenging : p.net;
   };
+  const avgNet = (i: number) => g.matrix[i].reduce((s, v) => s + v, 0) / Math.max(1, n - 1);
+  const sortByCompat = () => setOrder([...Array(n).keys()].sort((a, b) => avgNet(b) - avgNet(a)));
+  const move = (pos: number, dir: -1 | 1) => setOrder((o) => {
+    const p2 = pos + dir; if (p2 < 0 || p2 >= o.length) return o;
+    const c = [...o]; [c[pos], c[p2]] = [c[p2], c[pos]]; return c;
+  });
   return (
     <>
       <div className="card">
@@ -36,19 +45,26 @@ export function GroupView({ g }: { g: GroupResult }) {
           {DIMS.map(([d, label]) => (
             <div key={d} className={`pill${dim === d ? " on" : ""}`} onClick={() => setDim(d)}>{label}</div>
           ))}
+          <span style={{ width: 12 }} />
+          <div className="pill" onClick={() => setOrder(g.people.map((_, i) => i))}>↕ Input order 原順序</div>
+          <div className="pill" onClick={sortByCompat}>↕ By compatibility 依契合度</div>
         </div>
         <p className="muted" style={{ marginTop: -2 }}>
-          Cell = {dim === "net" ? "harmonious − challenging" : dim === "total" ? "total cross-aspects" : dim} score. Click a cell for the pair's aspects.
-          點格子看該對相位。
+          Cell = {dim === "net" ? "harmonious − challenging" : dim === "total" ? "total cross-aspects" : dim} score. Click a cell for the pair's aspects; ▲▼ to reorder.
+          點格子看該對相位、▲▼ 調整順序。
         </p>
         <div style={{ overflowX: "auto" }}>
-          <table style={{ minWidth: 360 }}>
-            <thead><tr><th></th>{g.people.map((p, j) => <th key={j} style={{ textAlign: "center" }}>{p.name}</th>)}</tr></thead>
+          <table style={{ minWidth: 380 }}>
+            <thead><tr><th></th>{order.map((j) => <th key={j} style={{ textAlign: "center" }}>{g.people[j].name}</th>)}</tr></thead>
             <tbody>
-              {g.people.map((p, i) => (
+              {order.map((i, row) => (
                 <tr key={i}>
-                  <th>{p.name}</th>
-                  {g.people.map((_, j) => {
+                  <th style={{ whiteSpace: "nowrap" }}>
+                    <span style={{ cursor: "pointer", color: row > 0 ? "var(--accent)" : "#3f3f46" }} onClick={() => move(row, -1)}>▲</span>
+                    <span style={{ cursor: "pointer", color: row < n - 1 ? "var(--accent)" : "#3f3f46" }} onClick={() => move(row, 1)}>▼</span>
+                    {" "}{g.people[i].name}
+                  </th>
+                  {order.map((j) => {
                     if (i === j) return <td key={j} style={{ textAlign: "center", color: "#52525b" }}>—</td>;
                     const v = valueOf(i, j);
                     return (

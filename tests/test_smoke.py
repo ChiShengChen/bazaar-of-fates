@@ -252,6 +252,28 @@ def test_transit_phase_applying_or_separating():
     assert hits and all(h["phase"] in ("applying", "separating") for h in hits)
 
 
+def test_exact_trigger_date_lands_on_the_angle():
+    from fortune.engines.astrology import astro
+    import ephem
+    c = casting.cast("astrology", BIRTH, transits=True, transit_date="2005-07-01")
+    m = next(h for h in c.chart["major_transits"] if h["type"] == "conjunction" and h["angle"] == "MC")
+    y, mo, d = map(int, m["exact_date"].split("-"))
+    sat = astro._lon(ephem.Saturn, date(y, mo, d))
+    assert abs((sat - m["angle_lon"] + 180) % 360 - 180) < 0.3   # Saturn really is on the MC then
+
+
+def test_secondary_progressions_overlay():
+    c = casting.cast("astrology", BIRTH, progress=True, transit_date="2030-06-15")  # ~age 40
+    assert c.chart["progressions"] and len(c.chart["progressions"]) == 7
+    assert "progression_aspects" in c.chart
+    assert c.readings["progressed_age"] == 40.0
+    # progressed Sun advances ~1°/year from natal Sun
+    nat = next(p["ecliptic_lon"] for p in c.chart["planets"] if p["body"] == "Sun")
+    prog = next(p["ecliptic_lon"] for p in c.chart["progressions"] if p["body"] == "Sun")
+    adv = (prog - nat) % 360
+    assert 35 < adv < 45   # ~40° for ~40 years
+
+
 def test_davison_is_a_real_distinct_chart():
     from fortune import synastry
     s = synastry.compute(BIRTH, _partner())

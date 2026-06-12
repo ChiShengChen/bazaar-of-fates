@@ -18,6 +18,7 @@ from datetime import timedelta
 import ephem
 
 from fortune.birth import BirthInput
+from fortune.engines.astrology import astro
 
 _SIGNS = ["Aries", "Taurus", "Gemini", "Cancer", "Leo", "Virgo",
           "Libra", "Scorpio", "Sagittarius", "Capricorn", "Aquarius", "Pisces"]
@@ -31,6 +32,19 @@ def sign_of(lon: float) -> str:
 
 def sign_zh(lon: float) -> str:
     return _SIGNS_ZH[int(lon // 30) % 12]
+
+
+def planets_at(dt_utc) -> list[dict]:
+    """Planet rows at an exact UT datetime (time-accurate) — for Davison & progressions."""
+    out = []
+    for name, cls in astro._BODIES.items():
+        body = cls()
+        body.compute(ephem.Date(dt_utc))
+        lo = math.degrees(ephem.Ecliptic(body).lon) % 360.0
+        retro = name not in ("Sun", "Moon") and astro.is_retrograde(cls, dt_utc.date())
+        out.append({"body": name, "ecliptic_lon": round(lo, 2),
+                    "sign": sign_of(lo), "sign_zh": sign_zh(lo), "retrograde": retro})
+    return out
 
 
 def has_birth_geometry(birth: BirthInput) -> bool:
