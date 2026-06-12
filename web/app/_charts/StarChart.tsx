@@ -14,6 +14,7 @@ const ASPECT_COLOR: Record<string, string> = {
 const ASPECT_ANGLE: Record<string, number> = { conjunction: 0, sextile: 60, square: 90, trine: 120, opposition: 180 };
 
 export interface CrossAspect { a: string; b: string; type: string; orb?: number; }
+export interface MajorTransit { transit: string; angle: string; type: string; angle_lon: number; orb: number; }
 
 // tighter orb → thicker, brighter line; wide orb → thin, faint
 function grade(orb: number, maxOrb = 6) {
@@ -47,10 +48,10 @@ function place(planets: PlanetPosition[], rBase: number) {
 }
 
 export function StarChart({
-  chart, aspects = [], aspectsDetail, cusps = [], outer = [], crossAspects = [], outerLabel,
+  chart, aspects = [], aspectsDetail, cusps = [], outer = [], crossAspects = [], majorTransits = [], outerLabel,
 }: {
   chart: PlanetPosition[]; aspects?: string[]; aspectsDetail?: CrossAspect[]; cusps?: HouseCusp[];
-  outer?: PlanetPosition[]; crossAspects?: CrossAspect[]; outerLabel?: string;
+  outer?: PlanetPosition[]; crossAspects?: CrossAspect[]; majorTransits?: MajorTransit[]; outerLabel?: string;
 }) {
   const natal = place(chart, rNatal);
   const outerP = place(outer, rOuter);
@@ -134,6 +135,19 @@ export function StarChart({
         return (
           <text key={`o${p.body}`} x={pl.x} y={pl.y} fontSize={14}
                 fill={p.retrograde ? "#fbbf24" : "#60a5fa"} textAnchor="middle" dominantBaseline="central">{GLYPH[p.body] || "•"}</text>
+        );
+      })}
+
+      {/* major transits: slow planet on a natal angle — gold halo + bold line to the angle */}
+      {majorTransits.map((m, i) => {
+        const tp = outerP[m.transit]; if (!tp) return null;
+        const ap = pos(m.angle_lon, rZodIn);
+        return (
+          <g key={`mt${i}`}>
+            <line x1={tp.x} y1={tp.y} x2={ap.x} y2={ap.y} stroke="#fbbf24" strokeWidth={1.6} opacity={0.85} />
+            <circle cx={tp.x} cy={tp.y} r={11} fill="none" stroke="#fbbf24" strokeWidth={1.4} />
+            <text x={ap.x} y={ap.y} dy={-3} fontSize={8} fill="#fbbf24" textAnchor="middle">{m.angle}</text>
+          </g>
         );
       })}
 

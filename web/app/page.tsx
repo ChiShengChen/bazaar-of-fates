@@ -63,7 +63,7 @@ export default function Page() {
     (scrubTransit as any)._t = setTimeout(async () => {
       try {
         const c = await getCast("astrology", toBirth(formA), { house_system: houseSystem, transits: true, transit_date: td });
-        setReading((r) => (r ? { ...r, chart: { ...r.chart, transits: c.chart.transits, transit_aspects: c.chart.transit_aspects }, readings: { ...r.readings, transit_date: td } } : r));
+        setReading((r) => (r ? { ...r, chart: { ...r.chart, transits: c.chart.transits, transit_aspects: c.chart.transit_aspects, major_transits: c.chart.major_transits }, readings: { ...r.readings, transit_date: td, major_transits: c.readings.major_transits } } : r));
       } catch { /* ignore scrub errors */ }
     }, 120);
   }

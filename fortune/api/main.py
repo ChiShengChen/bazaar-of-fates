@@ -17,7 +17,9 @@ from pydantic import BaseModel
 
 from fortune import casting, synastry as syn_mod, timeline as tl
 from fortune.birth import BirthInput
-from fortune.interpret import interpret, interpret_stream, interpret_synastry
+from fortune.interpret import (
+    interpret, interpret_composite, interpret_davison, interpret_stream, interpret_synastry,
+)
 from fortune.schemas import Chart, Reading, Synastry, Timeline
 from fortune.shared.config import get_settings
 from fortune.shared.logging import configure_logging, get_logger
@@ -104,6 +106,10 @@ def synastry(req: SynastryRequest) -> Synastry:
         log.exception("synastry_failed")
         raise HTTPException(500, f"synastry failed / 合盤失敗：{e}") from e
     s.interpretation = interpret_synastry(s, focus=req.focus)
+    if s.composite:
+        s.composite["interpretation"] = interpret_composite(s.composite, focus=req.focus)
+    if s.davison:
+        s.davison["interpretation"] = interpret_davison(s.davison, focus=req.focus)
     return s
 
 

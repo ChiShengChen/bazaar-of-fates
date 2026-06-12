@@ -37,7 +37,8 @@ class Synastry(BaseModel):
     a: Chart
     b: Chart
     cross_aspects: list[dict[str, Any]] = Field(default_factory=list)   # {a, b, type, orb}
-    composite: dict[str, Any] | None = None    # midpoint chart: {planets, aspects, ascendant?}
+    composite: dict[str, Any] | None = None    # longitude-midpoint chart: {planets, aspects, ascendant?}
+    davison: dict[str, Any] | None = None      # time-space midpoint chart (real ephemeris)
     summary: str = ""
     interpretation: str = ""
 

@@ -13,7 +13,7 @@ export function ChartView({ r }: { r: Chart }) {
     return (
       <StarChart chart={c.planets || []} aspects={c.aspects || []} aspectsDetail={c.aspects_detail}
                  cusps={r.ascendant?.houses || []}
-                 outer={c.transits || []} crossAspects={c.transit_aspects || []}
+                 outer={c.transits || []} crossAspects={c.transit_aspects || []} majorTransits={c.major_transits || []}
                  outerLabel={c.transits?.length ? `transits 行運 ${r.readings?.transit_date || ""}` : undefined} />
     );
 

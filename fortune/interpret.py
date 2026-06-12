@@ -85,6 +85,54 @@ _SYNASTRY_SYSTEM = (
 )
 
 
+_COMPOSITE_SYSTEM = (
+    "You are an astrologer reading a COMPOSITE chart — the midpoint chart that represents "
+    "the relationship itself as a single entity (not either person). Use ONLY the planets, "
+    "aspects, and ascendant below. Describe the relationship's purpose, character, and growth "
+    "edges, honestly and kindly. English first, then 中文. "
+    "你在讀『組合中點盤』——代表這段關係本身的命盤，只依據以下資料，先英後中。"
+)
+
+
+def interpret_composite(composite: dict, *, focus: str | None = None) -> str:
+    asc = composite.get("ascendant") or {}
+    facts = {
+        "composite_ascendant": f"{asc.get('sign', '?')} {asc.get('sign_zh', '')}".strip() or None,
+        "planets": [f"{p['body']} {p['sign']} {p['sign_zh']}" for p in composite.get("planets", [])],
+        "aspects": [f"{x['a']} {x['type']} {x['b']} ({x['orb']}°)" for x in composite.get("aspects", [])],
+    }
+    head = "Composite (midpoint) chart of the relationship.\n組合中點盤（關係本身的命盤）。\n"
+    if focus:
+        head += f"★ They ask about / 想問: {focus}\n"
+    user = head + f"\nFacts (JSON):\n{json.dumps(facts, ensure_ascii=False, indent=2)}\n\nRead bilingually."
+    return complete(_COMPOSITE_SYSTEM, user)
+
+
+_DAVISON_SYSTEM = (
+    "You are an astrologer reading a DAVISON relationship chart — a real ephemeris chart "
+    "cast for the midpoint moment in time and the midpoint location of the two births "
+    "(unlike the composite, this is an actual sky at an actual time/place). Use ONLY the "
+    "data below; describe the relationship's lived character and timing. English then 中文. "
+    "你在讀 Davison 時空中點盤（兩人生時與生地的真實中點所排的實際天象盤），只依資料、先英後中。"
+)
+
+
+def interpret_davison(davison: dict, *, focus: str | None = None) -> str:
+    asc = davison.get("ascendant") or {}
+    facts = {
+        "midpoint_datetime_UT": davison.get("datetime"),
+        "midpoint_location": [davison.get("latitude"), davison.get("longitude")],
+        "ascendant": f"{asc.get('sign', '?')} {asc.get('sign_zh', '')}".strip() or None,
+        "planets": [f"{p['body']} {p['sign']} {p['sign_zh']}" for p in davison.get("planets", [])],
+        "aspects": [f"{x['a']} {x['type']} {x['b']} ({x['orb']}°)" for x in davison.get("aspects", [])],
+    }
+    head = "Davison time-space midpoint chart.\nDavison 時空中點盤。\n"
+    if focus:
+        head += f"★ They ask about / 想問: {focus}\n"
+    user = head + f"\nFacts (JSON):\n{json.dumps(facts, ensure_ascii=False, indent=2)}\n\nRead bilingually."
+    return complete(_DAVISON_SYSTEM, user)
+
+
 def interpret_synastry(syn, *, focus: str | None = None) -> str:
     facts = {
         "person_A": {"subject": syn.a.subject, "summary": syn.a.summary},

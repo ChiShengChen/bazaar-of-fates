@@ -51,6 +51,9 @@ _RULER = {
     "Sagittarius": "Jupiter", "Capricorn": "Saturn", "Aquarius": "Saturn", "Pisces": "Jupiter",
 }
 _ANGULAR = {1, 4, 7, 10}
+_SLOW = {"Jupiter", "Saturn"}                     # the slow movers whose angle-hits are "major"
+_HARD = {"conjunction": 0.0, "square": 90.0, "opposition": 180.0}
+_ANGLE_ORB = 3.0
 
 
 def cast(birth: BirthInput, *, house_system: str = "whole_sign",
@@ -108,6 +111,29 @@ def cast(birth: BirthInput, *, house_system: str = "whole_sign",
         readings["transit_date"] = td.isoformat()
         readings["transit_hits"] = [f"natal {x['a']} {x['type']} transit {x['b']} ({x['orb']}°)" for x in tasp] or ["none 無"]
         chain.append(f"Transits 行運 ({td.isoformat()}): {len(tasp)} aspect(s) to the natal chart.")
+
+        # major transits: a slow planet (Jupiter/Saturn) hitting a natal angle (ASC/MC/DSC/IC)
+        if asc:
+            al = asc["longitude"]
+            mc = AX.mc_lon(birth)
+            angles = {"ASC": al, "DSC": (al + 180.0) % 360.0}
+            if mc is not None:
+                angles.update({"MC": mc, "IC": (mc + 180.0) % 360.0})
+            major = []
+            for t in trows:
+                if t["body"] not in _SLOW:
+                    continue
+                for an, alon in angles.items():
+                    sep = astro._separation(t["ecliptic_lon"], alon)
+                    for asp, exact in _HARD.items():
+                        if abs(sep - exact) <= _ANGLE_ORB:
+                            major.append({"transit": t["body"], "angle": an, "type": asp,
+                                          "angle_lon": round(alon, 2), "orb": round(abs(sep - exact), 1)})
+                            break
+            chart_payload["major_transits"] = major
+            readings["major_transits"] = [
+                f"⚠ transit {m['transit']} {m['type']} natal {m['angle']} ({m['orb']}°)" for m in major
+            ] or ["none 無"]
 
     summary = (
         f"太陽 {sun['sign_zh'] if sun else ''}座{asc_str}"

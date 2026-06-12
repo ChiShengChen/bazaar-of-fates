@@ -190,6 +190,36 @@ def test_transit_date_changes_overlay():
     assert s1 != s2     # the sky genuinely differs across the chosen dates
 
 
+def test_major_transits_field_present():
+    c = casting.cast("astrology", BIRTH, transits=True)
+    assert "major_transits" in c.chart and isinstance(c.chart["major_transits"], list)
+    assert "major_transits" in c.readings
+
+
+def test_major_transit_fires_when_saturn_hits_an_angle():
+    # 2005-07: transit Saturn (~Leo 0°) conjoins this chart's MC at ~120°
+    c = casting.cast("astrology", BIRTH, transits=True, transit_date="2005-07-01")
+    hits = c.chart["major_transits"]
+    assert any(h["transit"] == "Saturn" and h["angle"] == "MC" for h in hits)
+
+
+def test_davison_is_a_real_distinct_chart():
+    from fortune import synastry
+    s = synastry.compute(BIRTH, _partner())
+    assert s.davison and len(s.davison["planets"]) == 7
+    assert s.davison["datetime"] and s.davison["ascendant"]
+    # Davison ≠ composite: the time-accurate Moon differs from the longitude-midpoint Moon
+    dav_moon = next(p["ecliptic_lon"] for p in s.davison["planets"] if p["body"] == "Moon")
+    comp_moon = next(p["ecliptic_lon"] for p in s.composite["planets"] if p["body"] == "Moon")
+    assert abs((dav_moon - comp_moon + 180) % 360 - 180) > 0.5
+
+
+def test_davison_none_without_geometry():
+    from fortune import synastry
+    bare = BirthInput(birth_date=date(1990, 6, 15))
+    assert synastry.compute(bare, bare).davison is None
+
+
 def test_composite_midpoints():
     from fortune import synastry
     s = synastry.compute(BIRTH, _partner())

@@ -36,10 +36,18 @@ export interface BirthInput {
   place?: string; latitude?: number; longitude?: number; tz_offset_hours?: number;
 }
 
+export interface MidpointChart {
+  planets: PlanetPosition[];
+  aspects: { a: string; b: string; type: string; orb: number }[];
+  ascendant?: Ascendant;
+  interpretation?: string;
+  datetime?: string; latitude?: number; longitude?: number;   // davison only
+}
 export interface Synastry {
   a: Chart; b: Chart;
   cross_aspects: { a: string; b: string; type: string; orb: number }[];
-  composite?: { planets: PlanetPosition[]; aspects: { a: string; b: string; type: string; orb: number }[]; ascendant?: Ascendant } | null;
+  composite?: MidpointChart | null;
+  davison?: MidpointChart | null;
   summary: string; interpretation: string;
 }
 
