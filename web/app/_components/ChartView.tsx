@@ -11,10 +11,10 @@ export function ChartView({ r }: { r: Chart }) {
 
   if (r.system === "astrology")
     return (
-      <StarChart chart={c.planets || []} aspects={c.aspects || []}
+      <StarChart chart={c.planets || []} aspects={c.aspects || []} aspectsDetail={c.aspects_detail}
                  cusps={r.ascendant?.houses || []}
                  outer={c.transits || []} crossAspects={c.transit_aspects || []}
-                 outerLabel={c.transits?.length ? "transits 行運 (today)" : undefined} />
+                 outerLabel={c.transits?.length ? `transits 行運 ${r.readings?.transit_date || ""}` : undefined} />
     );
 
   if (r.system === "jyotish") {

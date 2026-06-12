@@ -36,6 +36,30 @@ export function SynastryView({ s, busy }: { s: Synastry; busy: boolean }) {
           </div>
         </div>
       </div>
+      {s.composite && s.composite.planets.length > 0 && (
+        <div className="card">
+          <h3>Composite chart 組合中點盤 — the relationship's own chart</h3>
+          <p className="muted" style={{ marginTop: -4 }}>Each planet at the midpoint of the two natal positions. 每顆星取兩人中點。</p>
+          <div className="cols">
+            <div>
+              <StarChart chart={s.composite.planets} aspectsDetail={s.composite.aspects}
+                         cusps={s.composite.ascendant?.houses || []} />
+            </div>
+            <div>
+              <table><tbody>
+                {s.composite.planets.map((p, i) => (
+                  <tr key={i}><td>{p.body}</td><td>{p.sign} {p.sign_zh}</td><td className="muted">{p.ecliptic_lon.toFixed(1)}°</td></tr>
+                ))}
+                {s.composite.ascendant && (
+                  <tr><td><b>ASC</b></td><td>{s.composite.ascendant.sign} {s.composite.ascendant.sign_zh}</td>
+                    <td className="muted">{s.composite.ascendant.longitude.toFixed(1)}°</td></tr>
+                )}
+              </tbody></table>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="card">
         <h3>Relationship reading 合盤解讀{busy ? " · …" : ""}</h3>
         <div className="interp">{s.interpretation}</div>

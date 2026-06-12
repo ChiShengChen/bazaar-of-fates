@@ -11,8 +11,15 @@ const GLYPH: Record<string, string> = {
 const ASPECT_COLOR: Record<string, string> = {
   conjunction: "#a1a1aa", sextile: "#34d399", trine: "#34d399", square: "#fb7185", opposition: "#fb7185",
 };
+const ASPECT_ANGLE: Record<string, number> = { conjunction: 0, sextile: 60, square: 90, trine: 120, opposition: 180 };
 
-export interface CrossAspect { a: string; b: string; type: string; }
+export interface CrossAspect { a: string; b: string; type: string; orb?: number; }
+
+// tighter orb → thicker, brighter line; wide orb → thin, faint
+function grade(orb: number, maxOrb = 6) {
+  const t = Math.max(0, Math.min(1, orb / maxOrb));
+  return { w: 2.1 - 1.6 * t, op: 0.85 - 0.55 * t };
+}
 
 const S = 360, cx = S / 2, cy = S / 2;
 const rZodOut = 172, rZodIn = 150, rSignGlyph = 161;
@@ -40,25 +47,29 @@ function place(planets: PlanetPosition[], rBase: number) {
 }
 
 export function StarChart({
-  chart, aspects = [], cusps = [], outer = [], crossAspects = [], outerLabel,
+  chart, aspects = [], aspectsDetail, cusps = [], outer = [], crossAspects = [], outerLabel,
 }: {
-  chart: PlanetPosition[]; aspects?: string[]; cusps?: HouseCusp[];
+  chart: PlanetPosition[]; aspects?: string[]; aspectsDetail?: CrossAspect[]; cusps?: HouseCusp[];
   outer?: PlanetPosition[]; crossAspects?: CrossAspect[]; outerLabel?: string;
 }) {
   const natal = place(chart, rNatal);
   const outerP = place(outer, rOuter);
   const withLon = cusps.filter((c) => typeof c.longitude === "number") as Required<HouseCusp>[];
 
-  const natalLines = aspects.map((a) => {
-    const t = a.split(/\s+/); const A = natal[t[0]], B = natal[t[2]];
-    if (!A || !B) return null;
-    return { pa: pos(A.lon, rAspect), pb: pos(B.lon, rAspect), color: ASPECT_COLOR[t[1]] || "#52525b", dash: "" };
+  // intra-chart aspects: prefer structured (with orb) for grading, else parse the strings
+  const detail: CrossAspect[] = aspectsDetail ?? aspects.map((a) => {
+    const t = a.split(/\s+/); const m = a.match(/([\d.]+)°/);
+    const sep = m ? parseFloat(m[1]) : null, ang = ASPECT_ANGLE[t[1]];
+    return { a: t[0], b: t[2], type: t[1], orb: sep != null && ang != null ? Math.abs(sep - ang) : 3 };
+  });
+  const natalLines = detail.map((x) => {
+    const A = natal[x.a], B = natal[x.b]; if (!A || !B) return null;
+    return { pa: pos(A.lon, rAspect), pb: pos(B.lon, rAspect), color: ASPECT_COLOR[x.type] || "#52525b", dash: "", ...grade(x.orb ?? 3) };
   }).filter(Boolean) as any[];
 
   const crossLines = crossAspects.map((x) => {
-    const A = natal[x.a], B = outerP[x.b];
-    if (!A || !B) return null;
-    return { pa: pos(A.lon, rAspect), pb: pos(B.lon, rAspect), color: ASPECT_COLOR[x.type] || "#52525b", dash: "3 2" };
+    const A = natal[x.a], B = outerP[x.b]; if (!A || !B) return null;
+    return { pa: pos(A.lon, rAspect), pb: pos(B.lon, rAspect), color: ASPECT_COLOR[x.type] || "#52525b", dash: "3 2", ...grade(x.orb ?? 3) };
   }).filter(Boolean) as any[];
 
   return (
@@ -101,7 +112,7 @@ export function StarChart({
 
       {natalLines.concat(crossLines).map((l, i) => (
         <line key={i} x1={l.pa.x} y1={l.pa.y} x2={l.pb.x} y2={l.pb.y}
-              stroke={l.color} strokeWidth={0.75} opacity={0.5} strokeDasharray={l.dash} />
+              stroke={l.color} strokeWidth={l.w} opacity={l.op} strokeDasharray={l.dash} />
       ))}
 
       {/* natal planets (inner) */}

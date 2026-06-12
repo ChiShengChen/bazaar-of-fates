@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import {
-  apiBase, getSystems, getTimeline, streamReading, getSynastry,
+  apiBase, getSystems, getTimeline, streamReading, getSynastry, getCast,
   SystemInfo, Reading, Timeline, Synastry,
 } from "@/lib/api";
 import { ChartView } from "./_components/ChartView";
@@ -21,7 +21,11 @@ export default function Page() {
   const [mode, setMode] = useState<"single" | "synastry">("single");
   const [houseSystem, setHouseSystem] = useState("whole_sign");
   const [transits, setTransits] = useState(false);
+  const [transitOffset, setTransitOffset] = useState(0);   // days from today
   const [focus, setFocus] = useState("");
+
+  const dateFromOffset = (off: number) => new Date(Date.now() + off * 86400000).toISOString().slice(0, 10);
+  const transitDate = dateFromOffset(transitOffset);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [reading, setReading] = useState<Reading | null>(null);
@@ -42,12 +46,26 @@ export default function Page() {
     try {
       let acc = "";
       await streamReading(
-        sys, b, focus || null, houseSystem, transits,
+        sys, b, focus || null, houseSystem, transits, transits ? transitDate : null,
         (chart) => setReading({ ...(chart as Reading), interpretation: "" }),
         (delta) => { acc += delta; setReading((r) => (r ? { ...r, interpretation: acc } : r)); },
       );
     } catch (e: any) { setErr(String(e.message || e)); }
     finally { setBusy(false); }
+  }
+
+  // live transit scrubbing: refresh only the wheel's outer ring (no LLM), debounced
+  function scrubTransit(off: number) {
+    setTransitOffset(off);
+    if (!reading || reading.system !== "astrology") return;
+    const td = dateFromOffset(off);
+    clearTimeout((scrubTransit as any)._t);
+    (scrubTransit as any)._t = setTimeout(async () => {
+      try {
+        const c = await getCast("astrology", toBirth(formA), { house_system: houseSystem, transits: true, transit_date: td });
+        setReading((r) => (r ? { ...r, chart: { ...r.chart, transits: c.chart.transits, transit_aspects: c.chart.transit_aspects }, readings: { ...r.readings, transit_date: td } } : r));
+      } catch { /* ignore scrub errors */ }
+    }, 120);
   }
 
   async function compare() {
@@ -139,6 +157,13 @@ export default function Page() {
               : <button onClick={compare} disabled={busy}>{busy ? "Comparing… 合盤中" : "Compare 合盤"}</button>}
           </div>
         </div>
+        {mode === "single" && sys === "astrology" && transits && (
+          <div style={{ marginTop: 12 }}>
+            <label>Transit date 行運日期 — drag to scrub 拖曳任意日期 · <b>{transitDate}</b>{transitOffset === 0 ? " (today 今天)" : ` (${transitOffset > 0 ? "+" : ""}${transitOffset}d)`}</label>
+            <input type="range" min={-1825} max={1825} value={transitOffset}
+                   onChange={(e) => scrubTransit(Number(e.target.value))} style={{ width: "100%" }} />
+          </div>
+        )}
         <div className="muted" style={{ marginTop: 10 }}>API: {apiBase()}</div>
       </div>
 

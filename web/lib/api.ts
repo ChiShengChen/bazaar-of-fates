@@ -39,6 +39,7 @@ export interface BirthInput {
 export interface Synastry {
   a: Chart; b: Chart;
   cross_aspects: { a: string; b: string; type: string; orb: number }[];
+  composite?: { planets: PlanetPosition[]; aspects: { a: string; b: string; type: string; orb: number }[]; ascendant?: Ascendant } | null;
   summary: string; interpretation: string;
 }
 
@@ -64,13 +65,30 @@ export const getSynastry = (a: BirthInput, b: BirthInput, focus: string | null, 
 
 // Stream a reading via SSE: onChart fires once with the deterministic 命盤,
 // onDelta fires for each text chunk of the 解讀.
+// lightweight chart-only cast (no LLM) — used by the transit slider for live scrubbing
+export async function getCast(
+  system: string, birth: BirthInput,
+  opts: { house_system?: string; transits?: boolean; transit_date?: string } = {},
+): Promise<Chart> {
+  const q = new URLSearchParams();
+  if (opts.house_system) q.set("house_system", opts.house_system);
+  if (opts.transits) q.set("transits", "true");
+  if (opts.transit_date) q.set("transit_date", opts.transit_date);
+  const r = await fetch(`${BASE}/cast/${system}?${q.toString()}`, {
+    method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(birth),
+  });
+  if (!r.ok) throw new Error((await r.json().catch(() => ({}))).detail || r.statusText);
+  return r.json();
+}
+
 export async function streamReading(
-  system: string, birth: BirthInput, focus: string | null, house_system: string, transits: boolean,
+  system: string, birth: BirthInput, focus: string | null,
+  house_system: string, transits: boolean, transit_date: string | null,
   onChart: (c: Chart) => void, onDelta: (t: string) => void,
 ): Promise<void> {
   const res = await fetch(`${BASE}/reading/${system}/stream`, {
     method: "POST", headers: { "content-type": "application/json" },
-    body: JSON.stringify({ birth, focus, house_system, transits }),
+    body: JSON.stringify({ birth, focus, house_system, transits, transit_date }),
   });
   if (!res.ok || !res.body) throw new Error((await res.json().catch(() => ({}))).detail || res.statusText);
   const reader = res.body.getReader();

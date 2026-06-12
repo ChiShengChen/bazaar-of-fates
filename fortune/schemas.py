@@ -33,10 +33,11 @@ class Reading(Chart):
 
 
 class Synastry(BaseModel):
-    """Two natal charts compared (合盤) with their cross-aspects."""
+    """Two natal charts compared (合盤) with their cross-aspects + the composite midpoint chart."""
     a: Chart
     b: Chart
     cross_aspects: list[dict[str, Any]] = Field(default_factory=list)   # {a, b, type, orb}
+    composite: dict[str, Any] | None = None    # midpoint chart: {planets, aspects, ascendant?}
     summary: str = ""
     interpretation: str = ""
 

@@ -162,16 +162,45 @@ def test_transits_off_by_default():
     assert "transits" not in casting.cast("astrology", BIRTH).chart
 
 
-def test_synastry_cross_aspects():
+def _partner():
     from datetime import time
+    return BirthInput(name="K", gender="male", birth_date=date(1988, 11, 2), birth_time=time(9, 15),
+                      latitude=25.04, longitude=121.56)
+
+
+def test_synastry_cross_aspects():
     from fortune import synastry
-    a = BIRTH
-    b = BirthInput(name="K", gender="male", birth_date=date(1988, 11, 2), birth_time=time(9, 15),
-                   latitude=25.04, longitude=121.56)
-    s = synastry.compute(a, b)
+    s = synastry.compute(BIRTH, _partner())
     assert s.a.system == "astrology" and s.b.system == "astrology"
     assert all({"a", "b", "type"} <= set(x) for x in s.cross_aspects)
     assert "✕" in s.summary
+
+
+def test_aspects_detail_carries_orb():
+    detail = casting.cast("astrology", BIRTH).chart["aspects_detail"]
+    assert detail and all({"a", "b", "type", "orb"} <= set(x) for x in detail)
+
+
+def test_transit_date_changes_overlay():
+    c1 = casting.cast("astrology", BIRTH, transits=True, transit_date="2020-01-01")
+    c2 = casting.cast("astrology", BIRTH, transits=True, transit_date="2024-01-01")
+    assert c1.readings["transit_date"] == "2020-01-01"
+    s1 = {p["body"]: p["ecliptic_lon"] for p in c1.chart["transits"]}
+    s2 = {p["body"]: p["ecliptic_lon"] for p in c2.chart["transits"]}
+    assert s1 != s2     # the sky genuinely differs across the chosen dates
+
+
+def test_composite_midpoints():
+    from fortune import synastry
+    s = synastry.compute(BIRTH, _partner())
+    assert s.composite and len(s.composite["planets"]) == 7
+    assert "ascendant" in s.composite       # both have birth time + place
+    # composite Sun is the shorter-arc midpoint of the two natal Suns
+    a_sun = next(p["ecliptic_lon"] for p in s.a.chart["planets"] if p["body"] == "Sun")
+    b_sun = next(p["ecliptic_lon"] for p in s.b.chart["planets"] if p["body"] == "Sun")
+    c_sun = next(p["ecliptic_lon"] for p in s.composite["planets"] if p["body"] == "Sun")
+    mid = (a_sun + (((b_sun - a_sun + 540) % 360) - 180) / 2) % 360
+    assert abs((c_sun - mid + 180) % 360 - 180) < 0.1
 
 
 # --- ③ streaming ---------------------------------------------------------------

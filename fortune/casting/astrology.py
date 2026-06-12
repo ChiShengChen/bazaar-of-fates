@@ -29,6 +29,21 @@ def _cross_aspects(natal: list[dict], transit: list[dict], orb: float = ORB) -> 
                     break
     return out
 
+
+def aspects_within(rows: list[dict], orb: float = ORB) -> list[dict]:
+    """Structured aspects within one chart (unique pairs), each with its orb — so the
+    wheel can grade line weight by how tight the aspect is."""
+    out: list[dict] = []
+    for i in range(len(rows)):
+        for j in range(i + 1, len(rows)):
+            sep = astro._separation(rows[i]["ecliptic_lon"], rows[j]["ecliptic_lon"])
+            for name, ang in astro._ASPECTS.items():
+                if abs(sep - ang) <= orb:
+                    out.append({"a": rows[i]["body"], "b": rows[j]["body"], "type": name,
+                                "orb": round(abs(sep - ang), 1)})
+                    break
+    return out
+
 # traditional (7-body) rulerships — the engine tracks exactly these classical bodies
 _RULER = {
     "Aries": "Mars", "Taurus": "Venus", "Gemini": "Mercury", "Cancer": "Moon",
@@ -38,7 +53,8 @@ _RULER = {
 _ANGULAR = {1, 4, 7, 10}
 
 
-def cast(birth: BirthInput, *, house_system: str = "whole_sign", transits: bool = False) -> Chart:
+def cast(birth: BirthInput, *, house_system: str = "whole_sign",
+         transits: bool = False, transit_date: str | None = None) -> Chart:
     d = birth.as_date
     chart_rows = [
         {"body": b, "ecliptic_lon": lon, "sign": sign, "sign_zh": astro.sign_zh(lon), "retrograde": retro}
@@ -79,9 +95,9 @@ def cast(birth: BirthInput, *, house_system: str = "whole_sign", transits: bool 
         readings["ascendant"] = "unknown — needs birth time + place 需時辰＋出生地"
         asc_str = "・上升未知"
 
-    chart_payload = {"planets": chart_rows, "aspects": aspects}
-    if transits:                                                  # 流年行運：overlay today's sky
-        td = date.today()
+    chart_payload = {"planets": chart_rows, "aspects": aspects, "aspects_detail": aspects_within(chart_rows)}
+    if transits:                                                  # 流年行運：overlay the sky on a date
+        td = date.fromisoformat(transit_date) if transit_date else date.today()
         trows = [
             {"body": b, "ecliptic_lon": lon, "sign": sign, "sign_zh": astro.sign_zh(lon), "retrograde": retro}
             for (b, lon, sign, retro) in astro.chart_for(td)
