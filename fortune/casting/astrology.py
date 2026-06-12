@@ -15,7 +15,7 @@ from fortune.schemas import Chart
 KEY, ZH, EN, ORB = "astrology", "西洋占星", "Western Astrology", 6.0
 
 
-def cast(birth: BirthInput) -> Chart:
+def cast(birth: BirthInput, *, house_system: str = "whole_sign") -> Chart:
     d = birth.as_date
     chart_rows = [
         {"body": b, "ecliptic_lon": lon, "sign": sign, "sign_zh": astro.sign_zh(lon), "retrograde": retro}
@@ -26,14 +26,18 @@ def cast(birth: BirthInput) -> Chart:
     sun = next((r for r in chart_rows if r["body"] == "Sun"), None)
     moon = readings.get("moon_phase", "")
 
-    asc = AX.ascendant_block(birth)                          # None if 時辰/出生地 missing
+    asc = AX.ascendant_block(birth, house_system=house_system)   # None if 時辰/出生地 missing
     if asc:
-        for r in chart_rows:                                # place each planet in a whole-sign house
-            r["house"] = AX.house_of(r["ecliptic_lon"], asc["longitude"])
+        cusps = asc["houses"]
+        place = (lambda lon: AX.house_of_cusps(lon, cusps)) if asc["house_system"] == "placidus" \
+            else (lambda lon: AX.house_of(lon, asc["longitude"]))
+        for r in chart_rows:
+            r["house"] = place(r["ecliptic_lon"])
+        hs_label = "Placidus 不等宮" if asc["house_system"] == "placidus" else "whole-sign 整星座"
         readings["ascendant"] = f"{asc['sign']} {asc['sign_zh']} {asc['longitude']:.1f}°"
-        readings["house_system"] = "whole-sign 整星座"
+        readings["house_system"] = hs_label
         chain.insert(0, f"Ascendant 上升 {asc['sign']} {asc['sign_zh']} {asc['longitude']:.1f}° "
-                        f"(whole-sign houses 整星座宮位)")
+                        f"({hs_label})")
         asc_str = f"・上升 {asc['sign_zh']}"
     else:
         readings["ascendant"] = "unknown — needs birth time + place 需時辰＋出生地"

@@ -61,3 +61,38 @@ def test_ziwei_life_palace_varies_by_hour():
         for h in (1, 7, 13, 19)
     }
     assert len(palaces) > 1     # 命宮 genuinely depends on 時辰
+
+
+# --- ① Placidus ----------------------------------------------------------------
+
+def test_placidus_cusp1_is_ascendant_and_cusp10_is_mc():
+    from fortune import astro_ext as AX
+    cusps = AX.placidus_houses(BIRTH)
+    asc, mc = AX.ascendant_lon(BIRTH), AX.mc_lon(BIRTH)
+    assert abs((cusps[0]["longitude"] - asc + 180) % 360 - 180) < 0.01    # cusp 1 == Asc
+    assert abs((cusps[9]["longitude"] - mc + 180) % 360 - 180) < 0.01     # cusp 10 == MC
+    gaps = [(cusps[(i + 1) % 12]["longitude"] - cusps[i]["longitude"]) % 360 for i in range(12)]
+    assert all(g > 0 for g in gaps) and abs(sum(gaps) - 360) < 0.01       # monotonic, closes
+
+
+def test_house_system_toggle_differs():
+    ws = casting.cast("astrology", BIRTH, house_system="whole_sign")
+    pl = casting.cast("astrology", BIRTH, house_system="placidus")
+    assert ws.ascendant["house_system"] == "whole_sign"
+    assert pl.ascendant["house_system"] == "placidus"
+    assert ws.ascendant["houses"] != pl.ascendant["houses"]
+
+
+# --- ③ timelines ---------------------------------------------------------------
+
+def test_timelines_build_and_mark_current():
+    from fortune import timeline as tl
+    for key in ("jyotish", "bazi", "ziwei"):
+        t = tl.timeline(key, BIRTH)
+        assert t.kind != "none" and t.periods
+        assert sum(1 for p in t.periods if p.current) <= 1     # at most one "now"
+
+
+def test_timeline_none_for_pointwise_systems():
+    from fortune import timeline as tl
+    assert tl.timeline("qimen", BIRTH).kind == "none"

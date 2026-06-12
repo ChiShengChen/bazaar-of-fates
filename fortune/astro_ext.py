@@ -85,6 +85,91 @@ def _is_eastern(lambda_deg: float, ramc_deg: float, eps_deg: float) -> bool:
     return 0.0 < (ra - ramc_deg) % 360.0 < 180.0
 
 
+def _ramc_eps_phi(birth: BirthInput):
+    """(RAMC deg, obliquity rad, latitude rad) for the birth moment, or None."""
+    if not has_birth_geometry(birth):
+        return None
+    obs = ephem.Observer()
+    obs.lat = str(birth.latitude)
+    obs.lon = str(birth.longitude)
+    obs.date = ephem.Date(_utc(birth))
+    ramc = math.degrees(float(obs.sidereal_time())) % 360.0
+    jd = float(obs.date) + 2415020.0
+    return ramc, math.radians(_obliquity_deg(jd)), math.radians(float(birth.latitude))
+
+
+def mc_lon(birth: BirthInput) -> float | None:
+    """Ecliptic longitude of the Midheaven (the meridian ∩ ecliptic)."""
+    g = _ramc_eps_phi(birth)
+    if g is None:
+        return None
+    ramc, eps, _phi = g
+    r = math.radians(ramc)
+    return round(math.degrees(math.atan2(math.sin(r), math.cos(r) * math.cos(eps))) % 360.0, 2)
+
+
+def _lon_from_ra(ra_deg: float, eps: float) -> float:
+    """Ecliptic longitude on the ecliptic (β=0) whose right ascension is ra."""
+    r = math.radians(ra_deg)
+    return math.degrees(math.atan2(math.sin(r), math.cos(r) * math.cos(eps))) % 360.0
+
+
+def _placidus_cusp(ramc: float, eps: float, phi: float, offset: float, frac: float, from_ic: bool) -> float:
+    """One Placidus intermediate cusp by the semi-arc method (iterate on the cusp's
+    own declination). 11/12 measure a fraction of the semi-diurnal arc east of the MC;
+    2/3 measure a fraction of the semi-nocturnal arc back from the IC."""
+    lam = (ramc + offset) % 360.0                       # initial guess
+    for _ in range(60):
+        decl = math.asin(math.sin(eps) * math.sin(math.radians(lam)))
+        x = math.tan(phi) * math.tan(decl)
+        x = max(-1.0, min(1.0, x))                       # clamp near the poles
+        ad = math.degrees(math.asin(x))                 # ascensional difference
+        if from_ic:
+            ra = (ramc + 180.0) - frac * (90.0 - ad)    # cusps 2, 3
+        else:
+            ra = ramc + frac * (90.0 + ad)              # cusps 11, 12
+        new = _lon_from_ra(ra, eps)
+        if abs((new - lam + 180.0) % 360.0 - 180.0) < 1e-7:
+            lam = new
+            break
+        lam = new
+    return lam % 360.0
+
+
+def placidus_houses(birth: BirthInput) -> list[dict] | None:
+    """12 Placidus cusps. Cusp 1 == ascendant and cusp 10 == MC by construction.
+    Undefined inside the polar circles → returns None (caller falls back to whole-sign)."""
+    g = _ramc_eps_phi(birth)
+    if g is None:
+        return None
+    ramc, eps, phi = g
+    if abs(math.degrees(phi)) > 66.0:                   # Placidus breaks down past the polar circle
+        return None
+    asc = ascendant_lon(birth)
+    mc = mc_lon(birth)
+    if asc is None or mc is None:
+        return None
+    c11 = _placidus_cusp(ramc, eps, phi, 30.0, 1.0 / 3.0, from_ic=False)
+    c12 = _placidus_cusp(ramc, eps, phi, 60.0, 2.0 / 3.0, from_ic=False)
+    c2 = _placidus_cusp(ramc, eps, phi, 120.0, 2.0 / 3.0, from_ic=True)
+    c3 = _placidus_cusp(ramc, eps, phi, 150.0, 1.0 / 3.0, from_ic=True)
+    lons = [asc, c2, c3, (mc + 180.0) % 360.0, (c11 + 180.0) % 360.0, (c12 + 180.0) % 360.0,
+            (asc + 180.0) % 360.0, (c2 + 180.0) % 360.0, (c3 + 180.0) % 360.0, mc, c11, c12]
+    return [{"house": i + 1, "longitude": round(lon, 2), "sign": sign_of(lon), "sign_zh": sign_zh(lon)}
+            for i, lon in enumerate(lons)]
+
+
+def house_of_cusps(planet_lon: float, cusps: list[dict]) -> int:
+    """House number a planet falls in, given 12 ecliptic cusp longitudes (any system)."""
+    lons = [c["longitude"] for c in cusps]
+    for i in range(12):
+        a, b = lons[i], lons[(i + 1) % 12]
+        span = (b - a) % 360.0
+        if (planet_lon - a) % 360.0 < span:
+            return i + 1
+    return 1
+
+
 def whole_sign_houses(asc_lon: float) -> list[dict]:
     """12 whole-sign houses: house 1 = the ascendant's whole sign, then sequential signs."""
     asc_sign = int(asc_lon // 30) % 12
@@ -100,18 +185,32 @@ def house_of(planet_lon: float, asc_lon: float) -> int:
     return ((int(planet_lon // 30) - int(asc_lon // 30)) % 12) + 1
 
 
-def ascendant_block(birth: BirthInput, *, ayanamsa: float = 0.0) -> dict | None:
+def ascendant_block(birth: BirthInput, *, ayanamsa: float = 0.0,
+                    house_system: str = "whole_sign") -> dict | None:
     """Uniform ascendant payload for the Chart.ascendant field.
-    `ayanamsa` > 0 gives the sidereal (Jyotiṣa) ascendant; 0 = tropical (Western)."""
+    `ayanamsa` > 0 gives the sidereal (Jyotiṣa) ascendant; 0 = tropical (Western).
+    `house_system`: "whole_sign" (default) or "placidus" (tropical only; falls back
+    to whole-sign past the polar circle)."""
     trop = ascendant_lon(birth)
     if trop is None:
         return None
     lon = (trop - ayanamsa) % 360.0
-    return {
+
+    used = "whole_sign"
+    houses = whole_sign_houses(lon)
+    if house_system == "placidus" and ayanamsa == 0.0:
+        pl = placidus_houses(birth)
+        if pl is not None:
+            houses, used = pl, "placidus"
+
+    block = {
         "longitude": round(lon, 2),
         "sign": sign_of(lon),
         "sign_zh": sign_zh(lon),
-        "house_system": "whole_sign",
+        "house_system": used,
         "sidereal": ayanamsa > 0,
-        "houses": whole_sign_houses(lon),
+        "houses": houses,
     }
+    if used == "placidus":
+        block["mc"] = mc_lon(birth)
+    return block

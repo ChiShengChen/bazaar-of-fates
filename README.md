@@ -35,10 +35,17 @@ cp .env.example .env
 # Backend API / 後端
 uvicorn fortune.api.main:app --reload
 
-# Static fortune page, no node build / 靜態算命頁，免 node build
-python -m http.server 5500 --directory web
-# open http://localhost:5500/ → fill birth → pick a system → see chart + reading
+# Front end — choose one / 前端二選一：
+
+# (a) Next.js app with SVG charts + timelines / 含星盤命盤與大運時間軸（需 node ≥ 20）
+cd web && npm install && npm run dev      # http://localhost:3000
+# build check: npm run build
+
+# (b) Static page, no node build / 靜態頁，免 node build
+python -m http.server 5500 --directory web   # http://localhost:5500/index.html
 ```
+
+The Next.js app draws the **circular 星盤** (astrology), **南印度 rāśi chart** (Jyotiṣa), **七政星盤**, 四柱/紫微 grids, ascendant + houses, the bilingual reading, and a **大運/流年 timeline**. Point it at a non-default API with `NEXT_PUBLIC_API_BASE`.
 
 Runs with **no LLM key**: every chart casts deterministically; only the prose reading is a mocked facts digest. Set `LLM_BACKEND=anthropic` + `ANTHROPIC_API_KEY` for a real **bilingual (English + 中文)** AI reading.
 不接 LLM 也能跑：命盤照排，只有解讀走 mock。設金鑰後即得真正的雙語 AI 解讀。
@@ -48,8 +55,11 @@ Runs with **no LLM key**: every chart casts deterministically; only the prose re
 | method | path | |
 |---|---|---|
 | `GET` | `/systems` | the 11 systems + which cast cleanly / 11 系清單＋可用狀態 |
-| `POST` | `/cast/{system}` | deterministic chart, no LLM → `Chart` / 純命盤 |
-| `POST` | `/reading/{system}` | chart + bilingual reading → `Reading` / 命盤＋解讀 |
+| `POST` | `/cast/{system}?house_system=placidus` | deterministic chart, no LLM → `Chart` / 純命盤 |
+| `POST` | `/reading/{system}` | chart + bilingual reading (`house_system` in body) → `Reading` |
+| `POST` | `/timeline/{system}` | 大運 / Mahādaśā / 流年 sequence → `Timeline` (kind=`none` if N/A) |
+
+**Houses 宮位制** — astrology takes `house_system`: `whole_sign` (default) or `placidus` (validated so cusp 1 = ascendant and cusp 10 = MC; falls back past the polar circle). **Timelines 時間軸** — Jyotiṣa Vimśottarī Mahādaśā (120-yr), BaZi 大運 (10-yr luck pillars, direction by 年干陰陽 × gender), 紫微 流年四化.
 
 ```bash
 curl -s localhost:8000/cast/bazi -H 'content-type: application/json' -d '{
@@ -67,14 +77,16 @@ fortune/
   schemas.py          Chart / Reading envelope
   shared/             native: config / logging / llm (mock + anthropic)
   engines/<system>/   ← synced 排盤 math from the monorepo (do NOT hand-edit)
-  astro_ext.py        native: ascendant + whole-sign houses (astrology/qizheng/jyotish)
+  astro_ext.py        native: ascendant + whole-sign + Placidus houses (astrology/qizheng/jyotish)
   ziwei_ext.py        native: 紫微 with the real birth 時辰 (reuses ziwei_core primitives)
+  timeline.py         native: 大運 / Mahādaśā / 流年 sequences
   casting/<system>.py per-system adapter: birth → engine fns → Chart
   casting/__init__.py registry of the 11 systems (lazy import)
   interpret.py        chart facts + tradition prompt → bilingual reading
-  api/main.py         FastAPI
+  api/main.py         FastAPI (/systems /cast /reading /timeline)
 prompts/<system>/     ← synced reading prompts from the monorepo
-web/index.html        static fortune page + synced chart renderers
+web/                  Next.js app (app/page.tsx, lib/api.ts, _components/) + static index.html
+  app/_charts/        ← synced SVG chart renderers (StarChart/RashiChart/QizhengChart)
 scripts/sync_from_main.sh   re-sync the 排盤 math
 ```
 

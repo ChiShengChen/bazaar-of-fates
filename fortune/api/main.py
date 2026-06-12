@@ -12,10 +12,10 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
-from fortune import casting
+from fortune import casting, timeline as tl
 from fortune.birth import BirthInput
 from fortune.interpret import interpret
-from fortune.schemas import Chart, Reading
+from fortune.schemas import Chart, Reading, Timeline
 from fortune.shared.config import get_settings
 from fortune.shared.logging import configure_logging, get_logger
 
@@ -35,6 +35,7 @@ app.add_middleware(
 class ReadingRequest(BaseModel):
     birth: BirthInput
     focus: str | None = None      # optional topic / 命主想問的方向（career, love, health…）
+    house_system: str = "whole_sign"   # "whole_sign" | "placidus" (astrology only)
 
 
 @app.get("/health")
@@ -48,9 +49,9 @@ def list_systems() -> list[dict[str, object]]:
 
 
 @app.post("/cast/{system}", response_model=Chart)
-def cast(system: str, birth: BirthInput) -> Chart:
+def cast(system: str, birth: BirthInput, house_system: str = "whole_sign") -> Chart:
     try:
-        return casting.cast(system, birth)
+        return casting.cast(system, birth, house_system=house_system)
     except KeyError as e:
         raise HTTPException(404, str(e)) from e
     except Exception as e:  # noqa: BLE001
@@ -58,10 +59,20 @@ def cast(system: str, birth: BirthInput) -> Chart:
         raise HTTPException(500, f"{system} cast failed / 排盤失敗：{e}") from e
 
 
+@app.post("/timeline/{system}", response_model=Timeline)
+def life_timeline(system: str, birth: BirthInput) -> Timeline:
+    """大運 / Mahādaśā / 流年 sequence for the system (empty kind='none' if it has none)."""
+    try:
+        return tl.timeline(system, birth)
+    except Exception as e:  # noqa: BLE001
+        log.exception("timeline_failed", system=system)
+        raise HTTPException(500, f"{system} timeline failed / 時間軸失敗：{e}") from e
+
+
 @app.post("/reading/{system}", response_model=Reading)
 def reading(system: str, req: ReadingRequest) -> Reading:
     try:
-        chart = casting.cast(system, req.birth)
+        chart = casting.cast(system, req.birth, house_system=req.house_system)
     except KeyError as e:
         raise HTTPException(404, str(e)) from e
     except Exception as e:  # noqa: BLE001

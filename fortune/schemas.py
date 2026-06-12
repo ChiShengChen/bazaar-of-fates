@@ -30,3 +30,25 @@ class Chart(BaseModel):
 class Reading(Chart):
     interpretation: str = ""                 # LLM 解讀 — the product layer on top of the facts
     cost_usd: float = 0.0
+
+
+class Period(BaseModel):
+    """One segment of a life-timeline (大運 / Mahādaśā / 流年)."""
+    index: int
+    label: str                               # lord / 干支 / 年干
+    detail: str = ""
+    start: str                               # ISO date (or "" if age-only)
+    end: str = ""
+    start_age: float | None = None           # age at period start, if known
+    nature: str = "neutral"                  # benefic | malefic | favourable | unfavourable | neutral
+    current: bool = False                    # is "today" inside this period
+
+
+class Timeline(BaseModel):
+    system: str
+    system_en: str = ""
+    system_zh: str
+    kind: str                                # "mahadasha" | "dayun" | "liunian_sihua" | "none"
+    kind_label: str = ""                     # bilingual heading
+    periods: list[Period] = Field(default_factory=list)
+    note: str = ""
