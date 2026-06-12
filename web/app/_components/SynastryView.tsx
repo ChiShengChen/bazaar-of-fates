@@ -1,6 +1,7 @@
 "use client";
 import { Synastry, MidpointChart } from "@/lib/api";
 import { StarChart } from "../_charts/StarChart";
+import { TimelineView } from "./TimelineView";
 
 const HARMONIOUS = new Set(["trine", "sextile", "conjunction"]);
 
@@ -25,6 +26,9 @@ function MidpointBlock({ title, note, m }: { title: string; note: string; m: Mid
           </tbody></table>
         </div>
       </div>
+      {m.timeline && m.timeline.periods.length > 0 && (
+        <div style={{ marginTop: 12 }}><TimelineView t={{ system: "davison", system_zh: "", kind: "returns", kind_label: m.timeline.kind_label, periods: m.timeline.periods, note: "" } as any} /></div>
+      )}
       {m.interpretation && <div className="interp" style={{ marginTop: 12 }}>{m.interpretation}</div>}
     </div>
   );

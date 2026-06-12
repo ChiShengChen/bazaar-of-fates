@@ -54,6 +54,8 @@ _ANGULAR = {1, 4, 7, 10}
 _SLOW = {"Jupiter", "Saturn"}                     # the slow movers whose angle-hits are "major"
 _HARD = {"conjunction": 0.0, "square": 90.0, "opposition": 180.0}
 _ANGLE_ORB = 3.0
+# how strongly each angle-contact reads — a conjunction on an angle outweighs a square
+_ASPECT_WEIGHT = {"conjunction": 1.0, "opposition": 0.8, "square": 0.6}
 
 
 def cast(birth: BirthInput, *, house_system: str = "whole_sign",
@@ -126,10 +128,14 @@ def cast(birth: BirthInput, *, house_system: str = "whole_sign",
                 for an, alon in angles.items():
                     sep = astro._separation(t["ecliptic_lon"], alon)
                     for asp, exact in _HARD.items():
-                        if abs(sep - exact) <= _ANGLE_ORB:
+                        orb = abs(sep - exact)
+                        if orb <= _ANGLE_ORB:
+                            # weight 0..1: aspect potency × tightness (tight orb → stronger)
+                            weight = round(_ASPECT_WEIGHT[asp] * (1.0 - 0.45 * orb / _ANGLE_ORB), 2)
                             major.append({"transit": t["body"], "angle": an, "type": asp,
-                                          "angle_lon": round(alon, 2), "orb": round(abs(sep - exact), 1)})
+                                          "angle_lon": round(alon, 2), "orb": round(orb, 1), "weight": weight})
                             break
+            major.sort(key=lambda m: m["weight"], reverse=True)
             chart_payload["major_transits"] = major
             readings["major_transits"] = [
                 f"⚠ transit {m['transit']} {m['type']} natal {m['angle']} ({m['orb']}°)" for m in major

@@ -133,6 +133,31 @@ def interpret_davison(davison: dict, *, focus: str | None = None) -> str:
     return complete(_DAVISON_SYSTEM, user)
 
 
+_GROUP_SYSTEM = (
+    "You are an astrologer reading GROUP dynamics (團體合盤) from the pairwise cross-aspect "
+    "scores below. Describe the group's overall cohesion, the bonds that flow easily, and the "
+    "tensions to mind — honestly and kindly, never deterministically. English then 中文. "
+    "你在讀團體合盤：依下列兩兩相位分數，論整體默契、順暢的連結與需留意的張力，先英後中。"
+)
+
+
+def interpret_group(grp: dict, *, focus: str | None = None) -> str:
+    facts = {
+        "people": [p["summary"] for p in grp.get("people", [])],
+        "pairs": [f"{p['a']}↔{p['b']}: net {p['net']} (harmonious {p['harmonious']} / challenging {p['challenging']})"
+                  for p in grp.get("pairs", [])],
+        "most_in_sync": (grp.get("best_pair") or {}).get("a") and
+        f"{grp['best_pair']['a']}↔{grp['best_pair']['b']}",
+        "most_tension": (grp.get("tense_pair") or {}).get("a") and
+        f"{grp['tense_pair']['a']}↔{grp['tense_pair']['b']}",
+    }
+    head = "Group dynamics 團體合盤.\n"
+    if focus:
+        head += f"★ They ask about / 想問: {focus}\n"
+    user = head + f"\nFacts (JSON):\n{json.dumps(facts, ensure_ascii=False, indent=2)}\n\nRead bilingually."
+    return complete(_GROUP_SYSTEM, user)
+
+
 def interpret_synastry(syn, *, focus: str | None = None) -> str:
     facts = {
         "person_A": {"subject": syn.a.subject, "summary": syn.a.summary},

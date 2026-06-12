@@ -42,6 +42,7 @@ export interface MidpointChart {
   ascendant?: Ascendant;
   interpretation?: string;
   datetime?: string; latitude?: number; longitude?: number;   // davison only
+  timeline?: { kind_label: string; periods: Period[] };        // davison returns
 }
 export interface Synastry {
   a: Chart; b: Chart;
@@ -70,6 +71,18 @@ export const getTimeline = (system: string, birth: BirthInput) =>
 
 export const getSynastry = (a: BirthInput, b: BirthInput, focus: string | null, house_system: string) =>
   post<Synastry>(`/synastry`, { a, b, focus, house_system });
+
+export interface GroupResult {
+  people: { name: string; subject: string; summary: string }[];
+  pairs: { i: number; j: number; a: string; b: string; harmonious: number; challenging: number; net: number;
+           aspects: { a: string; b: string; type: string; orb: number }[] }[];
+  matrix: number[][];
+  best_pair?: { a: string; b: string; net: number } | null;
+  tense_pair?: { a: string; b: string; net: number } | null;
+  summary: string; interpretation: string;
+}
+export const getGroup = (births: BirthInput[], focus: string | null, house_system: string) =>
+  post<GroupResult>(`/group`, { births, focus, house_system });
 
 // Stream a reading via SSE: onChart fires once with the deterministic 命盤,
 // onDelta fires for each text chunk of the 解讀.

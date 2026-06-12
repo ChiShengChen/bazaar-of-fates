@@ -203,6 +203,31 @@ def test_major_transit_fires_when_saturn_hits_an_angle():
     assert any(h["transit"] == "Saturn" and h["angle"] == "MC" for h in hits)
 
 
+def test_major_transit_weight_grades_by_aspect():
+    c = casting.cast("astrology", BIRTH, transits=True, transit_date="2005-07-01")
+    conj = next(h for h in c.chart["major_transits"] if h["type"] == "conjunction")
+    sq = next((h for h in c.chart["major_transits"] if h["type"] == "square"), None)
+    assert 0 < (sq["weight"] if sq else 0) < conj["weight"]   # conjunction outweighs square
+
+
+def test_davison_timeline_returns():
+    from fortune import synastry
+    tl = synastry.compute(BIRTH, _partner()).davison["timeline"]
+    labels = [p["label"] for p in tl["periods"]]
+    assert any("Saturn return" in s for s in labels) and any("Jupiter return" in s for s in labels)
+
+
+def test_group_matrix_is_symmetric_and_scored():
+    from fortune import group
+    c = BirthInput(name="L", gender="female", birth_date=date(1992, 3, 8), birth_time=time(20, 40),
+                   latitude=22.3, longitude=114.2)
+    g = group.compute([BIRTH, _partner(), c])
+    m = g["matrix"]
+    assert len(m) == 3 and all(m[i][i] == 0 for i in range(3))
+    assert all(m[i][j] == m[j][i] for i in range(3) for j in range(3))   # symmetric
+    assert len(g["pairs"]) == 3 and g["best_pair"] and g["tense_pair"]
+
+
 def test_davison_is_a_real_distinct_chart():
     from fortune import synastry
     s = synastry.compute(BIRTH, _partner())

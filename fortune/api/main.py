@@ -15,12 +15,12 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
-from fortune import casting, synastry as syn_mod, timeline as tl
+from fortune import casting, group as grp_mod, synastry as syn_mod, timeline as tl
 from fortune.birth import BirthInput
 from fortune.interpret import (
-    interpret, interpret_composite, interpret_davison, interpret_stream, interpret_synastry,
+    interpret, interpret_composite, interpret_davison, interpret_group, interpret_stream, interpret_synastry,
 )
-from fortune.schemas import Chart, Reading, Synastry, Timeline
+from fortune.schemas import Chart, Group, Reading, Synastry, Timeline
 from fortune.shared.config import get_settings
 from fortune.shared.logging import configure_logging, get_logger
 
@@ -48,6 +48,12 @@ class ReadingRequest(BaseModel):
 class SynastryRequest(BaseModel):
     a: BirthInput
     b: BirthInput
+    focus: str | None = None
+    house_system: str = "whole_sign"
+
+
+class GroupRequest(BaseModel):
+    births: list[BirthInput]
     focus: str | None = None
     house_system: str = "whole_sign"
 
@@ -111,6 +117,22 @@ def synastry(req: SynastryRequest) -> Synastry:
     if s.davison:
         s.davison["interpretation"] = interpret_davison(s.davison, focus=req.focus)
     return s
+
+
+@app.post("/group", response_model=Group)
+def group(req: GroupRequest) -> Group:
+    """團體合盤: pairwise cross-aspect matrix + standout pairs + a group-dynamics reading."""
+    if len(req.births) < 2:
+        raise HTTPException(400, "need at least 2 people / 至少兩人")
+    if len(req.births) > 8:
+        raise HTTPException(400, "max 8 people / 最多八人")
+    try:
+        g = grp_mod.compute(req.births, house_system=req.house_system)
+    except Exception as e:  # noqa: BLE001
+        log.exception("group_failed")
+        raise HTTPException(500, f"group failed / 團體合盤失敗：{e}") from e
+    g["interpretation"] = interpret_group(g, focus=req.focus)
+    return Group(**g)
 
 
 def _sse(event: str, data: str) -> str:

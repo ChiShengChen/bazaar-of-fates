@@ -43,6 +43,17 @@ class Synastry(BaseModel):
     interpretation: str = ""
 
 
+class Group(BaseModel):
+    """團體合盤: N people scored pairwise into a cross-aspect net-score matrix."""
+    people: list[dict[str, Any]] = Field(default_factory=list)
+    pairs: list[dict[str, Any]] = Field(default_factory=list)
+    matrix: list[list[int]] = Field(default_factory=list)
+    best_pair: dict[str, Any] | None = None
+    tense_pair: dict[str, Any] | None = None
+    summary: str = ""
+    interpretation: str = ""
+
+
 class Period(BaseModel):
     """One segment of a life-timeline (大運 / Mahādaśā / 流年)."""
     index: int

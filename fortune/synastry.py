@@ -6,8 +6,10 @@ against person B's), the classic relationship-astrology overlay. Native module.
 
 from __future__ import annotations
 
+import datetime as _dt
 import math
 from collections import Counter
+from datetime import date as _date
 from datetime import timedelta
 
 import ephem
@@ -30,6 +32,49 @@ def _midpoint(a: float, b: float) -> float:
 
 def _has_geometry(p: BirthInput) -> bool:
     return p.birth_time is not None and p.latitude is not None and p.longitude is not None
+
+
+_RETURN_BODIES = {"Jupiter": (ephem.Jupiter, 11.862, "benefic"),
+                  "Saturn": (ephem.Saturn, 29.457, "malefic")}
+
+
+def _find_return(natal_lon: float, body_cls, start: _date, period_years: float, k: int) -> _date:
+    """Date of the k-th return of `body` to `natal_lon` (transit conjunct natal)."""
+    approx = start + timedelta(days=int(period_years * k * 365.2425))
+    best = (approx, 999.0)
+    for off in range(-400, 401, 5):                       # coarse, then fine
+        d = approx + timedelta(days=off)
+        sep = astro._separation(astro._lon(body_cls, d), natal_lon)
+        if sep < best[1]:
+            best = (d, sep)
+    d0 = best[0]
+    for off in range(-5, 6):
+        d = d0 + timedelta(days=off)
+        sep = astro._separation(astro._lon(body_cls, d), natal_lon)
+        if sep < best[1]:
+            best = (d, sep)
+    return best[0]
+
+
+def _davison_timeline(dav: dict) -> dict:
+    """Saturn/Jupiter returns to the Davison chart — the relationship's own milestones."""
+    start = _dt.datetime.fromisoformat(dav["datetime"]).date()
+    today = _date.today()
+    natal = {p["body"]: p["ecliptic_lon"] for p in dav["planets"]}
+    periods = []
+    for body, (cls, per, nature) in _RETURN_BODIES.items():
+        for k in (1, 2, 3):
+            rd = _find_return(natal[body], cls, start, per, k)
+            age = round((rd - start).days / 365.2425, 1)
+            if age > 95:
+                continue
+            periods.append({"index": 0, "label": f"{body} return #{k}", "detail": f"≈ age {age:.0f}",
+                            "start": rd.isoformat(), "end": "", "start_age": age, "nature": nature,
+                            "current": abs((rd - today).days) <= 183})
+    periods.sort(key=lambda p: p["start"])
+    for i, p in enumerate(periods):
+        p["index"] = i
+    return {"kind_label": "Relationship milestones · Davison returns 關係里程碑（回歸）", "periods": periods}
 
 
 def _davison(a: BirthInput, b: BirthInput, house_system: str) -> dict | None:
@@ -56,12 +101,14 @@ def _davison(a: BirthInput, b: BirthInput, house_system: str) -> dict | None:
 
     bsyn = BirthInput(birth_date=mid.date(), birth_time=mid.time().replace(microsecond=0),
                       latitude=lat, longitude=lon, tz_offset_hours=0.0)
-    return {
+    out = {
         "datetime": mid.isoformat(timespec="minutes"),
         "latitude": round(lat, 2), "longitude": round(lon, 2),
         "planets": planets, "aspects": aspects_within(planets),
         "ascendant": AX.ascendant_block(bsyn, house_system=house_system),
     }
+    out["timeline"] = _davison_timeline(out)
+    return out
 
 
 def _composite(ca: Chart, cb: Chart) -> dict:

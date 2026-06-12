@@ -1,13 +1,14 @@
 "use client";
 import { useEffect, useState } from "react";
 import {
-  apiBase, getSystems, getTimeline, streamReading, getSynastry, getCast,
-  SystemInfo, Reading, Timeline, Synastry,
+  apiBase, getSystems, getTimeline, streamReading, getSynastry, getGroup, getCast,
+  SystemInfo, Reading, Timeline, Synastry, GroupResult,
 } from "@/lib/api";
 import { ChartView } from "./_components/ChartView";
 import { Houses } from "./_components/Houses";
 import { TimelineView } from "./_components/TimelineView";
 import { SynastryView } from "./_components/SynastryView";
+import { GroupView } from "./_components/GroupView";
 import { BirthFields, FormState, emptyForm, toBirth } from "./_components/BirthFields";
 
 const HOUSE_OPTS = [
@@ -18,7 +19,7 @@ const HOUSE_OPTS = [
 export default function Page() {
   const [systems, setSystems] = useState<SystemInfo[]>([]);
   const [sys, setSys] = useState("bazi");
-  const [mode, setMode] = useState<"single" | "synastry">("single");
+  const [mode, setMode] = useState<"single" | "synastry" | "group">("single");
   const [houseSystem, setHouseSystem] = useState("whole_sign");
   const [transits, setTransits] = useState(false);
   const [transitOffset, setTransitOffset] = useState(0);   // days from today
@@ -31,6 +32,14 @@ export default function Page() {
   const [reading, setReading] = useState<Reading | null>(null);
   const [timeline, setTimeline] = useState<Timeline | null>(null);
   const [synastry, setSynastry] = useState<Synastry | null>(null);
+  const [group, setGroup] = useState<GroupResult | null>(null);
+  const [formsG, setFormsG] = useState<FormState[]>([
+    emptyForm({ name: "Mei 小美", gender: "female", time: "14:30", place: "Taipei", lat: "25.04", lon: "121.56" }),
+    emptyForm({ name: "Ken 阿肯", gender: "male", date: "1988-11-02", time: "09:15", place: "Tokyo", lat: "35.68", lon: "139.69" }),
+    emptyForm({ name: "Lin 小琳", gender: "female", date: "1992-03-08", time: "20:40", place: "HK", lat: "22.3", lon: "114.2" }),
+  ]);
+  const setG = (idx: number, k: keyof FormState, v: string) =>
+    setFormsG((fs) => fs.map((f, i) => (i === idx ? { ...f, [k]: v } : f)));
 
   const [formA, setFormA] = useState<FormState>(emptyForm({ name: "Mei 小美", gender: "female", time: "14:30", place: "Taipei 台北", lat: "25.04", lon: "121.56" }));
   const [formB, setFormB] = useState<FormState>(emptyForm({ name: "Ken 阿肯", gender: "male", date: "1988-11-02", time: "09:15", place: "Taipei 台北", lat: "25.04", lon: "121.56" }));
@@ -76,6 +85,14 @@ export default function Page() {
     finally { setBusy(false); }
   }
 
+  async function compareGroup() {
+    setBusy(true); setErr(null); setGroup(null);
+    try {
+      setGroup(await getGroup(formsG.map(toBirth), focus || null, houseSystem));
+    } catch (e: any) { setErr(String(e.message || e)); }
+    finally { setBusy(false); }
+  }
+
   function exportPng() {
     const svg = document.querySelector("#chart-area svg") as SVGSVGElement | null;
     if (!svg) return;
@@ -99,8 +116,8 @@ export default function Page() {
     img.src = "data:image/svg+xml;base64," + btoa(unescape(encodeURIComponent(xml)));
   }
 
-  const hasSvgChart = mode === "synastry" || (reading && ["astrology", "qizheng", "jyotish"].includes(reading.system));
-  const showResults = mode === "single" ? reading : synastry;
+  const hasSvgChart = mode === "synastry" || (mode === "single" && reading && ["astrology", "qizheng", "jyotish"].includes(reading.system));
+  const showResults = mode === "single" ? reading : mode === "synastry" ? synastry : group;
 
   return (
     <div className="wrap">
@@ -114,13 +131,33 @@ export default function Page() {
         <div className="pills" style={{ marginBottom: 12 }}>
           <div className={`pill${mode === "single" ? " on" : ""}`} onClick={() => setMode("single")}>Single 單人</div>
           <div className={`pill${mode === "synastry" ? " on" : ""}`} onClick={() => setMode("synastry")}>Synastry 合盤</div>
+          <div className={`pill${mode === "group" ? " on" : ""}`} onClick={() => setMode("group")}>Group 團體</div>
         </div>
 
-        <BirthFields f={formA} set={setA} />
+        {mode !== "group" && <BirthFields f={formA} set={setA} />}
         {mode === "synastry" && (
           <>
             <div className="muted" style={{ margin: "12px 0 4px" }}>Person B 第二人（合盤對象）</div>
             <BirthFields f={formB} set={setB} />
+          </>
+        )}
+        {mode === "group" && (
+          <>
+            {formsG.map((f, i) => (
+              <div key={i}>
+                <div className="muted" style={{ margin: "10px 0 4px", display: "flex", justifyContent: "space-between" }}>
+                  <span>Person {i + 1} 第{i + 1}人</span>
+                  {formsG.length > 2 && <span style={{ cursor: "pointer", color: "var(--bad)" }}
+                    onClick={() => setFormsG((fs) => fs.filter((_, j) => j !== i))}>✕ remove 移除</span>}
+                </div>
+                <BirthFields f={f} set={(k, v) => setG(i, k, v)} />
+              </div>
+            ))}
+            {formsG.length < 8 && (
+              <div className="pills" style={{ marginTop: 8 }}>
+                <span className="pill" onClick={() => setFormsG((fs) => [...fs, emptyForm({ name: `P${fs.length + 1}`, date: "1990-01-01", time: "12:00", place: "Taipei", lat: "25.04", lon: "121.56" })])}>+ add person 加一人</span>
+              </div>
+            )}
           </>
         )}
 
@@ -136,7 +173,7 @@ export default function Page() {
         <div className="row">
           <div><label>Ask about (optional) 想問</label>
             <input value={focus} onChange={(e) => setFocus(e.target.value)} placeholder="career / love / health 事業 / 感情 / 健康" /></div>
-          {(mode === "synastry" || sys === "astrology") && (
+          {(mode !== "single" || sys === "astrology") && (
             <div style={{ flex: 0, minWidth: 160 }}><label>Houses 宮位制</label>
               <select value={houseSystem} onChange={(e) => setHouseSystem(e.target.value)}>
                 {HOUSE_OPTS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
@@ -152,9 +189,9 @@ export default function Page() {
             </div>
           )}
           <div style={{ flex: 0 }}>
-            {mode === "single"
-              ? <button onClick={cast} disabled={busy}>{busy ? "Casting… 排盤中" : "Cast + Read 排盤＋解讀"}</button>
-              : <button onClick={compare} disabled={busy}>{busy ? "Comparing… 合盤中" : "Compare 合盤"}</button>}
+            {mode === "single" && <button onClick={cast} disabled={busy}>{busy ? "Casting… 排盤中" : "Cast + Read 排盤＋解讀"}</button>}
+            {mode === "synastry" && <button onClick={compare} disabled={busy}>{busy ? "Comparing… 合盤中" : "Compare 合盤"}</button>}
+            {mode === "group" && <button onClick={compareGroup} disabled={busy}>{busy ? "Comparing… 合盤中" : "Compare group 團體合盤"}</button>}
           </div>
         </div>
         {mode === "single" && sys === "astrology" && transits && (
@@ -178,6 +215,7 @@ export default function Page() {
       )}
 
       {mode === "synastry" && synastry && <SynastryView s={synastry} busy={busy} />}
+      {mode === "group" && group && <GroupView g={group} />}
 
       {mode === "single" && reading && (
         <>
