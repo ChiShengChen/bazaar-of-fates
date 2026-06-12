@@ -12,7 +12,7 @@ from fortune.birth import BirthInput
 from fortune.engines.astrology import astro
 from fortune.schemas import Chart
 
-KEY, ZH, ORB = "astrology", "西洋占星", 6.0
+KEY, ZH, EN, ORB = "astrology", "西洋占星", "Western Astrology", 6.0
 
 
 def cast(birth: BirthInput) -> Chart:
@@ -30,7 +30,7 @@ def cast(birth: BirthInput) -> Chart:
         f"・水星{'逆行' if readings.get('mercury_retrograde') == 'yes' else '順行'}"
     )
     return Chart(
-        system=KEY, system_zh=ZH, subject=birth.label(), cast_at=birth.dt,
+        system=KEY, system_en=EN, system_zh=ZH, subject=birth.label(), cast_at=birth.dt,
         chart={"planets": chart_rows, "aspects": astro.aspects_for(d, ORB)},
         reasoning_chain=astro.reasoning_chain(d, ORB),
         readings=readings,

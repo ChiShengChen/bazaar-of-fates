@@ -1,91 +1,100 @@
-# 算命 · Divination Suite
+# Bazaar of Fates · 算命 Divination Suite
 
-十一套傳統命理系統，寫成**確定性 Python 排盤引擎**，前面接一層 LLM 解讀，後面只吃一個輸入：**生辰**（出生日期＋時辰＋出生地）。
+**Eleven traditional divination systems as deterministic Python engines**, behind one input — your **birth moment** (date + time + place) — each producing a reproducible chart plus an optional bilingual AI reading.
 
-> 起源：本專案的排盤引擎源自一個更大的量化研究專案，原本是當作「對照組／安慰劑」（把命理當成 date-keyed 訊號，跑無未來函數回測證明它們是雜訊）。這裡把**排盤數學**單獨抽出來，去掉所有交易／回測，還原成它本來的用途——**幫人算命**。排盤數學以 `scripts/sync_from_main.sh` 從母專案同步（單一真相源），算命產品殼（生辰輸入、API、解讀、前端）是本 repo 原生。
+**十一套傳統命理系統**，寫成確定性 Python 排盤引擎，只吃一個輸入：**生辰**（出生日期＋時辰＋出生地），各自排出可重現的命盤＋可選的雙語 AI 解讀。
 
-## 十一系
+> **Origin / 起源.** These engines began life as *placebo controls* in a larger quant project — divination cast as date-keyed trading signals, run through a lookahead-free backtest to prove they were noise. Here the **chart math is lifted out**, all trading/backtest stripped, and restored to its real purpose: **telling fortunes**. The 排盤 math is synced from the parent monorepo (single source of truth) via `scripts/sync_from_main.sh`; the product shell (birth input, API, readings, web) is native to this repo.
+> 這些引擎原本是某量化專案裡的「對照組／安慰劑」（把命理當訊號跑無未來函數回測，證明它們是雜訊）。這裡把排盤數學抽出、去掉交易回測，還原它本來的用途——算命。
 
-| key | 系統 | 引擎核心 | 時辰敏感 | 出生地敏感 |
-|---|---|---|:--:|:--:|
-| `astrology` | 西洋占星 | `ephem` 黃道經度 | 月相 | 規劃中（上升/宮位）|
-| `bazi` | 八字（四柱）| JDN 校準干支 | ✅ 時柱 | — |
-| `ziwei` | 紫微斗數 | 純 Python 排盤 | 規劃中（命宮）| — |
-| `iching` | 梅花易數 | 時間起卦 | — | — |
-| `suimei` | 四柱推命（日）| 十二運星＋天中殺 | ✅ | — |
-| `qizheng` | 七政四餘 | 真實天文經度 | — | 規劃中 |
-| `tieban` | 鐵板神數 | 起命數 | — | — |
-| `qimen` | 奇門遁甲 | 八門九宮起局 | — | — |
-| `liuren` | 大六壬 | 四課三傳 | — | — |
-| `taiyi` | 太乙神數 | 太乙九宮 | — | — |
-| `jyotish` | Jyotiṣa 吠陀占星 | 恆星黃道＋Vimśottarī 大運 | — | 規劃中 |
+## The eleven systems / 十一系
 
-> **誠實標註**：八字／四柱推命已用 `時辰` 排時柱；占星／紫微／七政等的「時辰/出生地」欄位已在輸入層備好（`BirthInput`），但對應引擎的上升星座、命宮、宮位計算是**規劃中的引擎升級**——升級寫在母專案、再 sync 過來。
+| key | System | 系統 | engine core | time-aware 時辰 | place-aware 出生地 |
+|---|---|---|---|:--:|:--:|
+| `astrology` | Western Astrology | 西洋占星 | `ephem` ecliptic longitudes | moon phase | planned 規劃中 |
+| `bazi` | BaZi · Four Pillars | 八字（四柱）| JDN-anchored 干支 | ✅ hour pillar | — |
+| `ziwei` | Zi Wei Dou Shu | 紫微斗數 | pure-Python 排盤 | planned 規劃中 | — |
+| `iching` | Plum-Blossom I Ching | 梅花易數 | time-cast hexagram | — | — |
+| `suimei` | Shichū-Suimei (JP) | 四柱推命（日）| 十二運星 + 天中殺 | ✅ | — |
+| `qizheng` | Seven Luminaries | 七政四餘 | real astronomical longitudes | — | planned 規劃中 |
+| `tieban` | Iron Plate | 鐵板神數 | 起命數 | — | — |
+| `qimen` | Qi Men Dun Jia | 奇門遁甲 | 八門九宮起局 | — | — |
+| `liuren` | Da Liu Ren | 大六壬 | 四課三傳 | — | — |
+| `taiyi` | Tai Yi Shen Shu | 太乙神數 | 太乙九宮 | — | — |
+| `jyotish` | Jyotiṣa (Vedic) | 吠陀占星 | sidereal + Vimśottarī daśā | — | planned 規劃中 |
 
-## 快速開始
+> **Honest note / 誠實標註.** BaZi and Suimei already use `time` for the hour pillar; the time/place fields are carried on `BirthInput` for every system, but ascendant/house/命宮 computation in astrology · ziwei · qizheng · jyotish is a **planned engine upgrade** — to be written in the parent monorepo and synced over, not hand-patched here.
+
+## Quickstart / 快速開始
 
 ```bash
 python -m venv .venv && source .venv/bin/activate
-pip install -e ".[dev,llm]"          # llm 可省略；不裝就用 mock 解讀
+pip install -e ".[dev,llm]"          # drop "llm" to stay on the mock reader / 省略 llm 即用 mock
 cp .env.example .env
 
-# 後端 API
+# Backend API / 後端
 uvicorn fortune.api.main:app --reload
 
-# 靜態算命頁（免 node build）：用任意靜態伺服器開 web/index.html
+# Static fortune page, no node build / 靜態算命頁，免 node build
 python -m http.server 5500 --directory web
-# 開 http://localhost:5500/  填生辰 → 選命理系統 → 看命盤＋解讀
+# open http://localhost:5500/ → fill birth → pick a system → see chart + reading
 ```
 
-不接 LLM 也能跑：每個命盤都會**確定性排出**，只有解讀文字是 mock 的事實摘要。設 `LLM_BACKEND=anthropic` + `ANTHROPIC_API_KEY` 即換成真正的 AI 解讀。
+Runs with **no LLM key**: every chart casts deterministically; only the prose reading is a mocked facts digest. Set `LLM_BACKEND=anthropic` + `ANTHROPIC_API_KEY` for a real **bilingual (English + 中文)** AI reading.
+不接 LLM 也能跑：命盤照排，只有解讀走 mock。設金鑰後即得真正的雙語 AI 解讀。
 
 ## API
 
-| method | path | 說明 |
+| method | path | |
 |---|---|---|
-| `GET` | `/systems` | 11 系清單＋哪些可用 |
-| `POST` | `/cast/{system}` | 純命盤（不呼叫 LLM）→ `Chart` |
-| `POST` | `/reading/{system}` | 命盤＋解讀 → `Reading` |
+| `GET` | `/systems` | the 11 systems + which cast cleanly / 11 系清單＋可用狀態 |
+| `POST` | `/cast/{system}` | deterministic chart, no LLM → `Chart` / 純命盤 |
+| `POST` | `/reading/{system}` | chart + bilingual reading → `Reading` / 命盤＋解讀 |
 
 ```bash
 curl -s localhost:8000/cast/bazi -H 'content-type: application/json' -d '{
-  "name":"小美","birth_date":"1990-06-15","birth_time":"14:30",
-  "gender":"女","place":"台北","latitude":25.04,"longitude":121.56
+  "name":"Mei","birth_date":"1990-06-15","birth_time":"14:30",
+  "gender":"female","place":"Taipei","latitude":25.04,"longitude":121.56
 }' | jq .summary
 # "日主 辛金・身弱（喜生扶）・喜用 土、金"
 ```
 
-## 架構
+## Architecture / 架構
 
 ```
 fortune/
-  birth.py            生辰輸入（唯一輸入）
-  schemas.py          Chart / Reading 統一封裝
-  shared/             原生：config / logging / llm（mock+anthropic）
-  engines/<system>/   ← sync 自母專案的純排盤數學（勿手改，會被覆蓋）
-  casting/<system>.py 每系 adapter：生辰 → 引擎函式 → Chart
-  casting/__init__.py 11 系註冊表（惰性 import）
-  interpret.py        命盤事實 + 門派 prompt → LLM 解讀
+  birth.py            BirthInput — the single input / 生辰輸入
+  schemas.py          Chart / Reading envelope
+  shared/             native: config / logging / llm (mock + anthropic)
+  engines/<system>/   ← synced 排盤 math from the monorepo (do NOT hand-edit)
+  casting/<system>.py per-system adapter: birth → engine fns → Chart
+  casting/__init__.py registry of the 11 systems (lazy import)
+  interpret.py        chart facts + tradition prompt → bilingual reading
   api/main.py         FastAPI
-prompts/<system>/     ← sync 自母專案的門派解讀 prompt
-web/                  靜態算命頁 + sync 來的命盤渲染元件
-scripts/sync_from_main.sh   重新同步排盤數學
+prompts/<system>/     ← synced reading prompts from the monorepo
+web/index.html        static fortune page + synced chart renderers
+scripts/sync_from_main.sh   re-sync the 排盤 math
 ```
 
-### 重新同步排盤數學
+### Re-syncing the engine math / 重新同步排盤數學
 
-母專案改了某系的排盤邏輯後：
+After the parent monorepo changes a system's casting logic:
 
 ```bash
-scripts/sync_from_main.sh                 # 預設母專案 ~/Desktop/威鯨面試_LLMEng
+scripts/sync_from_main.sh                 # default monorepo ~/Desktop/威鯨面試_LLMEng
 scripts/sync_from_main.sh /path/to/monorepo
 ```
 
-只會覆蓋 `fortune/engines/*`、`prompts/*`、`web/app/_charts/*`（排盤數學與命盤視覺）；
-生辰輸入、API、解讀、前端殼是原生的，**不會被動到**。
+Only `fortune/engines/*`, `prompts/*`, `web/app/_charts/*` are overwritten (the 排盤 math + chart visuals). The birth input, API, readings, and web shell are native and **untouched**.
+只覆蓋排盤數學與命盤視覺；生辰輸入、API、解讀、前端殼不會被動到。
 
-## 測試
+## Tests / 測試
 
 ```bash
-pytest -q     # 11 系各自從同一個生辰排出非空命盤 + mock 解讀
+pytest -q     # all 11 systems cast a non-empty chart from one birth + a mock reading
 ```
+
+## License
+
+For cultural, educational, and entertainment purposes. Divination is not a basis for financial, medical, or legal decisions.
+僅供文化、教育與娛樂用途；命理不應作為財務、醫療或法律決策的依據。

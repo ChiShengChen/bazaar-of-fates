@@ -8,7 +8,7 @@ from fortune.birth import BirthInput
 from fortune.engines.tieban import tieban
 from fortune.schemas import Chart
 
-KEY, ZH = "tieban", "鐵板神數"
+KEY, ZH, EN = "tieban", "鐵板神數", "Tie Ban Shen Shu · Iron Plate"
 
 
 def cast(birth: BirthInput) -> Chart:
@@ -18,6 +18,6 @@ def cast(birth: BirthInput) -> Chart:
     chain = tieban.reasoning_chain(birth.as_date, ming, today)
     summary = f"命數 {ming}・流年 {readings.get('verse_fortune', readings.get('tieban_regime', ''))}"
     return Chart(
-        system=KEY, system_zh=ZH, subject=birth.label(), cast_at=birth.dt,
+        system=KEY, system_en=EN, system_zh=ZH, subject=birth.label(), cast_at=birth.dt,
         chart={"ming_number": ming}, reasoning_chain=chain, readings=readings, summary=summary,
     )

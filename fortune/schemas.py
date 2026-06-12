@@ -15,6 +15,7 @@ from pydantic import BaseModel, Field
 
 class Chart(BaseModel):
     system: str                              # engine key, e.g. "astrology"
+    system_en: str = ""                      # English name, e.g. "Western Astrology"
     system_zh: str                           # 中文名, e.g. "西洋占星"
     subject: str                             # birth label (who · when · where)
     cast_at: datetime

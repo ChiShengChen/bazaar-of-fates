@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>算命 · Divination Suite</title>
+<title>Bazaar of Fates · 算命</title>
 <style>
   :root { --bg:#0b0b10; --card:#15151c; --line:#2a2a36; --ink:#e7e7ee; --dim:#9a9aa8; --accent:#a78bfa; }
   * { box-sizing:border-box; }
@@ -31,20 +31,20 @@
 </head>
 <body>
 <div class="wrap">
-  <h1>算命 · Divination Suite</h1>
-  <div class="sub">十一套傳統命理排盤引擎 · 一個生辰輸入 · 確定性命盤 + AI 解讀</div>
+  <h1>Bazaar of Fates · 算命</h1>
+  <div class="sub">Eleven divination engines · one birth input · deterministic chart + AI reading<br/>十一套傳統命理排盤引擎 · 一個生辰輸入 · 確定性命盤 + AI 解讀</div>
 
   <div class="card">
     <div class="grid">
-      <div><label>稱呼</label><input id="name" placeholder="小美" /></div>
-      <div><label>性別</label><select id="gender"><option value="">—</option><option>女</option><option>男</option></select></div>
-      <div><label>出生日期</label><input id="date" type="date" value="1990-06-15" /></div>
-      <div><label>出生時刻（時辰）</label><input id="time" type="time" value="14:30" /></div>
-      <div><label>出生地</label><input id="place" placeholder="台北" value="台北" /></div>
+      <div><label>Name 稱呼</label><input id="name" placeholder="Mei 小美" /></div>
+      <div><label>Gender 性別</label><select id="gender"><option value="">—</option><option value="female">female 女</option><option value="male">male 男</option></select></div>
+      <div><label>Birth date 出生日期</label><input id="date" type="date" value="1990-06-15" /></div>
+      <div><label>Birth time 出生時刻</label><input id="time" type="time" value="14:30" /></div>
+      <div><label>Birthplace 出生地</label><input id="place" placeholder="Taipei 台北" value="Taipei 台北" /></div>
     </div>
     <div class="row">
-      <div><label>想問（可選）</label><input id="focus" placeholder="事業 / 感情 / 健康…" /></div>
-      <div style="flex:0"><button id="go">排盤＋解讀</button></div>
+      <div><label>Ask about (optional) 想問</label><input id="focus" placeholder="career / love / health 事業 / 感情 / 健康…" /></div>
+      <div style="flex:0"><button id="go">Cast + Read 排盤＋解讀</button></div>
     </div>
     <div class="pills" id="pills"></div>
     <div class="muted" id="api" style="margin-top:10px"></div>
@@ -55,19 +55,20 @@
 
 <script>
 const API = localStorage.getItem("FORTUNE_API") || "http://localhost:8000";
-document.getElementById("api").textContent = "API: " + API + "（改：localStorage.FORTUNE_API）";
+document.getElementById("api").textContent = "API: " + API + "  ·  change via localStorage.FORTUNE_API";
 let SYSTEMS = [], current = "bazi";
 const $ = id => document.getElementById(id);
 
 async function loadSystems() {
   try {
     SYSTEMS = await (await fetch(API + "/systems")).json();
-  } catch (e) { $("out").innerHTML = `<div class="card err">無法連到 API（${API}）。先啟動：uvicorn fortune.api.main:app --reload</div>`; return; }
+  } catch (e) { $("out").innerHTML = `<div class="card err">Cannot reach API (${API}). Start it: uvicorn fortune.api.main:app --reload<br/>無法連到 API，請先啟動後端。</div>`; return; }
   const box = $("pills"); box.innerHTML = "";
   for (const s of SYSTEMS) {
     const el = document.createElement("div");
     el.className = "pill" + (s.key === current ? " on" : "") + (s.available ? "" : " ");
-    el.textContent = s.zh + (s.available ? "" : " ⚠");
+    el.title = s.en;
+    el.textContent = (s.en || s.zh) + " · " + s.zh + (s.available ? "" : " ⚠");
     el.onclick = () => { current = s.key; [...box.children].forEach((c,i)=>c.classList.toggle("on", SYSTEMS[i].key===current)); };
     box.appendChild(el);
   }
@@ -87,20 +88,20 @@ function render(r) {
     `<div class="k">${k}</div><div>${Array.isArray(v)?v.join("、"):v}</div>`).join("");
   $("out").innerHTML = `
     <div class="card">
-      <h3>${r.system_zh} · ${r.subject}</h3>
+      <h3>${(r.system_en||"")} · ${r.system_zh} · ${r.subject}</h3>
       <div class="summary">${r.summary}</div>
-      <h3>排盤步驟</h3>
+      <h3>Casting steps 排盤步驟</h3>
       <ul class="chain">${(r.reasoning_chain||[]).map(c=>`<li>${c}</li>`).join("")}</ul>
       <div class="kv">${kv}</div>
     </div>
     <div class="card">
-      <h3>解讀</h3>
+      <h3>Reading 解讀</h3>
       <div class="interp">${(r.interpretation||"").replace(/</g,"&lt;")}</div>
     </div>`;
 }
 
 $("go").onclick = async () => {
-  $("go").disabled = true; $("out").innerHTML = `<div class="card muted">排盤中…</div>`;
+  $("go").disabled = true; $("out").innerHTML = `<div class="card muted">Casting… 排盤中…</div>`;
   try {
     const res = await fetch(`${API}/reading/${current}`, {
       method:"POST", headers:{"content-type":"application/json"},

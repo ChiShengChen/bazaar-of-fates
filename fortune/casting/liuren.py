@@ -9,7 +9,7 @@ from fortune.engines.bazi import bazi
 from fortune.engines.liuren import liuren
 from fortune.schemas import Chart
 
-KEY, ZH = "liuren", "大六壬"
+KEY, ZH, EN = "liuren", "大六壬", "Da Liu Ren"
 
 
 def cast(birth: BirthInput) -> Chart:
@@ -24,7 +24,7 @@ def cast(birth: BirthInput) -> Chart:
         f"{readings.get('liuren_regime', readings.get('yong', ''))}"
     )
     return Chart(
-        system=KEY, system_zh=ZH, subject=birth.label(), cast_at=birth.dt,
+        system=KEY, system_en=EN, system_zh=ZH, subject=birth.label(), cast_at=birth.dt,
         chart={"day_stem": day_stem, "day_stem_elem": day_stem_elem},
         reasoning_chain=chain, readings=readings, summary=summary,
     )

@@ -8,7 +8,7 @@ from fortune.birth import BirthInput
 from fortune.engines.jyotish import jyotish
 from fortune.schemas import Chart
 
-KEY, ZH = "jyotish", "Jyotiṣa（吠陀占星）"
+KEY, ZH, EN = "jyotish", "Jyotiṣa（吠陀占星）", "Jyotiṣa · Vedic Astrology"
 
 
 def cast(birth: BirthInput) -> Chart:
@@ -22,6 +22,6 @@ def cast(birth: BirthInput) -> Chart:
         f"大運 {readings.get('mahadasha_lord', '')}（{readings.get('dasha_nature', '')}）"
     )
     return Chart(
-        system=KEY, system_zh=ZH, subject=birth.label(), cast_at=birth.dt,
+        system=KEY, system_en=EN, system_zh=ZH, subject=birth.label(), cast_at=birth.dt,
         chart={"grahas": rows}, reasoning_chain=chain, readings=readings, summary=summary,
     )

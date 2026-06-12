@@ -10,7 +10,7 @@ from fortune.birth import BirthInput
 from fortune.engines.bazi import bazi
 from fortune.schemas import Chart
 
-KEY, ZH = "bazi", "八字（四柱）"
+KEY, ZH, EN = "bazi", "八字（四柱）", "BaZi · Four Pillars"
 _ORDER = ("year", "month", "day", "hour")
 _ZH = {"year": "年柱", "month": "月柱", "day": "日柱", "hour": "時柱"}
 
@@ -33,7 +33,7 @@ def cast(birth: BirthInput) -> Chart:
         f"喜用 {'、'.join(fav['favourable'])}"
     )
     return Chart(
-        system=KEY, system_zh=ZH, subject=birth.label(), cast_at=birth.dt,
+        system=KEY, system_en=EN, system_zh=ZH, subject=birth.label(), cast_at=birth.dt,
         chart={"pillars": rows},
         reasoning_chain=chain,
         readings={

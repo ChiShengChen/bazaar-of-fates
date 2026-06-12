@@ -21,6 +21,8 @@ def test_each_system_casts(key):
         pytest.skip(f"{key} adapter not wired yet")
     chart = casting.cast(key, BIRTH)
     assert chart.system == key
+    assert chart.system_en          # bilingual: English name populated
+    assert chart.system_zh
     assert chart.summary
     assert chart.reasoning_chain
 

@@ -8,7 +8,7 @@ from fortune.birth import BirthInput
 from fortune.engines.qizheng import qizheng
 from fortune.schemas import Chart
 
-KEY, ZH = "qizheng", "七政四餘"
+KEY, ZH, EN = "qizheng", "七政四餘", "Qi Zheng Si Yu · Seven Luminaries"
 
 
 def cast(birth: BirthInput) -> Chart:
@@ -22,6 +22,6 @@ def cast(birth: BirthInput) -> Chart:
         f"命主太陽 {readings.get('ming_zhu_sign', '')}・流年 {readings.get('qizheng_regime', '')}"
     )
     return Chart(
-        system=KEY, system_zh=ZH, subject=birth.label(), cast_at=birth.dt,
+        system=KEY, system_en=EN, system_zh=ZH, subject=birth.label(), cast_at=birth.dt,
         chart={"bodies": rows}, reasoning_chain=chain, readings=readings, summary=summary,
     )

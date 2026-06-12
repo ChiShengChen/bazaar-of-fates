@@ -6,7 +6,7 @@ from fortune.birth import BirthInput
 from fortune.engines.iching import iching
 from fortune.schemas import Chart
 
-KEY, ZH = "iching", "梅花易數"
+KEY, ZH, EN = "iching", "梅花易數", "Plum-Blossom I Ching"
 
 
 def cast(birth: BirthInput) -> Chart:
@@ -19,7 +19,7 @@ def cast(birth: BirthInput) -> Chart:
     ]
     summary = f"{div['ben_name']}・{div['relation']}・{div['verdict']}"
     return Chart(
-        system=KEY, system_zh=ZH, subject=birth.label(), cast_at=birth.dt,
+        system=KEY, system_en=EN, system_zh=ZH, subject=birth.label(), cast_at=birth.dt,
         chart={"hexagram": div, "diagram": iching.line_diagram(div)},
         reasoning_chain=chain,
         readings={

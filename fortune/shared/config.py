@@ -12,8 +12,8 @@ class Settings(BaseSettings):
         env_file=".env", env_file_encoding="utf-8", case_sensitive=False, extra="ignore"
     )
 
-    # LLM 解讀 backend. "mock" returns a deterministic stub so the whole app runs
-    # with no API key (every 命盤 still casts; only the prose interpretation is stubbed).
+    # LLM reading backend / 解讀後端. "mock" returns a deterministic stub so the whole
+    # app runs with no API key (every chart still casts; only the prose is stubbed).
     llm_backend: Literal["anthropic", "mock"] = "mock"
     anthropic_api_key: str = ""
     anthropic_model: str = "claude-sonnet-4-6"

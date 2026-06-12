@@ -1,9 +1,9 @@
-"""算命 service — FastAPI. One input (生辰), eleven 命理 systems, deterministic 命盤
-plus optional LLM 解讀.
+"""Bazaar of Fates — FastAPI 算命 service. One input (birth / 生辰), eleven divination
+systems, a deterministic chart (命盤) plus an optional bilingual LLM reading (解讀).
 
     GET  /systems                  → the 11 systems + which cast cleanly
-    POST /cast/{system}            → deterministic 命盤 (no LLM)        → Chart
-    POST /reading/{system}         → 命盤 + 解讀 (LLM, mock by default) → Reading
+    POST /cast/{system}            → deterministic chart, no LLM            → Chart
+    POST /reading/{system}         → chart + reading (LLM, mock by default) → Reading
 """
 
 from __future__ import annotations
@@ -23,7 +23,7 @@ configure_logging()
 log = get_logger("api")
 settings = get_settings()
 
-app = FastAPI(title="算命 · Divination Suite", version="0.1.0")
+app = FastAPI(title="Bazaar of Fates · 算命 Divination Suite", version="0.1.0")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origin_list,
@@ -34,7 +34,7 @@ app.add_middleware(
 
 class ReadingRequest(BaseModel):
     birth: BirthInput
-    focus: str | None = None      # 命主想問的方向（事業/感情/健康…），可選
+    focus: str | None = None      # optional topic / 命主想問的方向（career, love, health…）
 
 
 @app.get("/health")
@@ -55,7 +55,7 @@ def cast(system: str, birth: BirthInput) -> Chart:
         raise HTTPException(404, str(e)) from e
     except Exception as e:  # noqa: BLE001
         log.exception("cast_failed", system=system)
-        raise HTTPException(500, f"{system} 排盤失敗：{e}") from e
+        raise HTTPException(500, f"{system} cast failed / 排盤失敗：{e}") from e
 
 
 @app.post("/reading/{system}", response_model=Reading)
@@ -66,5 +66,5 @@ def reading(system: str, req: ReadingRequest) -> Reading:
         raise HTTPException(404, str(e)) from e
     except Exception as e:  # noqa: BLE001
         log.exception("cast_failed", system=system)
-        raise HTTPException(500, f"{system} 排盤失敗：{e}") from e
+        raise HTTPException(500, f"{system} cast failed / 排盤失敗：{e}") from e
     return interpret(chart, focus=req.focus)

@@ -12,7 +12,7 @@ from fortune.birth import BirthInput
 from fortune.engines.ziwei import ziwei
 from fortune.schemas import Chart
 
-KEY, ZH = "ziwei", "紫微斗數"
+KEY, ZH, EN = "ziwei", "紫微斗數", "Zi Wei Dou Shu · Purple Star"
 
 
 def cast(birth: BirthInput) -> Chart:
@@ -25,7 +25,7 @@ def cast(birth: BirthInput) -> Chart:
         f"{readings.get('five_elements_class', '')}・流年 {readings.get('ziwei_regime', '')}"
     )
     return Chart(
-        system=KEY, system_zh=ZH, subject=birth.label(), cast_at=birth.dt,
+        system=KEY, system_en=EN, system_zh=ZH, subject=birth.label(), cast_at=birth.dt,
         chart={"palaces": natal.get("palaces", []), "star_palace": natal.get("star_palace", {})},
         reasoning_chain=chain, readings=readings, summary=summary,
     )

@@ -42,9 +42,12 @@ def complete(system_prompt: str, user_prompt: str, *, max_tokens: int | None = N
 
 
 def _stub(user_prompt: str) -> str:
-    """Deterministic placeholder so the product is fully runnable with no key."""
+    """Deterministic placeholder so the product is fully runnable with no key.
+    無金鑰時的確定性佔位，讓整個產品仍可運行。"""
     return (
-        "【示範解讀 · 未接 LLM】\n"
-        "以下為命盤的確定性事實摘要（設定 ANTHROPIC_API_KEY 並切換 LLM_BACKEND=anthropic "
-        "即可換成真正的 AI 解讀）：\n\n" + user_prompt.strip()
+        "[Demo reading · LLM not connected / 示範解讀 · 未接 LLM]\n"
+        "Below is the deterministic factual summary of the chart. Set ANTHROPIC_API_KEY "
+        "and LLM_BACKEND=anthropic for a real AI reading.\n"
+        "以下為命盤的確定性事實摘要（設定金鑰並切換後端即得真正的 AI 解讀）：\n\n"
+        + user_prompt.strip()
     )
