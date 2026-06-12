@@ -49,10 +49,12 @@ function place(planets: PlanetPosition[], rBase: number) {
 }
 
 export function StarChart({
-  chart, aspects = [], aspectsDetail, cusps = [], outer = [], crossAspects = [], majorTransits = [], outerLabel,
+  chart, aspects = [], aspectsDetail, cusps = [], outer = [], outerCusps = [],
+  crossAspects = [], majorTransits = [], outerLabel,
 }: {
   chart: PlanetPosition[]; aspects?: string[]; aspectsDetail?: CrossAspect[]; cusps?: HouseCusp[];
-  outer?: PlanetPosition[]; crossAspects?: CrossAspect[]; majorTransits?: MajorTransit[]; outerLabel?: string;
+  outer?: PlanetPosition[]; outerCusps?: HouseCusp[]; crossAspects?: CrossAspect[];
+  majorTransits?: MajorTransit[]; outerLabel?: string;
 }) {
   const natal = place(chart, rNatal);
   const outerP = place(outer, rOuter);
@@ -108,6 +110,24 @@ export function StarChart({
             <text x={mid.x} y={mid.y} fontSize={9} fill="#71717a" textAnchor="middle" dominantBaseline="central">{c.house}</text>
             {c.house === 1 && <text x={s1.x} y={s1.y} fontSize={8} fill="#a78bfa" textAnchor="middle" dx={4}>ASC</text>}
             {c.house === 10 && <text x={s1.x} y={s1.y} fontSize={8} fill="#a78bfa" textAnchor="middle" dy={-3}>MC</text>}
+          </g>
+        );
+      })}
+
+      {/* outer overlay: a double tick-ring on the outer band + the outer chart's own house cusps */}
+      {outer.length > 0 && Array.from({ length: 72 }, (_, k) => {
+        const r0 = rOuter + 12, r1 = rOuter + (k % 6 === 0 ? 18 : 15);
+        const a = pos(k * 5, r0), b = pos(k * 5, r1);
+        return <line key={`tk${k}`} x1={a.x} y1={a.y} x2={b.x} y2={b.y} stroke="#3b5a82" strokeWidth={k % 6 === 0 ? 0.8 : 0.4} />;
+      })}
+      {outerCusps.filter((c) => typeof c.longitude === "number").map((c) => {
+        const s0 = pos(c.longitude!, rOuter + 2), s1 = pos(c.longitude!, rOuter + 12);
+        const angular = c.house === 1 || c.house === 10;
+        return (
+          <g key={`oc${c.house}`}>
+            <line x1={s0.x} y1={s0.y} x2={s1.x} y2={s1.y} stroke="#60a5fa"
+                  strokeWidth={angular ? 1 : 0.5} opacity={0.7} strokeDasharray={angular ? "" : "2 2"} />
+            {angular && <text {...pos(c.longitude!, rOuter + 20)} fontSize={7} fill="#60a5fa" textAnchor="middle">{c.house === 1 ? "asc" : "mc"}</text>}
           </g>
         );
       })}

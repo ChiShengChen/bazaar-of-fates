@@ -22,6 +22,7 @@ export default function Page() {
   const [mode, setMode] = useState<"single" | "synastry" | "group">("single");
   const [houseSystem, setHouseSystem] = useState("whole_sign");
   const [overlay, setOverlay] = useState<"none" | "transits" | "progress">("none");
+  const [progMethod, setProgMethod] = useState("secondary");
   const [transitOffset, setTransitOffset] = useState(0);   // days from today
   const [focus, setFocus] = useState("");
 
@@ -56,7 +57,7 @@ export default function Page() {
       let acc = "";
       await streamReading(
         sys, b, focus || null, houseSystem,
-        overlay === "transits", overlay !== "none" ? transitDate : null, overlay === "progress",
+        overlay === "transits", overlay !== "none" ? transitDate : null, overlay === "progress", progMethod,
         (chart) => setReading({ ...(chart as Reading), interpretation: "" }),
         (delta) => { acc += delta; setReading((r) => (r ? { ...r, interpretation: acc } : r)); },
       );
@@ -74,13 +75,14 @@ export default function Page() {
       try {
         const c = await getCast("astrology", toBirth(formA), {
           house_system: houseSystem, transit_date: td,
-          transits: overlay === "transits", progress: overlay === "progress",
+          transits: overlay === "transits", progress: overlay === "progress", progress_method: progMethod,
         });
         setReading((r) => (r ? { ...r, chart: {
           ...r.chart,
           transits: c.chart.transits, transit_aspects: c.chart.transit_aspects, major_transits: c.chart.major_transits,
           progressions: c.chart.progressions, progression_aspects: c.chart.progression_aspects,
-        }, readings: { ...r.readings, transit_date: td, major_transits: c.readings.major_transits, progressed_age: c.readings.progressed_age } } : r));
+          progression_houses: c.chart.progression_houses, major_progressions: c.chart.major_progressions,
+        }, readings: { ...r.readings, transit_date: td, major_transits: c.readings.major_transits, progressed_age: c.readings.progressed_age, major_progressions: c.readings.major_progressions } } : r));
       } catch { /* ignore scrub errors */ }
     }, 120);
   }
@@ -193,7 +195,15 @@ export default function Page() {
               <select value={overlay} onChange={(e) => setOverlay(e.target.value as any)}>
                 <option value="none">none 無</option>
                 <option value="transits">transits 行運</option>
-                <option value="progress">progressions 二次推運</option>
+                <option value="progress">progressions 推運</option>
+              </select>
+            </div>
+          )}
+          {mode === "single" && sys === "astrology" && overlay === "progress" && (
+            <div style={{ flex: 0, minWidth: 150 }}><label>Method 推運法</label>
+              <select value={progMethod} onChange={(e) => setProgMethod(e.target.value)}>
+                <option value="secondary">secondary 二次推運</option>
+                <option value="solar_arc">solar arc 太陽弧</option>
               </select>
             </div>
           )}

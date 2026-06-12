@@ -60,6 +60,43 @@ def _exact_date(body_cls, target_lon: float, around: date, window: int = 500) ->
     return (around + timedelta(days=round(best))).isoformat()
 
 
+def _prog_dt_utc(birth: BirthInput, target: date):
+    """Progressed UT datetime for a target date under 1 day = 1 year, and the age."""
+    age = max(0.0, (target - birth.as_date).days / 365.2425)
+    return (birth.dt - timedelta(hours=birth.tz_offset_hours)) + timedelta(days=age), age
+
+
+def _prog_lon(birth: BirthInput, body: str, target: date, method: str,
+              natal_lon: float, natal_sun: float) -> float:
+    dt, _ = _prog_dt_utc(birth, target)
+    rows = {p["body"]: p["ecliptic_lon"] for p in AX.planets_at(dt)}
+    if method == "solar_arc":
+        return (natal_lon + (rows["Sun"] - natal_sun) % 360.0) % 360.0
+    return rows[body]
+
+
+def _next_sign_ingress(birth: BirthInput, body: str, target: date, method: str,
+                       natal_lon: float, natal_sun: float, max_years: float, step_days: int):
+    """Date the progressed/directed `body` next crosses a sign boundary, scanning forward."""
+    def lon(t: date) -> float:
+        return _prog_lon(birth, body, t, method, natal_lon, natal_sun)
+    s0 = int(lon(target) // 30)
+    t, end = target, target + timedelta(days=int(max_years * 365.25))
+    while t < end:
+        t2 = t + timedelta(days=step_days)
+        if int(lon(t2) // 30) != s0:
+            lo, hi = t, t2
+            while (hi - lo).days > 1:
+                mid = lo + (hi - lo) / 2
+                if int(lon(mid) // 30) != s0:
+                    hi = mid
+                else:
+                    lo = mid
+            return hi.isoformat(), AX.sign_of(lon(hi))
+        t = t2
+    return None, None
+
+
 def aspects_within(rows: list[dict], orb: float = ORB) -> list[dict]:
     """Structured aspects within one chart (unique pairs), each with its orb — so the
     wheel can grade line weight by how tight the aspect is."""
@@ -89,7 +126,8 @@ _ASPECT_WEIGHT = {"conjunction": 1.0, "opposition": 0.8, "square": 0.6}
 
 
 def cast(birth: BirthInput, *, house_system: str = "whole_sign",
-         transits: bool = False, transit_date: str | None = None, progress: bool = False) -> Chart:
+         transits: bool = False, transit_date: str | None = None,
+         progress: bool = False, progress_method: str = "secondary") -> Chart:
     d = birth.as_date
     chart_rows = [
         {"body": b, "ecliptic_lon": lon, "sign": sign, "sign_zh": astro.sign_zh(lon), "retrograde": retro}
@@ -187,20 +225,68 @@ def cast(birth: BirthInput, *, house_system: str = "whole_sign",
                 + (f", exact {m['exact_date']}" if m.get("exact_date") else "") + ")" for m in major
             ] or ["none 無"]
 
-    if progress:                                                  # 二次推運: 1 day = 1 year
+    if progress:                                                  # 二次推運 / 太陽弧
+        method = progress_method if progress_method in ("secondary", "solar_arc") else "secondary"
         target = date.fromisoformat(transit_date) if transit_date else date.today()
-        age_years = max(0.0, (target - d).days / 365.2425)
-        prog_ut = (birth.dt - timedelta(hours=birth.tz_offset_hours)) + timedelta(days=age_years)  # advance N days for N years
-        prows = AX.planets_at(prog_ut)
+        prog_ut, age_years = _prog_dt_utc(birth, target)
+        natal_sun = next(p["ecliptic_lon"] for p in chart_rows if p["body"] == "Sun")
+
+        if method == "solar_arc":                                 # rigid rotation by the Sun's arc
+            sec_sun = {p["body"]: p["ecliptic_lon"] for p in AX.planets_at(prog_ut)}["Sun"]
+            arc = (sec_sun - natal_sun) % 360.0
+            prows = [{"body": p["body"], "ecliptic_lon": round((p["ecliptic_lon"] + arc) % 360.0, 2),
+                      "sign": AX.sign_of(p["ecliptic_lon"] + arc), "sign_zh": AX.sign_zh(p["ecliptic_lon"] + arc),
+                      "retrograde": p.get("retrograde", False)} for p in chart_rows]
+            readings["solar_arc_deg"] = round(arc, 2)
+            mlabel = f"solar-arc directions 太陽弧 (arc {arc:.1f}°)"
+        else:
+            arc = 0.0
+            prows = AX.planets_at(prog_ut)
+            mlabel = "secondary progressions 二次推運 (1 day = 1 year)"
+
         pasp = _cross_aspects(chart_rows, prows)
         chart_payload["progressions"] = prows
         chart_payload["progression_aspects"] = pasp
+        chart_payload["progression_method"] = method
         readings["progressed_to"] = target.isoformat()
         readings["progressed_age"] = round(age_years, 1)
+        readings["progression_method"] = method
         readings["progression_hits"] = [
             f"progressed {x['b']} {x['type']} natal {x['a']} ({x['orb']}°)" for x in pasp] or ["none 無"]
-        chain.append(f"Secondary progressions 二次推運 (age {age_years:.0f}, 1 day = 1 year): "
-                     f"{len(pasp)} aspect(s) to the natal chart.")
+        chain.append(f"{mlabel} (age {age_years:.0f}): {len(pasp)} aspect(s) to natal.")
+
+        # progressed houses for the outer ring
+        if asc:
+            if method == "solar_arc":
+                chart_payload["progression_houses"] = [
+                    {"house": c["house"], "longitude": round((c["longitude"] + arc) % 360.0, 2),
+                     "sign": AX.sign_of(c["longitude"] + arc), "sign_zh": AX.sign_zh(c["longitude"] + arc)}
+                    for c in asc["houses"]]
+            else:
+                prog_local = birth.dt + timedelta(days=age_years)
+                bsyn = BirthInput(birth_date=prog_local.date(), birth_time=prog_local.time().replace(microsecond=0),
+                                  latitude=birth.latitude, longitude=birth.longitude, tz_offset_hours=birth.tz_offset_hours)
+                pa = AX.ascendant_block(bsyn, house_system=house_system)
+                chart_payload["progression_houses"] = pa["houses"] if pa else None
+
+        # major progressions: progressed Moon sign/house + next ingress; progressed Sun sign change
+        natal_moon = next(p["ecliptic_lon"] for p in chart_rows if p["body"] == "Moon")
+        pmoon = next(p for p in prows if p["body"] == "Moon")
+        psun = next(p for p in prows if p["body"] == "Sun")
+        mp = [{"event": "progressed Moon in sign 推運月入", "sign": pmoon["sign"], "sign_zh": pmoon["sign_zh"]}]
+        if asc:
+            mp.append({"event": "progressed Moon in natal house 推運月入本命宮",
+                       "house": AX.house_of(pmoon["ecliptic_lon"], asc["longitude"])})
+        ndate, nsign = _next_sign_ingress(birth, "Moon", target, method, natal_moon, natal_sun, 3.0, 20)
+        if ndate:
+            mp.append({"event": "progressed Moon → next sign 推運月換座", "date": ndate, "sign": nsign})
+        if psun["sign"] != AX.sign_of(natal_sun):
+            mp.append({"event": "progressed Sun changed sign 推運日已換座",
+                       "from": AX.sign_of(natal_sun), "to": psun["sign"]})
+        chart_payload["major_progressions"] = mp
+        readings["major_progressions"] = [
+            (m["event"] + "：" + (m.get("sign") or m.get("to") or str(m.get("house", "")))
+             + (f"（{m['date']}）" if m.get("date") else "")) for m in mp]
 
     summary = (
         f"太陽 {sun['sign_zh'] if sun else ''}座{asc_str}"

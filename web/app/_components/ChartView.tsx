@@ -15,6 +15,7 @@ export function ChartView({ r }: { r: Chart }) {
       <StarChart chart={c.planets || []} aspects={c.aspects || []} aspectsDetail={c.aspects_detail}
                  cusps={r.ascendant?.houses || []}
                  outer={prog ? c.progressions : (c.transits || [])}
+                 outerCusps={prog ? (c.progression_houses || []) : []}
                  crossAspects={prog ? c.progression_aspects : (c.transit_aspects || [])}
                  majorTransits={prog ? [] : (c.major_transits || [])}
                  outerLabel={prog ? `progressions 推運 (age ${r.readings?.progressed_age ?? ""})`

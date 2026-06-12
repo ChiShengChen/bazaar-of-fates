@@ -272,6 +272,24 @@ def test_secondary_progressions_overlay():
     prog = next(p["ecliptic_lon"] for p in c.chart["progressions"] if p["body"] == "Sun")
     adv = (prog - nat) % 360
     assert 35 < adv < 45   # ~40° for ~40 years
+    assert c.chart["progression_houses"] and len(c.chart["progression_houses"]) == 12
+
+
+def test_solar_arc_is_a_rigid_rotation():
+    c = casting.cast("astrology", BIRTH, progress=True, transit_date="2025-06-15", progress_method="solar_arc")
+    arc = c.readings["solar_arc_deg"]
+    assert 33 < arc < 36   # ~age 35 → ~34° arc
+    natal = {p["body"]: p["ecliptic_lon"] for p in c.chart["planets"]}
+    for p in c.chart["progressions"]:               # every planet advanced by the same arc
+        assert abs((p["ecliptic_lon"] - natal[p["body"]] - arc + 180) % 360 - 180) < 0.05
+
+
+def test_major_progressions_flagged():
+    c = casting.cast("astrology", BIRTH, progress=True, transit_date="2025-06-15")
+    mp = c.chart["major_progressions"]
+    events = " ".join(m["event"] for m in mp)
+    assert "progressed Moon in sign" in events
+    assert any("changed sign" in m["event"] for m in mp)   # prog Sun Gemini → Cancer by age 35
 
 
 def test_davison_is_a_real_distinct_chart():

@@ -43,7 +43,8 @@ class ReadingRequest(BaseModel):
     house_system: str = "whole_sign"   # whole_sign | equal | placidus | koch | regiomontanus | campanus
     transits: bool = False             # overlay the sky 行運 (astrology only)
     transit_date: str | None = None    # ISO date for the transit/progression overlay (default today)
-    progress: bool = False             # overlay the secondary-progressed chart 二次推運
+    progress: bool = False             # overlay the progressed chart 二次推運 / 太陽弧
+    progress_method: str = "secondary"  # "secondary" | "solar_arc"
 
 
 class SynastryRequest(BaseModel):
@@ -71,10 +72,11 @@ def list_systems() -> list[dict[str, object]]:
 
 @app.post("/cast/{system}", response_model=Chart)
 def cast(system: str, birth: BirthInput, house_system: str = "whole_sign",
-         transits: bool = False, transit_date: str | None = None, progress: bool = False) -> Chart:
+         transits: bool = False, transit_date: str | None = None,
+         progress: bool = False, progress_method: str = "secondary") -> Chart:
     try:
         return casting.cast(system, birth, house_system=house_system,
-                            transits=transits, transit_date=transit_date, progress=progress)
+                            transits=transits, transit_date=transit_date, progress=progress, progress_method=progress_method)
     except KeyError as e:
         raise HTTPException(404, str(e)) from e
     except Exception as e:  # noqa: BLE001
@@ -95,7 +97,7 @@ def life_timeline(system: str, birth: BirthInput) -> Timeline:
 @app.post("/reading/{system}", response_model=Reading)
 def reading(system: str, req: ReadingRequest) -> Reading:
     try:
-        chart = casting.cast(system, req.birth, house_system=req.house_system, transits=req.transits, transit_date=req.transit_date, progress=req.progress)
+        chart = casting.cast(system, req.birth, house_system=req.house_system, transits=req.transits, transit_date=req.transit_date, progress=req.progress, progress_method=req.progress_method)
     except KeyError as e:
         raise HTTPException(404, str(e)) from e
     except Exception as e:  # noqa: BLE001
@@ -147,7 +149,7 @@ def reading_stream(system: str, req: ReadingRequest) -> StreamingResponse:
     """Server-Sent Events: a `chart` event (the deterministic 命盤) followed by `delta`
     text events (the streamed 解讀), then `done`. Casts once up front."""
     try:
-        chart = casting.cast(system, req.birth, house_system=req.house_system, transits=req.transits, transit_date=req.transit_date, progress=req.progress)
+        chart = casting.cast(system, req.birth, house_system=req.house_system, transits=req.transits, transit_date=req.transit_date, progress=req.progress, progress_method=req.progress_method)
     except KeyError as e:
         raise HTTPException(404, str(e)) from e
     except Exception as e:  # noqa: BLE001
