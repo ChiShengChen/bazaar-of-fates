@@ -86,11 +86,21 @@ function birthPayload() {
 function render(r) {
   const kv = Object.entries(r.readings || {}).map(([k,v]) =>
     `<div class="k">${k}</div><div>${Array.isArray(v)?v.join("、"):v}</div>`).join("");
+  let ascHtml = "";
+  if (r.ascendant) {
+    const a = r.ascendant;
+    const cells = (a.houses||[]).map(h =>
+      `<span class="pill" style="cursor:default">${h.house}. ${h.sign||h.rashi||""}</span>`).join(" ");
+    ascHtml = `<div style="margin-top:8px"><span class="muted">Ascendant 上升${a.sidereal?" (sidereal)":""}: </span>
+      <strong>${a.sign} ${a.sign_zh&&a.sign_zh!==a.sign?a.sign_zh:""} ${(+a.longitude).toFixed(1)}°</strong>
+      <div class="pills" style="margin-top:6px">${cells}</div></div>`;
+  }
   $("out").innerHTML = `
     <div class="card">
       <h3>${(r.system_en||"")} · ${r.system_zh} · ${r.subject}</h3>
       <div class="summary">${r.summary}</div>
-      <h3>Casting steps 排盤步驟</h3>
+      ${ascHtml}
+      <h3 style="margin-top:14px">Casting steps 排盤步驟</h3>
       <ul class="chain">${(r.reasoning_chain||[]).map(c=>`<li>${c}</li>`).join("")}</ul>
       <div class="kv">${kv}</div>
     </div>

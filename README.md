@@ -11,19 +11,19 @@
 
 | key | System | 系統 | engine core | time-aware 時辰 | place-aware 出生地 |
 |---|---|---|---|:--:|:--:|
-| `astrology` | Western Astrology | 西洋占星 | `ephem` ecliptic longitudes | moon phase | planned 規劃中 |
+| `astrology` | Western Astrology | 西洋占星 | `ephem` ecliptic longitudes | ✅ asc + houses | ✅ ascendant |
 | `bazi` | BaZi · Four Pillars | 八字（四柱）| JDN-anchored 干支 | ✅ hour pillar | — |
-| `ziwei` | Zi Wei Dou Shu | 紫微斗數 | pure-Python 排盤 | planned 規劃中 | — |
+| `ziwei` | Zi Wei Dou Shu | 紫微斗數 | pure-Python 排盤 | ✅ 命宮/身宮/局 | — |
 | `iching` | Plum-Blossom I Ching | 梅花易數 | time-cast hexagram | — | — |
 | `suimei` | Shichū-Suimei (JP) | 四柱推命（日）| 十二運星 + 天中殺 | ✅ | — |
-| `qizheng` | Seven Luminaries | 七政四餘 | real astronomical longitudes | — | planned 規劃中 |
+| `qizheng` | Seven Luminaries | 七政四餘 | real astronomical longitudes | ✅ 命宮 | ✅ 命度/命宮 |
 | `tieban` | Iron Plate | 鐵板神數 | 起命數 | — | — |
 | `qimen` | Qi Men Dun Jia | 奇門遁甲 | 八門九宮起局 | — | — |
 | `liuren` | Da Liu Ren | 大六壬 | 四課三傳 | — | — |
 | `taiyi` | Tai Yi Shen Shu | 太乙神數 | 太乙九宮 | — | — |
-| `jyotish` | Jyotiṣa (Vedic) | 吠陀占星 | sidereal + Vimśottarī daśā | — | planned 規劃中 |
+| `jyotish` | Jyotiṣa (Vedic) | 吠陀占星 | sidereal + Vimśottarī daśā | ✅ Lagna + bhāva | ✅ Lagna |
 
-> **Honest note / 誠實標註.** BaZi and Suimei already use `time` for the hour pillar; the time/place fields are carried on `BirthInput` for every system, but ascendant/house/命宮 computation in astrology · ziwei · qizheng · jyotish is a **planned engine upgrade** — to be written in the parent monorepo and synced over, not hand-patched here.
+> **Ascendant & houses / 上升與宮位.** The synced engines compute planetary longitudes from the *date* alone (a stock has no birth hour or birthplace). The native `fortune/astro_ext.py` adds the **ascendant** (rising degree, validated so that at sunrise the Sun sits on the ascendant) and **whole-sign houses**, shared by astrology · qizheng · jyotish; `fortune/ziwei_ext.py` threads the real 時辰 into 紫微's 命宮/身宮/五行局/星位. These live natively (not in the monorepo) because they are meaningless for the trading placebo, and `sync_from_main.sh` never touches them. **House system is whole-sign** (Vedic default; Placidus is a planned Western option). When birth time or place is missing, ascendant-based systems gracefully degrade to date-only and flag it. / 缺時辰或出生地時自動退回只看日期並標註。
 
 ## Quickstart / 快速開始
 
@@ -67,6 +67,8 @@ fortune/
   schemas.py          Chart / Reading envelope
   shared/             native: config / logging / llm (mock + anthropic)
   engines/<system>/   ← synced 排盤 math from the monorepo (do NOT hand-edit)
+  astro_ext.py        native: ascendant + whole-sign houses (astrology/qizheng/jyotish)
+  ziwei_ext.py        native: 紫微 with the real birth 時辰 (reuses ziwei_core primitives)
   casting/<system>.py per-system adapter: birth → engine fns → Chart
   casting/__init__.py registry of the 11 systems (lazy import)
   interpret.py        chart facts + tradition prompt → bilingual reading

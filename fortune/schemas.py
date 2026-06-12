@@ -24,6 +24,7 @@ class Chart(BaseModel):
     reasoning_chain: list[str] = Field(default_factory=list)   # deterministic read, step by step
     readings: dict[str, Any] = Field(default_factory=dict)     # named facts (regime, 喜用神, 卦名…)
     summary: str = ""                                          # one-line deterministic headline
+    ascendant: dict[str, Any] | None = None                    # rising sign + houses (None if 時辰/出生地 missing)
 
 
 class Reading(Chart):
