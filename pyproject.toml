@@ -1,0 +1,31 @@
+[project]
+name = "fortune-divination-suite"
+version = "0.1.0"
+description = "算命 — 11 traditional divination systems as deterministic Python engines + LLM 解讀, behind one 生辰 input."
+requires-python = ">=3.10"
+dependencies = [
+    "pydantic>=2.5",
+    "pydantic-settings>=2.1",
+    "structlog>=24.1",
+    "ephem>=4.1",          # 占星 / 七政 / Jyotiṣa — real ecliptic longitudes
+    "lunardate>=0.2",      # 紫微 — solar↔lunar calendar
+    "fastapi>=0.110",
+    "uvicorn[standard]>=0.27",
+]
+
+[project.optional-dependencies]
+llm = ["anthropic>=0.39"]   # 解讀 backend; the service runs fully without it (mock)
+dev = ["pytest>=8.0", "httpx>=0.27"]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = ["fortune"]
+
+[tool.setuptools.package-dir]
+fortune = "fortune"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

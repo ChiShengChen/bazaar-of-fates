@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>算命 · Divination Suite</title>
+<style>
+  :root { --bg:#0b0b10; --card:#15151c; --line:#2a2a36; --ink:#e7e7ee; --dim:#9a9aa8; --accent:#a78bfa; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink); font:15px/1.6 -apple-system,"PingFang TC","Microsoft JhengHei",sans-serif; }
+  .wrap { max-width:920px; margin:0 auto; padding:28px 18px 80px; }
+  h1 { font-size:24px; margin:0 0 2px; } .sub { color:var(--dim); font-size:13px; margin-bottom:22px; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:18px; margin-bottom:18px; }
+  label { display:block; font-size:12px; color:var(--dim); margin-bottom:4px; }
+  input, select { width:100%; background:#0e0e14; border:1px solid var(--line); color:var(--ink); border-radius:8px; padding:9px 10px; font-size:14px; }
+  .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:12px; }
+  .row { display:flex; gap:10px; align-items:flex-end; flex-wrap:wrap; margin-top:14px; }
+  .row > div { flex:1; min-width:160px; }
+  button { background:var(--accent); color:#15101f; border:0; border-radius:8px; padding:10px 18px; font-size:14px; font-weight:600; cursor:pointer; }
+  button:disabled { opacity:.5; cursor:default; }
+  .pills { display:flex; flex-wrap:wrap; gap:8px; margin-top:10px; }
+  .pill { border:1px solid var(--line); border-radius:999px; padding:6px 12px; font-size:13px; cursor:pointer; background:#0e0e14; }
+  .pill.on { border-color:var(--accent); color:var(--accent); background:#1c1530; }
+  .summary { font-size:17px; font-weight:600; margin:2px 0 12px; }
+  .chain { list-style:none; padding:0; margin:0; } .chain li { padding:6px 0; border-top:1px solid var(--line); font-size:14px; }
+  .kv { display:grid; grid-template-columns:auto 1fr; gap:4px 14px; font-size:13px; margin-top:10px; }
+  .kv .k { color:var(--dim); } .interp { white-space:pre-wrap; font-size:14px; line-height:1.8; }
+  .muted { color:var(--dim); font-size:12px; } .err { color:#f87171; }
+  h3 { font-size:13px; color:var(--dim); text-transform:uppercase; letter-spacing:.04em; margin:0 0 8px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>算命 · Divination Suite</h1>
+  <div class="sub">十一套傳統命理排盤引擎 · 一個生辰輸入 · 確定性命盤 + AI 解讀</div>
+
+  <div class="card">
+    <div class="grid">
+      <div><label>稱呼</label><input id="name" placeholder="小美" /></div>
+      <div><label>性別</label><select id="gender"><option value="">—</option><option>女</option><option>男</option></select></div>
+      <div><label>出生日期</label><input id="date" type="date" value="1990-06-15" /></div>
+      <div><label>出生時刻（時辰）</label><input id="time" type="time" value="14:30" /></div>
+      <div><label>出生地</label><input id="place" placeholder="台北" value="台北" /></div>
+    </div>
+    <div class="row">
+      <div><label>想問（可選）</label><input id="focus" placeholder="事業 / 感情 / 健康…" /></div>
+      <div style="flex:0"><button id="go">排盤＋解讀</button></div>
+    </div>
+    <div class="pills" id="pills"></div>
+    <div class="muted" id="api" style="margin-top:10px"></div>
+  </div>
+
+  <div id="out"></div>
+</div>
+
+<script>
+const API = localStorage.getItem("FORTUNE_API") || "http://localhost:8000";
+document.getElementById("api").textContent = "API: " + API + "（改：localStorage.FORTUNE_API）";
+let SYSTEMS = [], current = "bazi";
+const $ = id => document.getElementById(id);
+
+async function loadSystems() {
+  try {
+    SYSTEMS = await (await fetch(API + "/systems")).json();
+  } catch (e) { $("out").innerHTML = `<div class="card err">無法連到 API（${API}）。先啟動：uvicorn fortune.api.main:app --reload</div>`; return; }
+  const box = $("pills"); box.innerHTML = "";
+  for (const s of SYSTEMS) {
+    const el = document.createElement("div");
+    el.className = "pill" + (s.key === current ? " on" : "") + (s.available ? "" : " ");
+    el.textContent = s.zh + (s.available ? "" : " ⚠");
+    el.onclick = () => { current = s.key; [...box.children].forEach((c,i)=>c.classList.toggle("on", SYSTEMS[i].key===current)); };
+    box.appendChild(el);
+  }
+}
+
+function birthPayload() {
+  const p = { birth_date: $("date").value };
+  if ($("name").value) p.name = $("name").value;
+  if ($("gender").value) p.gender = $("gender").value;
+  if ($("time").value) p.birth_time = $("time").value;
+  if ($("place").value) p.place = $("place").value;
+  return p;
+}
+
+function render(r) {
+  const kv = Object.entries(r.readings || {}).map(([k,v]) =>
+    `<div class="k">${k}</div><div>${Array.isArray(v)?v.join("、"):v}</div>`).join("");
+  $("out").innerHTML = `
+    <div class="card">
+      <h3>${r.system_zh} · ${r.subject}</h3>
+      <div class="summary">${r.summary}</div>
+      <h3>排盤步驟</h3>
+      <ul class="chain">${(r.reasoning_chain||[]).map(c=>`<li>${c}</li>`).join("")}</ul>
+      <div class="kv">${kv}</div>
+    </div>
+    <div class="card">
+      <h3>解讀</h3>
+      <div class="interp">${(r.interpretation||"").replace(/</g,"&lt;")}</div>
+    </div>`;
+}
+
+$("go").onclick = async () => {
+  $("go").disabled = true; $("out").innerHTML = `<div class="card muted">排盤中…</div>`;
+  try {
+    const res = await fetch(`${API}/reading/${current}`, {
+      method:"POST", headers:{"content-type":"application/json"},
+      body: JSON.stringify({ birth: birthPayload(), focus: $("focus").value || null }),
+    });
+    if (!res.ok) throw new Error((await res.json()).detail || res.statusText);
+    render(await res.json());
+  } catch (e) { $("out").innerHTML = `<div class="card err">${e.message}</div>`; }
+  finally { $("go").disabled = false; }
+};
+
+loadSystems();
+</script>
+</body>
+</html>
