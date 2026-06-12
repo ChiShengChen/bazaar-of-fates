@@ -8,13 +8,16 @@ systems, a deterministic chart (命盤) plus an optional bilingual LLM reading (
 
 from __future__ import annotations
 
+import json
+
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
 from fortune import casting, timeline as tl
 from fortune.birth import BirthInput
-from fortune.interpret import interpret
+from fortune.interpret import interpret, interpret_stream
 from fortune.schemas import Chart, Reading, Timeline
 from fortune.shared.config import get_settings
 from fortune.shared.logging import configure_logging, get_logger
@@ -79,3 +82,29 @@ def reading(system: str, req: ReadingRequest) -> Reading:
         log.exception("cast_failed", system=system)
         raise HTTPException(500, f"{system} cast failed / 排盤失敗：{e}") from e
     return interpret(chart, focus=req.focus)
+
+
+def _sse(event: str, data: str) -> str:
+    return f"event: {event}\ndata: {data}\n\n"
+
+
+@app.post("/reading/{system}/stream")
+def reading_stream(system: str, req: ReadingRequest) -> StreamingResponse:
+    """Server-Sent Events: a `chart` event (the deterministic 命盤) followed by `delta`
+    text events (the streamed 解讀), then `done`. Casts once up front."""
+    try:
+        chart = casting.cast(system, req.birth, house_system=req.house_system)
+    except KeyError as e:
+        raise HTTPException(404, str(e)) from e
+    except Exception as e:  # noqa: BLE001
+        log.exception("cast_failed", system=system)
+        raise HTTPException(500, f"{system} cast failed / 排盤失敗：{e}") from e
+
+    def gen():
+        yield _sse("chart", chart.model_dump_json())
+        for delta in interpret_stream(chart, focus=req.focus):
+            yield _sse("delta", json.dumps({"t": delta}, ensure_ascii=False))
+        yield _sse("done", "{}")
+
+    return StreamingResponse(gen(), media_type="text/event-stream",
+                             headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})

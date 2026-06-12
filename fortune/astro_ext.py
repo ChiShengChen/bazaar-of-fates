@@ -170,6 +170,52 @@ def house_of_cusps(planet_lon: float, cusps: list[dict]) -> int:
     return 1
 
 
+def _asc_at(ramc_deg: float, eps: float, phi: float) -> float:
+    """Ascendant longitude for an arbitrary RAMC (used by Koch's shifted-meridian cusps)."""
+    r = math.radians(ramc_deg)
+    asc = math.degrees(math.atan2(math.cos(r),
+                                  -(math.sin(r) * math.cos(eps) + math.tan(phi) * math.sin(eps)))) % 360.0
+    if not _is_eastern(asc, ramc_deg % 360.0, math.degrees(eps)):
+        asc = (asc + 180.0) % 360.0
+    return asc
+
+
+def _cusp_row(lon: float, house: int) -> dict:
+    return {"house": house, "longitude": round(lon % 360.0, 2), "sign": sign_of(lon), "sign_zh": sign_zh(lon)}
+
+
+def equal_houses(asc_lon: float) -> list[dict]:
+    """Equal houses: every cusp is exactly 30° from the ascendant degree."""
+    return [_cusp_row((asc_lon + 30.0 * i) % 360.0, i + 1) for i in range(12)]
+
+
+def koch_houses(birth: BirthInput) -> list[dict] | None:
+    """Koch (Geburtsort) houses. Cusp 1 == ascendant, cusp 10 == MC; the four
+    intermediate cusps trisect the ascendant's diurnal/nocturnal semi-arc in RA.
+    Undefined past the polar circle → None."""
+    g = _ramc_eps_phi(birth)
+    if g is None:
+        return None
+    ramc, eps, phi = g
+    if abs(math.degrees(phi)) > 66.0:
+        return None
+    asc, mc = ascendant_lon(birth), mc_lon(birth)
+    if asc is None or mc is None:
+        return None
+    # Koch trisects the Asc→MC arc in sidereal time; the step is a third of the MC's
+    # semi-diurnal arc: a = (90 + AD_mc)/3, AD_mc = ascensional difference of the MC.
+    decl_mc = math.asin(math.sin(eps) * math.sin(math.radians(mc)))
+    ad_mc = math.degrees(math.asin(max(-1.0, min(1.0, math.tan(phi) * math.tan(decl_mc)))))
+    a = (90.0 + ad_mc) / 3.0
+    c11 = _asc_at(ramc - 2.0 * a, eps, phi)
+    c12 = _asc_at(ramc - 1.0 * a, eps, phi)
+    c2 = _asc_at(ramc + 1.0 * a, eps, phi)
+    c3 = _asc_at(ramc + 2.0 * a, eps, phi)
+    lons = [asc, c2, c3, (mc + 180.0) % 360.0, (c11 + 180.0) % 360.0, (c12 + 180.0) % 360.0,
+            (asc + 180.0) % 360.0, (c2 + 180.0) % 360.0, (c3 + 180.0) % 360.0, mc, c11, c12]
+    return [_cusp_row(lon, i + 1) for i, lon in enumerate(lons)]
+
+
 def whole_sign_houses(asc_lon: float) -> list[dict]:
     """12 whole-sign houses: house 1 = the ascendant's whole sign, then sequential signs."""
     asc_sign = int(asc_lon // 30) % 12
@@ -198,10 +244,12 @@ def ascendant_block(birth: BirthInput, *, ayanamsa: float = 0.0,
 
     used = "whole_sign"
     houses = whole_sign_houses(lon)
-    if house_system == "placidus" and ayanamsa == 0.0:
-        pl = placidus_houses(birth)
-        if pl is not None:
-            houses, used = pl, "placidus"
+    if house_system == "equal":
+        houses, used = equal_houses(lon), "equal"
+    elif house_system in ("placidus", "koch") and ayanamsa == 0.0:   # quadrant systems: tropical only
+        quad = placidus_houses(birth) if house_system == "placidus" else koch_houses(birth)
+        if quad is not None:
+            houses, used = quad, house_system
 
     block = {
         "longitude": round(lon, 2),
@@ -211,6 +259,6 @@ def ascendant_block(birth: BirthInput, *, ayanamsa: float = 0.0,
         "sidereal": ayanamsa > 0,
         "houses": houses,
     }
-    if used == "placidus":
+    if used in ("placidus", "koch"):
         block["mc"] = mc_lon(birth)
     return block

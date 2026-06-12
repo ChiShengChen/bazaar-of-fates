@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import {
-  apiBase, getSystems, getReading, getTimeline,
+  apiBase, getSystems, getTimeline, streamReading,
   SystemInfo, Reading, Timeline, BirthInput,
 } from "@/lib/api";
 import { ChartView } from "./_components/ChartView";
@@ -35,13 +35,15 @@ export default function Page() {
 
   async function cast() {
     setBusy(true); setErr(null); setReading(null); setTimeline(null);
+    const b = birth();
+    getTimeline(sys, b).then(setTimeline).catch(() => setTimeline(null));   // in parallel
     try {
-      const b = birth();
-      const [r, t] = await Promise.all([
-        getReading(sys, b, form.focus || null, houseSystem),
-        getTimeline(sys, b).catch(() => null),
-      ]);
-      setReading(r); setTimeline(t);
+      let acc = "";
+      await streamReading(
+        sys, b, form.focus || null, houseSystem,
+        (chart) => setReading({ ...(chart as Reading), interpretation: "" }),  // 命盤 renders at once
+        (delta) => { acc += delta; setReading((r) => (r ? { ...r, interpretation: acc } : r)); },
+      );
     } catch (e: any) { setErr(String(e.message || e)); }
     finally { setBusy(false); }
   }
@@ -82,7 +84,9 @@ export default function Page() {
             <div style={{ flex: 0, minWidth: 160 }}><label>Houses 宮位制</label>
               <select value={houseSystem} onChange={(e) => setHouseSystem(e.target.value)}>
                 <option value="whole_sign">whole-sign 整星座</option>
+                <option value="equal">Equal 等宮</option>
                 <option value="placidus">Placidus 不等宮</option>
+                <option value="koch">Koch 不等宮</option>
               </select>
             </div>
           )}
@@ -116,8 +120,8 @@ export default function Page() {
           )}
 
           <div className="card">
-            <h3>Reading 解讀</h3>
-            <div className="interp">{reading.interpretation}</div>
+            <h3>Reading 解讀{busy ? " · streaming…" : ""}</h3>
+            <div className="interp">{reading.interpretation}{busy && <span className="cursor">▍</span>}</div>
           </div>
 
           <div className="card">

@@ -10,10 +10,11 @@ faithful facts digest. / mock 後端回傳忠實的事實摘要。
 from __future__ import annotations
 
 import json
+from collections.abc import Iterator
 from pathlib import Path
 
 from fortune.schemas import Chart, Reading
-from fortune.shared.llm import complete
+from fortune.shared.llm import complete, stream
 
 _PROMPTS = Path(__file__).resolve().parent.parent / "prompts"
 
@@ -38,19 +39,33 @@ def _voice(system: str) -> str:
     return f"\n\n[Style reference for {system} / {system} 門派風格參考]\n{text[:4000]}" if text else ""
 
 
-def interpret(chart: Chart, *, focus: str | None = None) -> Reading:
+def _prompts(chart: Chart, focus: str | None) -> tuple[str, str]:
+    """(system, user) prompts shared by the sync and streaming paths.
+    `subject` (who) and `focus` (what they ask) are surfaced prominently up top."""
     facts = {
-        "system": chart.system_en,
-        "system_zh": chart.system_zh,
-        "subject": chart.subject,
-        "summary": chart.summary,
-        "reasoning_chain": chart.reasoning_chain,
-        "chart_elements": chart.readings,
+        "system": chart.system_en, "system_zh": chart.system_zh,
+        "subject": chart.subject, "summary": chart.summary,
+        "reasoning_chain": chart.reasoning_chain, "chart_elements": chart.readings,
     }
+    if chart.ascendant:
+        facts["ascendant"] = {k: chart.ascendant.get(k) for k in ("sign", "sign_zh", "house_system", "longitude")}
+    head = f"命主 / Subject: {chart.subject}\n"
+    if focus:
+        head += (f"★ 命主特別想問 / The subject specifically asks about: {focus}\n"
+                 "  （請在解讀中明確針對此重點回應 / address this focus directly）\n")
     user = (
-        f"Chart facts (JSON) / 命盤事實：\n{json.dumps(facts, ensure_ascii=False, indent=2)}\n\n"
-        + (f"The subject asks about / 命主想問：{focus}\n\n" if focus else "")
-        + "Read from the facts above, bilingually. / 請依上述事實雙語解讀。"
+        head + f"\nChart facts (JSON) / 命盤事實：\n{json.dumps(facts, ensure_ascii=False, indent=2)}\n\n"
+        "Read from the facts above, bilingually (English then 中文). / 請依上述事實雙語解讀（先英後中）。"
     )
-    text = complete(_SYSTEM + _voice(chart.system), user)
-    return Reading(**chart.model_dump(), interpretation=text)
+    return _SYSTEM + _voice(chart.system), user
+
+
+def interpret(chart: Chart, *, focus: str | None = None) -> Reading:
+    system, user = _prompts(chart, focus)
+    return Reading(**chart.model_dump(), interpretation=complete(system, user))
+
+
+def interpret_stream(chart: Chart, *, focus: str | None = None) -> Iterator[str]:
+    """Yield the reading text incrementally (for SSE)."""
+    system, user = _prompts(chart, focus)
+    yield from stream(system, user)

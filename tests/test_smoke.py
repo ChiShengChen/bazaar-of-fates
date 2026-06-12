@@ -96,3 +96,45 @@ def test_timelines_build_and_mark_current():
 def test_timeline_none_for_pointwise_systems():
     from fortune import timeline as tl
     assert tl.timeline("qimen", BIRTH).kind == "none"
+
+
+# --- ② Equal + Koch ------------------------------------------------------------
+
+def test_equal_houses_are_30_apart_from_ascendant():
+    from fortune import astro_ext as AX
+    asc = AX.ascendant_lon(BIRTH)
+    eq = AX.equal_houses(asc)
+    assert abs((eq[0]["longitude"] - asc + 180) % 360 - 180) < 0.01
+    gaps = [(eq[(i + 1) % 12]["longitude"] - eq[i]["longitude"]) % 360 for i in range(12)]
+    assert all(abs(g - 30) < 0.01 for g in gaps)
+
+
+def test_koch_cusp1_is_ascendant_and_cusp10_is_mc():
+    from fortune import astro_ext as AX
+    cusps = AX.koch_houses(BIRTH)
+    asc, mc = AX.ascendant_lon(BIRTH), AX.mc_lon(BIRTH)
+    assert abs((cusps[0]["longitude"] - asc + 180) % 360 - 180) < 0.01
+    assert abs((cusps[9]["longitude"] - mc + 180) % 360 - 180) < 0.01
+    gaps = [(cusps[(i + 1) % 12]["longitude"] - cusps[i]["longitude"]) % 360 for i in range(12)]
+    assert all(g > 0 for g in gaps) and abs(sum(gaps) - 360) < 0.01
+
+
+@pytest.mark.parametrize("hs", ["whole_sign", "equal", "placidus", "koch"])
+def test_all_house_systems_castable(hs):
+    c = casting.cast("astrology", BIRTH, house_system=hs)
+    assert c.ascendant["house_system"] == hs
+
+
+# --- ③ streaming ---------------------------------------------------------------
+
+def test_interpret_stream_matches_sync_on_mock():
+    from fortune.interpret import interpret, interpret_stream
+    chart = casting.cast("bazi", BIRTH)
+    streamed = "".join(interpret_stream(chart, focus="career"))
+    assert streamed and streamed == interpret(chart, focus="career").interpretation
+
+
+def test_focus_reaches_the_prompt():
+    from fortune.interpret import _prompts
+    _sys, user = _prompts(casting.cast("bazi", BIRTH), "marriage 婚姻")
+    assert "marriage 婚姻" in user

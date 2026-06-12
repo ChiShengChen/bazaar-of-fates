@@ -57,9 +57,10 @@ Runs with **no LLM key**: every chart casts deterministically; only the prose re
 | `GET` | `/systems` | the 11 systems + which cast cleanly / 11 系清單＋可用狀態 |
 | `POST` | `/cast/{system}?house_system=placidus` | deterministic chart, no LLM → `Chart` / 純命盤 |
 | `POST` | `/reading/{system}` | chart + bilingual reading (`house_system` in body) → `Reading` |
+| `POST` | `/reading/{system}/stream` | SSE: a `chart` event then `delta` text events → progressive 解讀 |
 | `POST` | `/timeline/{system}` | 大運 / Mahādaśā / 流年 sequence → `Timeline` (kind=`none` if N/A) |
 
-**Houses 宮位制** — astrology takes `house_system`: `whole_sign` (default) or `placidus` (validated so cusp 1 = ascendant and cusp 10 = MC; falls back past the polar circle). **Timelines 時間軸** — Jyotiṣa Vimśottarī Mahādaśā (120-yr), BaZi 大運 (10-yr luck pillars, direction by 年干陰陽 × gender), 紫微 流年四化.
+**Houses 宮位制** — astrology takes `house_system`: `whole_sign` (default), `equal`, `placidus`, or `koch`. The two quadrant systems (Placidus, Koch) are **validated against Swiss Ephemeris to <0.01°** across five charts incl. high-latitude and southern-hemisphere (swisseph is a dev-only oracle, not a runtime dependency); they fall back to whole-sign past the polar circle. **Streaming 串流** — `/reading/.../stream` streams the reading token-by-token (real Anthropic stream when keyed, chunked stub on mock). **Timelines 時間軸** — Jyotiṣa Vimśottarī Mahādaśā (120-yr), BaZi 大運 (10-yr luck pillars, direction by 年干陰陽 × gender), 紫微 流年四化.
 
 ```bash
 curl -s localhost:8000/cast/bazi -H 'content-type: application/json' -d '{

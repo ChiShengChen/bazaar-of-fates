@@ -33,7 +33,9 @@ def cast(birth: BirthInput, *, house_system: str = "whole_sign") -> Chart:
             else (lambda lon: AX.house_of(lon, asc["longitude"]))
         for r in chart_rows:
             r["house"] = place(r["ecliptic_lon"])
-        hs_label = "Placidus 不等宮" if asc["house_system"] == "placidus" else "whole-sign 整星座"
+        hs_label = {"placidus": "Placidus 不等宮", "koch": "Koch 不等宮",
+                    "equal": "Equal 等宮", "whole_sign": "whole-sign 整星座"}.get(
+                        asc["house_system"], asc["house_system"])
         readings["ascendant"] = f"{asc['sign']} {asc['sign_zh']} {asc['longitude']:.1f}°"
         readings["house_system"] = hs_label
         chain.insert(0, f"Ascendant 上升 {asc['sign']} {asc['sign_zh']} {asc['longitude']:.1f}° "

@@ -25,7 +25,7 @@ export function ChartView({ r }: { r: Chart }) {
   }
 
   if (r.system === "bazi" || r.system === "suimei") return <PillarsTable pillars={c.pillars || []} />;
-  if (r.system === "ziwei") return <PalaceGrid palaces={c.palaces || []} />;
+  if (r.system === "ziwei") return <ZiweiBoard palaces={c.palaces || []} readings={r.readings || {}} subject={r.subject} />;
   if (r.system === "iching") return <HexagramView hex={c.hexagram} diagram={c.diagram || []} />;
 
   return <p className="muted">See the casting steps & elements below. / 詳見下方排盤步驟與命盤要素。</p>;
@@ -44,17 +44,37 @@ function PillarsTable({ pillars }: { pillars: any[] }) {
   );
 }
 
-function PalaceGrid({ palaces }: { palaces: any[] }) {
-  // 紫微 12 palaces laid out around a 4×4 ring (corners + edges); simple 4-col grid here.
+// Traditional 紫微 命盤: the 12 palaces sit on the perimeter of a 4×4 grid, keyed by
+// their 地支 (子…亥 in fixed geomantic cells); the centre 2×2 holds the natal summary.
+const BRANCHES = "子丑寅卯辰巳午未申酉戌亥";
+// branch index → [row, col] (1-indexed for CSS grid) on the 4×4 board
+const CELL: Record<number, [number, number]> = {
+  5: [1, 1], 6: [1, 2], 7: [1, 3], 8: [1, 4],   // 巳 午 未 申  (top)
+  4: [2, 1],                       9: [2, 4],    // 辰 … 酉
+  3: [3, 1],                       10: [3, 4],   // 卯 … 戌
+  2: [4, 1], 1: [4, 2], 0: [4, 3], 11: [4, 4],   // 寅 丑 子 亥 (bottom)
+};
+
+function ZiweiBoard({ palaces, readings, subject }: { palaces: any[]; readings: any; subject: string }) {
   if (!palaces.length) return null;
   return (
-    <div className="grid4">
-      {palaces.map((p, i) => (
-        <div key={i} className={`palace${p.is_body ? " body" : ""}`}>
-          <div className="pn">{p.name} <span className="muted">{p.branch}</span></div>
-          <div>{(p.stars || []).join(" ")}</div>
-        </div>
-      ))}
+    <div className="ziwei-board">
+      {palaces.map((p, i) => {
+        const bi = BRANCHES.indexOf(p.branch);
+        const [row, col] = CELL[bi] || [1, 1];
+        return (
+          <div key={i} className={`zw-cell${p.is_body ? " body" : ""}`} style={{ gridRow: row, gridColumn: col }}>
+            <div className="zw-stars">{(p.stars || []).join(" ")}</div>
+            <div className="zw-name"><b>{p.name}</b> <span className="muted">{p.branch}</span></div>
+          </div>
+        );
+      })}
+      <div className="zw-center">
+        <div className="muted" style={{ fontSize: 11 }}>{subject}</div>
+        <div>命主 <b>{readings.soul_star || "?"}</b>・身主 {readings.body_star || "?"}</div>
+        <div>{readings.five_elements_class || ""}・命宮 {readings.life_palace_branch || ""}</div>
+        <div className="muted">生時 {readings.hour_branch || ""}・流年 {readings.ziwei_regime || ""}</div>
+      </div>
     </div>
   );
 }

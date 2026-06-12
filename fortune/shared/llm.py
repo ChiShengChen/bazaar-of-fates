@@ -7,6 +7,9 @@ every chart still casts deterministically, only the narration is stubbed.
 
 from __future__ import annotations
 
+import re
+from collections.abc import Iterator
+
 from fortune.shared.config import get_settings
 from fortune.shared.logging import get_logger
 
@@ -39,6 +42,31 @@ def complete(system_prompt: str, user_prompt: str, *, max_tokens: int | None = N
             log.warning("llm_fallback_to_stub", error=str(e))
 
     return _stub(user_prompt)
+
+
+def stream(system_prompt: str, user_prompt: str, *, max_tokens: int | None = None) -> Iterator[str]:
+    """Yield the reading incrementally. Real token stream on Anthropic; on the mock
+    backend (or any failure) the deterministic stub is chunked so the UI still streams."""
+    s = get_settings()
+    max_tokens = max_tokens or s.interpretation_max_tokens
+
+    if s.llm_backend == "anthropic" and s.anthropic_api_key:
+        try:
+            import anthropic
+
+            client = anthropic.Anthropic(api_key=s.anthropic_api_key)
+            with client.messages.stream(
+                model=s.anthropic_model, max_tokens=max_tokens,
+                system=system_prompt, messages=[{"role": "user", "content": user_prompt}],
+            ) as st:
+                for text in st.text_stream:
+                    yield text
+            return
+        except Exception as e:  # noqa: BLE001
+            log.warning("llm_stream_fallback_to_stub", error=str(e))
+
+    for chunk in re.findall(r".{1,36}", _stub(user_prompt), flags=re.S):
+        yield chunk
 
 
 def _stub(user_prompt: str) -> str:

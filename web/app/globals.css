@@ -30,6 +30,8 @@ button:disabled { opacity: .5; cursor: default; }
 .kv { display: grid; grid-template-columns: auto 1fr; gap: 4px 14px; font-size: 13px; margin-top: 10px; }
 .kv .k { color: var(--dim); }
 .interp { white-space: pre-wrap; font-size: 14px; line-height: 1.85; }
+.cursor { color: var(--accent); animation: blink 1s steps(2) infinite; }
+@keyframes blink { 50% { opacity: 0; } }
 .muted { color: var(--dim); font-size: 12px; }
 .err { color: var(--bad); }
 .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
@@ -49,3 +51,11 @@ th { color: var(--dim); font-weight: 500; }
 .palace .pn { color: var(--accent); font-weight: 600; }
 .palace.body { border-color: var(--accent); }
 .hex { font-family: monospace; font-size: 18px; line-height: 1.5; letter-spacing: 2px; }
+
+/* 紫微 traditional 4×4 命盤 */
+.ziwei-board { display: grid; grid-template-columns: repeat(4, 1fr); grid-template-rows: repeat(4, 1fr); gap: 4px; aspect-ratio: 1; max-width: 460px; }
+.zw-cell { border: 1px solid var(--line); border-radius: 6px; padding: 5px 6px; display: flex; flex-direction: column; justify-content: space-between; font-size: 11px; overflow: hidden; }
+.zw-cell.body { border-color: var(--accent); background: #1c1530; }
+.zw-stars { line-height: 1.4; word-break: break-all; }
+.zw-name { color: var(--accent); margin-top: 3px; }
+.zw-center { grid-row: 2 / 4; grid-column: 2 / 4; border: 1px solid var(--line); border-radius: 8px; padding: 10px; display: flex; flex-direction: column; justify-content: center; gap: 4px; font-size: 12px; text-align: center; }
