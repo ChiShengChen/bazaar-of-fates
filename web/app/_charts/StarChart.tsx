@@ -14,7 +14,7 @@ const ASPECT_COLOR: Record<string, string> = {
 const ASPECT_ANGLE: Record<string, number> = { conjunction: 0, sextile: 60, square: 90, trine: 120, opposition: 180 };
 
 export interface CrossAspect { a: string; b: string; type: string; orb?: number; }
-export interface MajorTransit { transit: string; angle: string; type: string; angle_lon: number; orb: number; weight?: number; }
+export interface MajorTransit { transit: string; angle: string; type: string; angle_lon: number; orb: number; weight?: number; phase?: string; }
 const ASPECT_GLYPH: Record<string, string> = { conjunction: "☌", opposition: "☍", square: "□" };
 
 // tighter orb → thicker, brighter line; wide orb → thin, faint
@@ -145,11 +145,17 @@ export function StarChart({
         const ap = pos(m.angle_lon, rZodIn);
         const w = m.weight ?? 0.7;                          // 0..1 strength
         const haloR = 8 + 6 * w, lineW = 1 + 2.2 * w, op = 0.45 + 0.45 * w;
+        const applying = m.phase !== "separating";          // applying = building, separating = fading
+        const mid = { x: (tp.x + ap.x) / 2, y: (tp.y + ap.y) / 2 };
         return (
           <g key={`mt${i}`}>
-            <line x1={tp.x} y1={tp.y} x2={ap.x} y2={ap.y} stroke="#fbbf24" strokeWidth={lineW} opacity={op} />
+            {/* applying = solid (building), separating = dashed (fading) */}
+            <line x1={tp.x} y1={tp.y} x2={ap.x} y2={ap.y} stroke="#fbbf24" strokeWidth={lineW} opacity={op}
+                  strokeDasharray={applying ? "" : "3 3"} />
             <circle cx={tp.x} cy={tp.y} r={haloR} fill="none" stroke="#fbbf24" strokeWidth={1 + 0.8 * w} opacity={op} />
             {w >= 0.8 && <circle cx={tp.x} cy={tp.y} r={haloR + 3} fill="none" stroke="#fbbf24" strokeWidth={0.6} opacity={0.5} />}
+            {/* arrow toward the angle (applying) or away (separating) */}
+            <text x={mid.x} y={mid.y} fontSize={9} fill="#fbbf24" textAnchor="middle" dominantBaseline="central">{applying ? "▸" : "▹"}</text>
             <text x={ap.x} y={ap.y} dy={-3} fontSize={8} fill="#fbbf24" textAnchor="middle">{ASPECT_GLYPH[m.type] || ""}{m.angle}</text>
           </g>
         );

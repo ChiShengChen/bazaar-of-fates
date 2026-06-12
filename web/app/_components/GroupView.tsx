@@ -1,27 +1,45 @@
 "use client";
 import { useState } from "react";
 import { GroupResult } from "@/lib/api";
+import { MidpointBlock } from "./MidpointBlock";
 
-// net score → cell colour (green = in sync, red = tension)
-function cellStyle(net: number): React.CSSProperties {
-  if (net === 0) return { background: "#27272a", color: "#a1a1aa" };
-  const a = Math.min(1, Math.abs(net) / 6);
-  return net > 0
-    ? { background: `rgba(52,211,153,${0.18 + 0.5 * a})`, color: "#bbf7d0" }
-    : { background: `rgba(251,113,133,${0.18 + 0.5 * a})`, color: "#fecdd3" };
+type Dim = "net" | "total" | "harmonious" | "challenging";
+const DIMS: [Dim, string][] = [["net", "Net 淨分"], ["total", "Total 總相位"], ["harmonious", "Harmonious 吉"], ["challenging", "Challenging 凶"]];
+
+function cellStyle(value: number, dim: Dim): React.CSSProperties {
+  if (value === 0) return { background: "#27272a", color: "#a1a1aa" };
+  const mag = Math.min(1, Math.abs(value) / (dim === "total" ? 12 : 6));
+  const green = { background: `rgba(52,211,153,${0.18 + 0.5 * mag})`, color: "#bbf7d0" };
+  const red = { background: `rgba(251,113,133,${0.18 + 0.5 * mag})`, color: "#fecdd3" };
+  const neutral = { background: `rgba(167,139,250,${0.18 + 0.5 * mag})`, color: "#ddd6fe" };
+  if (dim === "harmonious") return green;
+  if (dim === "challenging") return red;
+  if (dim === "total") return neutral;
+  return value > 0 ? green : red;   // net
 }
 
 export function GroupView({ g }: { g: GroupResult }) {
   const [sel, setSel] = useState<number | null>(null);
+  const [dim, setDim] = useState<Dim>("net");
   const n = g.people.length;
+  const pairOf = (i: number, j: number) => g.pairs.find((x) => (x.i === i && x.j === j) || (x.i === j && x.j === i));
+  const valueOf = (i: number, j: number) => {
+    const p = pairOf(i, j); if (!p) return 0;
+    return dim === "total" ? p.harmonious + p.challenging : dim === "harmonious" ? p.harmonious : dim === "challenging" ? p.challenging : p.net;
+  };
   return (
     <>
       <div className="card">
         <h3>團體合盤 Group dynamics · {n} people</h3>
         <div className="summary">{g.summary}</div>
-        <p className="muted" style={{ marginTop: -4 }}>
-          Cell = net cross-aspect score (harmonious − challenging). Click a cell for the pair's aspects.
-          格子＝兩人吉凶相位淨分；點格子看該對相位。
+        <div className="pills" style={{ marginBottom: 8 }}>
+          {DIMS.map(([d, label]) => (
+            <div key={d} className={`pill${dim === d ? " on" : ""}`} onClick={() => setDim(d)}>{label}</div>
+          ))}
+        </div>
+        <p className="muted" style={{ marginTop: -2 }}>
+          Cell = {dim === "net" ? "harmonious − challenging" : dim === "total" ? "total cross-aspects" : dim} score. Click a cell for the pair's aspects.
+          點格子看該對相位。
         </p>
         <div style={{ overflowX: "auto" }}>
           <table style={{ minWidth: 360 }}>
@@ -32,12 +50,11 @@ export function GroupView({ g }: { g: GroupResult }) {
                   <th>{p.name}</th>
                   {g.people.map((_, j) => {
                     if (i === j) return <td key={j} style={{ textAlign: "center", color: "#52525b" }}>—</td>;
-                    const pair = g.pairs.find((x) => (x.i === i && x.j === j) || (x.i === j && x.j === i));
-                    const net = g.matrix[i][j];
+                    const v = valueOf(i, j);
                     return (
-                      <td key={j} style={{ textAlign: "center", cursor: "pointer", ...cellStyle(net) }}
-                          onClick={() => setSel(g.pairs.indexOf(pair!))}>
-                        {net > 0 ? `+${net}` : net}
+                      <td key={j} style={{ textAlign: "center", cursor: "pointer", ...cellStyle(v, dim) }}
+                          onClick={() => setSel(g.pairs.indexOf(pairOf(i, j)!))}>
+                        {dim === "net" && v > 0 ? `+${v}` : v}
                       </td>
                     );
                   })}
@@ -69,6 +86,11 @@ export function GroupView({ g }: { g: GroupResult }) {
         <h3>Group reading 團體解讀</h3>
         <div className="interp">{g.interpretation}</div>
       </div>
+
+      {g.composite && g.composite.planets.length > 0 && (
+        <MidpointBlock title="Group composite chart 團體共同中點盤" m={g.composite}
+          note="Every planet at the circular mean of all members. 全員行星取圓周平均（團體 composite）。" />
+      )}
     </>
   );
 }

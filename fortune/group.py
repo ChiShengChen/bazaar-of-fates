@@ -6,11 +6,38 @@ cross-aspects, yielding a net-score matrix and the standout pairs. Native module
 
 from __future__ import annotations
 
+import math
+
+from fortune import astro_ext as AX
 from fortune import casting
 from fortune.birth import BirthInput
-from fortune.casting.astrology import _cross_aspects
+from fortune.casting.astrology import _cross_aspects, aspects_within
 
 _HARMONIOUS = {"trine", "sextile", "conjunction"}
+
+
+def _circular_mean(angles: list[float]) -> float:
+    """Mean of angles via unit-vector averaging (correct for wrap-around)."""
+    s = sum(math.sin(math.radians(a)) for a in angles)
+    c = sum(math.cos(math.radians(a)) for a in angles)
+    return math.degrees(math.atan2(s, c)) % 360.0
+
+
+def _group_composite(charts: list) -> dict:
+    """The whole group's composite chart: each planet at the circular mean of all members."""
+    bodies = [p["body"] for p in charts[0].chart["planets"]]
+    planets = []
+    for body in bodies:
+        lons = [next(p["ecliptic_lon"] for p in c.chart["planets"] if p["body"] == body) for c in charts]
+        lo = round(_circular_mean(lons), 2)
+        planets.append({"body": body, "ecliptic_lon": lo, "sign": AX.sign_of(lo), "sign_zh": AX.sign_zh(lo)})
+    comp = {"planets": planets, "aspects": aspects_within(planets)}
+    ascs = [c.ascendant["longitude"] for c in charts if c.ascendant]
+    if len(ascs) == len(charts):                          # only if every member has time + place
+        al = round(_circular_mean(ascs), 2)
+        comp["ascendant"] = {"longitude": al, "sign": AX.sign_of(al), "sign_zh": AX.sign_zh(al),
+                             "house_system": "whole_sign", "houses": AX.whole_sign_houses(al)}
+    return comp
 
 
 def compute(births: list[BirthInput], *, house_system: str = "whole_sign") -> dict:
@@ -40,4 +67,5 @@ def compute(births: list[BirthInput], *, house_system: str = "whole_sign") -> di
         + (f"・most in-sync {best['a']}↔{best['b']}" if best else "")
     )
     return {"people": people, "pairs": pairs, "matrix": matrix,
-            "best_pair": best, "tense_pair": tense, "summary": summary}
+            "best_pair": best, "tense_pair": tense, "summary": summary,
+            "composite": _group_composite(charts)}

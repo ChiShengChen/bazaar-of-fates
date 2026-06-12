@@ -132,6 +132,8 @@ def group(req: GroupRequest) -> Group:
         log.exception("group_failed")
         raise HTTPException(500, f"group failed / 團體合盤失敗：{e}") from e
     g["interpretation"] = interpret_group(g, focus=req.focus)
+    if g.get("composite"):
+        g["composite"]["interpretation"] = interpret_composite(g["composite"], focus=req.focus)
     return Group(**g)
 
 

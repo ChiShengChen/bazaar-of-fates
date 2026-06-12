@@ -79,6 +79,7 @@ export interface GroupResult {
   matrix: number[][];
   best_pair?: { a: string; b: string; net: number } | null;
   tense_pair?: { a: string; b: string; net: number } | null;
+  composite?: MidpointChart | null;
   summary: string; interpretation: string;
 }
 export const getGroup = (births: BirthInput[], focus: string | null, house_system: string) =>

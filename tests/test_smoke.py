@@ -217,15 +217,39 @@ def test_davison_timeline_returns():
     assert any("Saturn return" in s for s in labels) and any("Jupiter return" in s for s in labels)
 
 
-def test_group_matrix_is_symmetric_and_scored():
-    from fortune import group
+def _trio():
     c = BirthInput(name="L", gender="female", birth_date=date(1992, 3, 8), birth_time=time(20, 40),
                    latitude=22.3, longitude=114.2)
-    g = group.compute([BIRTH, _partner(), c])
+    return [BIRTH, _partner(), c]
+
+
+def test_group_matrix_is_symmetric_and_scored():
+    from fortune import group
+    g = group.compute(_trio())
     m = g["matrix"]
     assert len(m) == 3 and all(m[i][i] == 0 for i in range(3))
     assert all(m[i][j] == m[j][i] for i in range(3) for j in range(3))   # symmetric
     assert len(g["pairs"]) == 3 and g["best_pair"] and g["tense_pair"]
+
+
+def test_group_composite_is_circular_mean():
+    import math
+    from fortune import group
+    members = _trio()
+    g = group.compute(members)
+    comp = g["composite"]
+    assert comp and len(comp["planets"]) == 7 and "ascendant" in comp
+    suns = [next(p["ecliptic_lon"] for p in casting.cast("astrology", b).chart["planets"] if p["body"] == "Sun") for b in members]
+    s = sum(math.sin(math.radians(x)) for x in suns); c = sum(math.cos(math.radians(x)) for x in suns)
+    expect = math.degrees(math.atan2(s, c)) % 360
+    csun = next(p["ecliptic_lon"] for p in comp["planets"] if p["body"] == "Sun")
+    assert abs((csun - expect + 180) % 360 - 180) < 0.1
+
+
+def test_transit_phase_applying_or_separating():
+    c = casting.cast("astrology", BIRTH, transits=True, transit_date="2005-07-01")
+    hits = c.chart["major_transits"]
+    assert hits and all(h["phase"] in ("applying", "separating") for h in hits)
 
 
 def test_davison_is_a_real_distinct_chart():

@@ -50,6 +50,7 @@ class Group(BaseModel):
     matrix: list[list[int]] = Field(default_factory=list)
     best_pair: dict[str, Any] | None = None
     tense_pair: dict[str, Any] | None = None
+    composite: dict[str, Any] | None = None    # the whole group's composite chart
     summary: str = ""
     interpretation: str = ""
 

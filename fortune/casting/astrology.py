@@ -7,7 +7,7 @@ gracefully fall back to the planets-only chart and flag the ascendant as unknown
 
 from __future__ import annotations
 
-from datetime import date
+from datetime import date, timedelta
 
 from fortune import astro_ext as AX
 from fortune.birth import BirthInput
@@ -132,13 +132,18 @@ def cast(birth: BirthInput, *, house_system: str = "whole_sign",
                         if orb <= _ANGLE_ORB:
                             # weight 0..1: aspect potency × tightness (tight orb → stronger)
                             weight = round(_ASPECT_WEIGHT[asp] * (1.0 - 0.45 * orb / _ANGLE_ORB), 2)
+                            # applying vs separating: is tomorrow's orb tighter? (handles retrograde)
+                            l1 = astro._lon(astro._BODIES[t["body"]], td + timedelta(days=1))
+                            orb1 = abs(astro._separation(l1, alon) - exact)
+                            phase = "applying" if orb1 < orb else "separating"
                             major.append({"transit": t["body"], "angle": an, "type": asp,
-                                          "angle_lon": round(alon, 2), "orb": round(orb, 1), "weight": weight})
+                                          "angle_lon": round(alon, 2), "orb": round(orb, 1),
+                                          "weight": weight, "phase": phase})
                             break
             major.sort(key=lambda m: m["weight"], reverse=True)
             chart_payload["major_transits"] = major
             readings["major_transits"] = [
-                f"⚠ transit {m['transit']} {m['type']} natal {m['angle']} ({m['orb']}°)" for m in major
+                f"⚠ transit {m['transit']} {m['type']} natal {m['angle']} ({m['orb']}°, {m['phase']})" for m in major
             ] or ["none 無"]
 
     summary = (
