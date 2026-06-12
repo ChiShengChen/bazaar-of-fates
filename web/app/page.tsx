@@ -1,49 +1,59 @@
 "use client";
 import { useEffect, useState } from "react";
 import {
-  apiBase, getSystems, getTimeline, streamReading,
-  SystemInfo, Reading, Timeline, BirthInput,
+  apiBase, getSystems, getTimeline, streamReading, getSynastry,
+  SystemInfo, Reading, Timeline, Synastry,
 } from "@/lib/api";
 import { ChartView } from "./_components/ChartView";
 import { Houses } from "./_components/Houses";
 import { TimelineView } from "./_components/TimelineView";
+import { SynastryView } from "./_components/SynastryView";
+import { BirthFields, FormState, emptyForm, toBirth } from "./_components/BirthFields";
+
+const HOUSE_OPTS = [
+  ["whole_sign", "whole-sign 整星座"], ["equal", "Equal 等宮"], ["placidus", "Placidus 不等宮"],
+  ["koch", "Koch 不等宮"], ["regiomontanus", "Regiomontanus 不等宮"], ["campanus", "Campanus 不等宮"],
+];
 
 export default function Page() {
   const [systems, setSystems] = useState<SystemInfo[]>([]);
   const [sys, setSys] = useState("bazi");
+  const [mode, setMode] = useState<"single" | "synastry">("single");
   const [houseSystem, setHouseSystem] = useState("whole_sign");
+  const [transits, setTransits] = useState(false);
+  const [focus, setFocus] = useState("");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [reading, setReading] = useState<Reading | null>(null);
   const [timeline, setTimeline] = useState<Timeline | null>(null);
+  const [synastry, setSynastry] = useState<Synastry | null>(null);
 
-  const [form, setForm] = useState({
-    name: "Mei 小美", gender: "female", date: "1990-06-15", time: "14:30", place: "Taipei 台北",
-    lat: "25.04", lon: "121.56", focus: "",
-  });
-  const set = (k: string, v: string) => setForm((f) => ({ ...f, [k]: v }));
+  const [formA, setFormA] = useState<FormState>(emptyForm({ name: "Mei 小美", gender: "female", time: "14:30", place: "Taipei 台北", lat: "25.04", lon: "121.56" }));
+  const [formB, setFormB] = useState<FormState>(emptyForm({ name: "Ken 阿肯", gender: "male", date: "1988-11-02", time: "09:15", place: "Taipei 台北", lat: "25.04", lon: "121.56" }));
+  const setA = (k: keyof FormState, v: string) => setFormA((f) => ({ ...f, [k]: v }));
+  const setB = (k: keyof FormState, v: string) => setFormB((f) => ({ ...f, [k]: v }));
 
   useEffect(() => { getSystems().then(setSystems).catch((e) => setErr(String(e.message || e))); }, []);
 
-  function birth(): BirthInput {
-    return {
-      name: form.name || undefined, gender: form.gender || undefined,
-      birth_date: form.date, birth_time: form.time || undefined, place: form.place || undefined,
-      latitude: form.lat ? Number(form.lat) : undefined, longitude: form.lon ? Number(form.lon) : undefined,
-    };
-  }
-
   async function cast() {
     setBusy(true); setErr(null); setReading(null); setTimeline(null);
-    const b = birth();
-    getTimeline(sys, b).then(setTimeline).catch(() => setTimeline(null));   // in parallel
+    const b = toBirth(formA);
+    getTimeline(sys, b).then(setTimeline).catch(() => setTimeline(null));
     try {
       let acc = "";
       await streamReading(
-        sys, b, form.focus || null, houseSystem,
-        (chart) => setReading({ ...(chart as Reading), interpretation: "" }),  // 命盤 renders at once
+        sys, b, focus || null, houseSystem, transits,
+        (chart) => setReading({ ...(chart as Reading), interpretation: "" }),
         (delta) => { acc += delta; setReading((r) => (r ? { ...r, interpretation: acc } : r)); },
       );
+    } catch (e: any) { setErr(String(e.message || e)); }
+    finally { setBusy(false); }
+  }
+
+  async function compare() {
+    setBusy(true); setErr(null); setSynastry(null);
+    try {
+      setSynastry(await getSynastry(toBirth(formA), toBirth(formB), focus || null, houseSystem));
     } catch (e: any) { setErr(String(e.message || e)); }
     finally { setBusy(false); }
   }
@@ -51,8 +61,8 @@ export default function Page() {
   function exportPng() {
     const svg = document.querySelector("#chart-area svg") as SVGSVGElement | null;
     if (!svg) return;
-    const w = Number(svg.getAttribute("width")) || svg.viewBox.baseVal.width || 340;
-    const h = Number(svg.getAttribute("height")) || svg.viewBox.baseVal.height || 340;
+    const w = Number(svg.getAttribute("width")) || svg.viewBox.baseVal.width || 360;
+    const h = Number(svg.getAttribute("height")) || svg.viewBox.baseVal.height || 360;
     const xml = new XMLSerializer().serializeToString(svg);
     const img = new Image();
     img.onload = () => {
@@ -64,13 +74,15 @@ export default function Page() {
       cv.toBlob((b) => {
         if (!b) return;
         const a = document.createElement("a");
-        a.href = URL.createObjectURL(b); a.download = `${sys}-chart.png`; a.click();
+        a.href = URL.createObjectURL(b); a.download = `${mode === "synastry" ? "synastry" : sys}-chart.png`; a.click();
         URL.revokeObjectURL(a.href);
       });
     };
     img.src = "data:image/svg+xml;base64," + btoa(unescape(encodeURIComponent(xml)));
   }
-  const hasSvgChart = reading && ["astrology", "qizheng", "jyotish"].includes(reading.system);
+
+  const hasSvgChart = mode === "synastry" || (reading && ["astrology", "qizheng", "jyotish"].includes(reading.system));
+  const showResults = mode === "single" ? reading : synastry;
 
   return (
     <div className="wrap">
@@ -81,58 +93,69 @@ export default function Page() {
       </div>
 
       <div className="card">
-        <div className="grid">
-          <div><label>Name 稱呼</label><input value={form.name} onChange={(e) => set("name", e.target.value)} /></div>
-          <div><label>Gender 性別</label>
-            <select value={form.gender} onChange={(e) => set("gender", e.target.value)}>
-              <option value="">—</option><option value="female">female 女</option><option value="male">male 男</option>
-            </select>
-          </div>
-          <div><label>Birth date 出生日期</label><input type="date" value={form.date} onChange={(e) => set("date", e.target.value)} /></div>
-          <div><label>Birth time 出生時刻</label><input type="time" value={form.time} onChange={(e) => set("time", e.target.value)} /></div>
-          <div><label>Birthplace 出生地</label><input value={form.place} onChange={(e) => set("place", e.target.value)} /></div>
-          <div><label>Lat 緯度</label><input value={form.lat} onChange={(e) => set("lat", e.target.value)} /></div>
-          <div><label>Lon 經度</label><input value={form.lon} onChange={(e) => set("lon", e.target.value)} /></div>
+        <div className="pills" style={{ marginBottom: 12 }}>
+          <div className={`pill${mode === "single" ? " on" : ""}`} onClick={() => setMode("single")}>Single 單人</div>
+          <div className={`pill${mode === "synastry" ? " on" : ""}`} onClick={() => setMode("synastry")}>Synastry 合盤</div>
         </div>
 
-        <div className="pills">
-          {systems.map((s) => (
-            <div key={s.key} className={`pill${s.key === sys ? " on" : ""}`} title={s.en}
-                 onClick={() => setSys(s.key)}>{s.en} · {s.zh}{s.available ? "" : " ⚠"}</div>
-          ))}
-        </div>
+        <BirthFields f={formA} set={setA} />
+        {mode === "synastry" && (
+          <>
+            <div className="muted" style={{ margin: "12px 0 4px" }}>Person B 第二人（合盤對象）</div>
+            <BirthFields f={formB} set={setB} />
+          </>
+        )}
+
+        {mode === "single" && (
+          <div className="pills">
+            {systems.map((s) => (
+              <div key={s.key} className={`pill${s.key === sys ? " on" : ""}`} title={s.en}
+                   onClick={() => setSys(s.key)}>{s.en} · {s.zh}{s.available ? "" : " ⚠"}</div>
+            ))}
+          </div>
+        )}
 
         <div className="row">
-          <div><label>Ask about (optional) 想問</label><input value={form.focus} onChange={(e) => set("focus", e.target.value)} placeholder="career / love / health 事業 / 感情 / 健康" /></div>
-          {sys === "astrology" && (
+          <div><label>Ask about (optional) 想問</label>
+            <input value={focus} onChange={(e) => setFocus(e.target.value)} placeholder="career / love / health 事業 / 感情 / 健康" /></div>
+          {(mode === "synastry" || sys === "astrology") && (
             <div style={{ flex: 0, minWidth: 160 }}><label>Houses 宮位制</label>
               <select value={houseSystem} onChange={(e) => setHouseSystem(e.target.value)}>
-                <option value="whole_sign">whole-sign 整星座</option>
-                <option value="equal">Equal 等宮</option>
-                <option value="placidus">Placidus 不等宮</option>
-                <option value="koch">Koch 不等宮</option>
-                <option value="regiomontanus">Regiomontanus 不等宮</option>
-                <option value="campanus">Campanus 不等宮</option>
+                {HOUSE_OPTS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
               </select>
             </div>
           )}
-          <div style={{ flex: 0 }}><button onClick={cast} disabled={busy}>{busy ? "Casting… 排盤中" : "Cast + Read 排盤＋解讀"}</button></div>
+          {mode === "single" && sys === "astrology" && (
+            <div style={{ flex: 0 }}><label>&nbsp;</label>
+              <label style={{ display: "flex", gap: 6, alignItems: "center", cursor: "pointer" }}>
+                <input type="checkbox" checked={transits} onChange={(e) => setTransits(e.target.checked)} style={{ width: "auto" }} />
+                Transits 行運
+              </label>
+            </div>
+          )}
+          <div style={{ flex: 0 }}>
+            {mode === "single"
+              ? <button onClick={cast} disabled={busy}>{busy ? "Casting… 排盤中" : "Cast + Read 排盤＋解讀"}</button>
+              : <button onClick={compare} disabled={busy}>{busy ? "Comparing… 合盤中" : "Compare 合盤"}</button>}
+          </div>
         </div>
         <div className="muted" style={{ marginTop: 10 }}>API: {apiBase()}</div>
       </div>
 
       {err && <div className="card err">{err}</div>}
 
-      {reading && (
-        <>
-          <div className="card noprint" style={{ display: "flex", gap: 8, alignItems: "center" }}>
-            <span className="muted">Share 分享：</span>
-            {hasSvgChart && <button onClick={exportPng}>Download chart PNG 下載星盤</button>}
-            <button onClick={() => window.print()} style={{ background: "#27272a", color: "var(--ink)" }}>
-              Print / Save PDF 列印・存 PDF
-            </button>
-          </div>
+      {showResults && (
+        <div className="card noprint" style={{ display: "flex", gap: 8, alignItems: "center" }}>
+          <span className="muted">Share 分享：</span>
+          {hasSvgChart && <button onClick={exportPng}>Download chart PNG 下載星盤</button>}
+          <button onClick={() => window.print()} style={{ background: "#27272a", color: "var(--ink)" }}>Print / Save PDF 列印・存 PDF</button>
+        </div>
+      )}
 
+      {mode === "synastry" && synastry && <SynastryView s={synastry} busy={busy} />}
+
+      {mode === "single" && reading && (
+        <>
           <div className="card">
             <h3>{reading.system_en} · {reading.system_zh} · {reading.subject}</h3>
             <div className="summary">{reading.summary}</div>
@@ -145,13 +168,11 @@ export default function Page() {
             </div>
           </div>
 
-          {(reading.system === "astrology" || reading.system === "qizheng" || reading.system === "jyotish") && (
+          {["astrology", "qizheng", "jyotish"].includes(reading.system) && (
             <div className="card"><h3>Ascendant & Houses 上升與宮位</h3><Houses asc={reading.ascendant} /></div>
           )}
 
-          {timeline && timeline.kind !== "none" && (
-            <div className="card"><TimelineView t={timeline} /></div>
-          )}
+          {timeline && timeline.kind !== "none" && <div className="card"><TimelineView t={timeline} /></div>}
 
           <div className="card">
             <h3>Reading 解讀{busy ? " · streaming…" : ""}</h3>

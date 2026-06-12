@@ -59,6 +59,9 @@ Runs with **no LLM key**: every chart casts deterministically; only the prose re
 | `POST` | `/reading/{system}` | chart + bilingual reading (`house_system` in body) → `Reading` |
 | `POST` | `/reading/{system}/stream` | SSE: a `chart` event then `delta` text events → progressive 解讀 |
 | `POST` | `/timeline/{system}` | 大運 / Mahādaśā / 流年 sequence → `Timeline` (kind=`none` if N/A) |
+| `POST` | `/synastry` | two births → both charts + cross-aspects + 合盤 reading → `Synastry` |
+
+**Star wheel 星盤** — the astrology SVG draws the 12 house cusps as spokes (ASC/MC emphasised, house numbers), the natal planets on an inner ring, and — when enabled — a **transit 行運 outer ring** (today's sky) with dashed transit→natal aspect lines. **Synastry 合盤** (`transits=true` body flag / `/synastry`) — overlays two people's charts in one bi-wheel and lists their cross-aspects (harmonious vs challenging).
 
 **Houses 宮位制** — astrology takes `house_system`: `whole_sign` (default), `equal`, `placidus`, `koch`, `regiomontanus`, or `campanus`. The four quadrant systems are **validated against Swiss Ephemeris to <0.006°** across five charts incl. high-latitude (Reykjavik 64°N) and southern-hemisphere (Sydney); swisseph is a **dev-only oracle, not a runtime dependency**. Quadrant systems fall back to whole-sign past the polar circle. **Deeper reading** — the astrology 解讀 also gets the chart ruler (命主星), angular planets, and aspect list folded into the prompt. **Streaming 串流** — `/reading/.../stream` streams the reading token-by-token (real Anthropic stream when keyed, chunked stub on mock). **Export 匯出** — the web app downloads the star/rāśi/七政 chart as PNG and prints the whole reading to PDF. **Timelines 時間軸** — Jyotiṣa Vimśottarī Mahādaśā (120-yr), BaZi 大運 (10-yr luck pillars, direction by 年干陰陽 × gender), 紫微 流年四化.
 

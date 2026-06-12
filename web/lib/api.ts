@@ -36,6 +36,12 @@ export interface BirthInput {
   place?: string; latitude?: number; longitude?: number; tz_offset_hours?: number;
 }
 
+export interface Synastry {
+  a: Chart; b: Chart;
+  cross_aspects: { a: string; b: string; type: string; orb: number }[];
+  summary: string; interpretation: string;
+}
+
 async function post<T>(path: string, body: unknown): Promise<T> {
   const r = await fetch(`${BASE}${path}`, {
     method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body),
@@ -53,15 +59,18 @@ export const getReading = (system: string, birth: BirthInput, focus: string | nu
 export const getTimeline = (system: string, birth: BirthInput) =>
   post<Timeline>(`/timeline/${system}`, birth);
 
+export const getSynastry = (a: BirthInput, b: BirthInput, focus: string | null, house_system: string) =>
+  post<Synastry>(`/synastry`, { a, b, focus, house_system });
+
 // Stream a reading via SSE: onChart fires once with the deterministic 命盤,
 // onDelta fires for each text chunk of the 解讀.
 export async function streamReading(
-  system: string, birth: BirthInput, focus: string | null, house_system: string,
+  system: string, birth: BirthInput, focus: string | null, house_system: string, transits: boolean,
   onChart: (c: Chart) => void, onDelta: (t: string) => void,
 ): Promise<void> {
   const res = await fetch(`${BASE}/reading/${system}/stream`, {
     method: "POST", headers: { "content-type": "application/json" },
-    body: JSON.stringify({ birth, focus, house_system }),
+    body: JSON.stringify({ birth, focus, house_system, transits }),
   });
   if (!res.ok || !res.body) throw new Error((await res.json().catch(() => ({}))).detail || res.statusText);
   const reader = res.body.getReader();

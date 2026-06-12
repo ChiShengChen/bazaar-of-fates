@@ -1,58 +1,77 @@
-// A circular zodiac wheel (星盤) rendered in SVG from the as-of ecliptic longitudes.
-// Pure presentational — it draws exactly what the deterministic ephem chart returns.
-import { PlanetPosition } from "@/lib/api";
+// Circular zodiac wheel (星盤), SVG. Native to this repo (not synced) so it can carry
+// 算命-specific overlays: house spokes/cusps, an optional outer ring (transit 行運 or a
+// synastry partner 合盤), and cross-aspects between the two rings.
+import { PlanetPosition, HouseCusp } from "@/lib/api";
 
 const ZODIAC = ["♈", "♉", "♊", "♋", "♌", "♍", "♎", "♏", "♐", "♑", "♒", "♓"];
 const GLYPH: Record<string, string> = {
   Sun: "☉", Moon: "☽", Mercury: "☿", Venus: "♀", Mars: "♂", Jupiter: "♃", Saturn: "♄",
+  Rahu: "☊", Ketu: "☋",
 };
 const ASPECT_COLOR: Record<string, string> = {
   conjunction: "#a1a1aa", sextile: "#34d399", trine: "#34d399", square: "#fb7185", opposition: "#fb7185",
 };
 
+export interface CrossAspect { a: string; b: string; type: string; }
+
+const S = 360, cx = S / 2, cy = S / 2;
+const rZodOut = 172, rZodIn = 150, rSignGlyph = 161;
+const rOuter = 132, rNatal = 104, rHouseNum = 88, rAspect = 76;
+
 // ecliptic longitude λ → screen point. Aries 0° at 9 o'clock, signs run counter-clockwise.
-function pos(lon: number, r: number, cx: number, cy: number) {
+function pos(lon: number, r: number) {
   const th = ((180 - lon) * Math.PI) / 180;
   return { x: cx + r * Math.cos(th), y: cy - r * Math.sin(th) };
 }
 
-export function StarChart({ chart, aspects }: { chart: PlanetPosition[]; aspects: string[] }) {
-  const S = 340, cx = S / 2, cy = S / 2;
-  const rOuter = 162, rSignRing = 132, rSignGlyph = 147, rBase = 112, rIn = 90, rAspect = 84;
-
-  // place planets, nudging inward when two sit within ~9° so glyphs don't collide
-  const sorted = [...chart].sort((a, b) => a.ecliptic_lon - b.ecliptic_lon);
-  const placed: Record<string, { x: number; y: number; r: number; lon: number }> = {};
-  let prevLon = -99, alt = false;
+// place a ring of planets, nudging colliding glyphs inward
+function place(planets: PlanetPosition[], rBase: number) {
+  const sorted = [...planets].sort((a, b) => a.ecliptic_lon - b.ecliptic_lon);
+  const out: Record<string, { x: number; y: number; r: number; lon: number }> = {};
+  let prev = -99, alt = false;
   for (const p of sorted) {
-    const close = Math.abs(p.ecliptic_lon - prevLon) < 9;
-    const r = close ? (alt ? rIn : rBase) : rBase;
+    const close = Math.abs(p.ecliptic_lon - prev) < 9;
+    const r = close ? (alt ? rBase - 22 : rBase) : rBase;
     alt = close ? !alt : false;
-    const { x, y } = pos(p.ecliptic_lon, r, cx, cy);
-    placed[p.body] = { x, y, r, lon: p.ecliptic_lon };
-    prevLon = p.ecliptic_lon;
+    out[p.body] = { ...pos(p.ecliptic_lon, r), r, lon: p.ecliptic_lon };
+    prev = p.ecliptic_lon;
   }
+  return out;
+}
 
-  const lines = aspects
-    .map((a) => {
-      const t = a.split(/\s+/);
-      const A = placed[t[0]], B = placed[t[2]];
-      if (!A || !B) return null;
-      const pa = pos(A.lon, rAspect, cx, cy), pb = pos(B.lon, rAspect, cx, cy);
-      return { pa, pb, color: ASPECT_COLOR[t[1]] || "#52525b" };
-    })
-    .filter(Boolean) as { pa: { x: number; y: number }; pb: { x: number; y: number }; color: string }[];
+export function StarChart({
+  chart, aspects = [], cusps = [], outer = [], crossAspects = [], outerLabel,
+}: {
+  chart: PlanetPosition[]; aspects?: string[]; cusps?: HouseCusp[];
+  outer?: PlanetPosition[]; crossAspects?: CrossAspect[]; outerLabel?: string;
+}) {
+  const natal = place(chart, rNatal);
+  const outerP = place(outer, rOuter);
+  const withLon = cusps.filter((c) => typeof c.longitude === "number") as Required<HouseCusp>[];
+
+  const natalLines = aspects.map((a) => {
+    const t = a.split(/\s+/); const A = natal[t[0]], B = natal[t[2]];
+    if (!A || !B) return null;
+    return { pa: pos(A.lon, rAspect), pb: pos(B.lon, rAspect), color: ASPECT_COLOR[t[1]] || "#52525b", dash: "" };
+  }).filter(Boolean) as any[];
+
+  const crossLines = crossAspects.map((x) => {
+    const A = natal[x.a], B = outerP[x.b];
+    if (!A || !B) return null;
+    return { pa: pos(A.lon, rAspect), pb: pos(B.lon, rAspect), color: ASPECT_COLOR[x.type] || "#52525b", dash: "3 2" };
+  }).filter(Boolean) as any[];
 
   return (
-    <svg viewBox={`0 0 ${S} ${S}`} className="w-full max-w-[340px] mx-auto" role="img" aria-label="as-of star chart">
-      <circle cx={cx} cy={cy} r={rOuter} fill="none" stroke="#3f3f46" />
-      <circle cx={cx} cy={cy} r={rSignRing} fill="none" stroke="#3f3f46" />
-      <circle cx={cx} cy={cy} r={rBase + 14} fill="none" stroke="#27272a" />
+    <svg viewBox={`0 0 ${S} ${S}`} style={{ width: "100%", maxWidth: 360, margin: "0 auto", display: "block" }}
+         role="img" aria-label="star chart">
+      <circle cx={cx} cy={cy} r={rZodOut} fill="none" stroke="#3f3f46" />
+      <circle cx={cx} cy={cy} r={rZodIn} fill="none" stroke="#3f3f46" />
+      {outer.length > 0 && <circle cx={cx} cy={cy} r={rOuter + 14} fill="none" stroke="#27272a" />}
+      <circle cx={cx} cy={cy} r={rNatal + 14} fill="none" stroke="#27272a" />
 
+      {/* zodiac sign boundaries + glyphs */}
       {ZODIAC.map((g, i) => {
-        const b0 = pos(i * 30, rOuter, cx, cy);
-        const b1 = pos(i * 30, rSignRing, cx, cy);
-        const gp = pos(i * 30 + 15, rSignGlyph, cx, cy);
+        const b0 = pos(i * 30, rZodOut), b1 = pos(i * 30, rZodIn), gp = pos(i * 30 + 15, rSignGlyph);
         return (
           <g key={i}>
             <line x1={b1.x} y1={b1.y} x2={b0.x} y2={b0.y} stroke="#3f3f46" strokeWidth={0.75} />
@@ -61,24 +80,53 @@ export function StarChart({ chart, aspects }: { chart: PlanetPosition[]; aspects
         );
       })}
 
-      {lines.map((l, i) => (
-        <line key={i} x1={l.pa.x} y1={l.pa.y} x2={l.pb.x} y2={l.pb.y} stroke={l.color} strokeWidth={0.75} opacity={0.55} />
+      {/* house cusps: spokes + house numbers; ASC (1) & MC (10) emphasised */}
+      {withLon.map((c, i) => {
+        const next = withLon[(i + 1) % withLon.length];
+        const s0 = pos(c.longitude, rAspect), s1 = pos(c.longitude, rZodIn);
+        const angular = c.house === 1 || c.house === 10;
+        const span = ((next.longitude - c.longitude) % 360 + 360) % 360;
+        const mid = pos(c.longitude + span / 2, rHouseNum);
+        return (
+          <g key={`h${c.house}`}>
+            <line x1={s0.x} y1={s0.y} x2={s1.x} y2={s1.y}
+                  stroke={angular ? "#a78bfa" : "#3f3f46"} strokeWidth={angular ? 1.2 : 0.5}
+                  strokeDasharray={angular ? "" : "2 3"} />
+            <text x={mid.x} y={mid.y} fontSize={9} fill="#71717a" textAnchor="middle" dominantBaseline="central">{c.house}</text>
+            {c.house === 1 && <text x={s1.x} y={s1.y} fontSize={8} fill="#a78bfa" textAnchor="middle" dx={4}>ASC</text>}
+            {c.house === 10 && <text x={s1.x} y={s1.y} fontSize={8} fill="#a78bfa" textAnchor="middle" dy={-3}>MC</text>}
+          </g>
+        );
+      })}
+
+      {natalLines.concat(crossLines).map((l, i) => (
+        <line key={i} x1={l.pa.x} y1={l.pa.y} x2={l.pb.x} y2={l.pb.y}
+              stroke={l.color} strokeWidth={0.75} opacity={0.5} strokeDasharray={l.dash} />
       ))}
 
+      {/* natal planets (inner) */}
       {chart.map((p) => {
-        const pl = placed[p.body];
-        if (!pl) return null;
-        const spoke0 = pos(p.ecliptic_lon, rSignRing, cx, cy);
-        const spoke1 = pos(p.ecliptic_lon, pl.r + 9, cx, cy);
+        const pl = natal[p.body]; if (!pl) return null;
         return (
           <g key={p.body}>
-            <line x1={spoke0.x} y1={spoke0.y} x2={spoke1.x} y2={spoke1.y} stroke="#3f3f46" strokeWidth={0.5} />
+            <line x1={pos(p.ecliptic_lon, rZodIn).x} y1={pos(p.ecliptic_lon, rZodIn).y}
+                  x2={pos(p.ecliptic_lon, pl.r + 9).x} y2={pos(p.ecliptic_lon, pl.r + 9).y} stroke="#3f3f46" strokeWidth={0.5} />
             <text x={pl.x} y={pl.y} fontSize={15} fill={p.retrograde ? "#fbbf24" : "#6ee7b7"} textAnchor="middle" dominantBaseline="central">{GLYPH[p.body] || "•"}</text>
             {p.retrograde && <text x={pl.x + 9} y={pl.y - 7} fontSize={7} fill="#f87171" textAnchor="middle">℞</text>}
           </g>
         );
       })}
 
+      {/* outer ring: transit / synastry partner */}
+      {outer.map((p) => {
+        const pl = outerP[p.body]; if (!pl) return null;
+        return (
+          <text key={`o${p.body}`} x={pl.x} y={pl.y} fontSize={14}
+                fill={p.retrograde ? "#fbbf24" : "#60a5fa"} textAnchor="middle" dominantBaseline="central">{GLYPH[p.body] || "•"}</text>
+        );
+      })}
+
+      {outerLabel && <text x={cx} y={14} fontSize={9} fill="#60a5fa" textAnchor="middle">{outerLabel}</text>}
       <circle cx={cx} cy={cy} r={2} fill="#52525b" />
     </svg>
   );

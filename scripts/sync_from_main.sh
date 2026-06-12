@@ -70,17 +70,10 @@ for row in "${ROWS[@]}"; do
   fi
 done
 
-# Pure chart renderers (no trading types) — copied verbatim into web/app/_charts/
-for cf in \
-  "task25_astro/web:astro/StarChart.tsx:StarChart.tsx" \
-  "task35_jyotish/web:jyotish/RashiChart.tsx:RashiChart.tsx" \
-  "task30_qizheng/web:qizheng/QizhengChart.tsx:QizhengChart.tsx"; do
-  rel="${cf#*:}"; webrel="${rel%%:*}"; out="${rel#*:}"
-  src="$MAIN/web/app/$webrel"
-  [ -f "$src" ] || { echo "  ⚠ missing chart $src — skipped"; continue; }
-  cp "$src" "$CHARTS/$out"
-  echo "  ✓ chart   _charts/$out"
-done
+# NOTE: the SVG chart renderers in web/app/_charts/ (StarChart/RashiChart/QizhengChart)
+# are now NATIVE to this repo — they carry 算命-only overlays (house spokes, transit
+# 行運 outer ring, synastry 合盤 bi-wheel) the monorepo's trading charts don't have, so
+# sync deliberately does NOT overwrite them.
 
 echo "✓ sync complete. Engines: $(ls "$ENG")"
 echo "  (product shell — birth/, api/, interpret/, shared/, web pages — is native, untouched.)"

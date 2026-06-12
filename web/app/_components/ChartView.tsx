@@ -10,7 +10,12 @@ export function ChartView({ r }: { r: Chart }) {
   const c = r.chart || {};
 
   if (r.system === "astrology")
-    return <StarChart chart={c.planets || []} aspects={c.aspects || []} />;
+    return (
+      <StarChart chart={c.planets || []} aspects={c.aspects || []}
+                 cusps={r.ascendant?.houses || []}
+                 outer={c.transits || []} crossAspects={c.transit_aspects || []}
+                 outerLabel={c.transits?.length ? "transits 行運 (today)" : undefined} />
+    );
 
   if (r.system === "jyotish") {
     const grahas = (c.grahas || []).map((g: any) => ({ name: g.graha, sidereal_lon: g.sidereal_lon, rashi: g.rashi }));

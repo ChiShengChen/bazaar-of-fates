@@ -7,12 +7,27 @@ gracefully fall back to the planets-only chart and flag the ascendant as unknown
 
 from __future__ import annotations
 
+from datetime import date
+
 from fortune import astro_ext as AX
 from fortune.birth import BirthInput
 from fortune.engines.astrology import astro
 from fortune.schemas import Chart
 
 KEY, ZH, EN, ORB = "astrology", "西洋占星", "Western Astrology", 6.0
+
+
+def _cross_aspects(natal: list[dict], transit: list[dict], orb: float = ORB) -> list[dict]:
+    """Aspects between two planet sets (natal × transit, or synastry A × B)."""
+    out: list[dict] = []
+    for n in natal:
+        for t in transit:
+            sep = astro._separation(n["ecliptic_lon"], t["ecliptic_lon"])
+            for name, ang in astro._ASPECTS.items():
+                if abs(sep - ang) <= orb:
+                    out.append({"a": n["body"], "b": t["body"], "type": name, "orb": round(abs(sep - ang), 1)})
+                    break
+    return out
 
 # traditional (7-body) rulerships — the engine tracks exactly these classical bodies
 _RULER = {
@@ -23,7 +38,7 @@ _RULER = {
 _ANGULAR = {1, 4, 7, 10}
 
 
-def cast(birth: BirthInput, *, house_system: str = "whole_sign") -> Chart:
+def cast(birth: BirthInput, *, house_system: str = "whole_sign", transits: bool = False) -> Chart:
     d = birth.as_date
     chart_rows = [
         {"body": b, "ecliptic_lon": lon, "sign": sign, "sign_zh": astro.sign_zh(lon), "retrograde": retro}
@@ -64,14 +79,29 @@ def cast(birth: BirthInput, *, house_system: str = "whole_sign") -> Chart:
         readings["ascendant"] = "unknown — needs birth time + place 需時辰＋出生地"
         asc_str = "・上升未知"
 
+    chart_payload = {"planets": chart_rows, "aspects": aspects}
+    if transits:                                                  # 流年行運：overlay today's sky
+        td = date.today()
+        trows = [
+            {"body": b, "ecliptic_lon": lon, "sign": sign, "sign_zh": astro.sign_zh(lon), "retrograde": retro}
+            for (b, lon, sign, retro) in astro.chart_for(td)
+        ]
+        tasp = _cross_aspects(chart_rows, trows)
+        chart_payload["transits"] = trows
+        chart_payload["transit_aspects"] = tasp
+        readings["transit_date"] = td.isoformat()
+        readings["transit_hits"] = [f"natal {x['a']} {x['type']} transit {x['b']} ({x['orb']}°)" for x in tasp] or ["none 無"]
+        chain.append(f"Transits 行運 ({td.isoformat()}): {len(tasp)} aspect(s) to the natal chart.")
+
     summary = (
         f"太陽 {sun['sign_zh'] if sun else ''}座{asc_str}"
         f"・月相 {moon}"
         f"・水星{'逆行' if readings.get('mercury_retrograde') == 'yes' else '順行'}"
+        + (f"・行運 {len(chart_payload['transit_aspects'])} 相位" if transits else "")
     )
     return Chart(
         system=KEY, system_en=EN, system_zh=ZH, subject=birth.label(), cast_at=birth.dt,
-        chart={"planets": chart_rows, "aspects": aspects},
+        chart=chart_payload,
         reasoning_chain=chain,
         readings=readings,
         summary=summary,

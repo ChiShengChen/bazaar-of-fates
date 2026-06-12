@@ -289,12 +289,14 @@ def campanus_houses(birth: BirthInput) -> list[dict] | None:
 
 
 def whole_sign_houses(asc_lon: float) -> list[dict]:
-    """12 whole-sign houses: house 1 = the ascendant's whole sign, then sequential signs."""
+    """12 whole-sign houses: house 1 = the ascendant's whole sign, then sequential signs.
+    Each cusp longitude is the 0° point of its sign (so the wheel can draw spokes)."""
     asc_sign = int(asc_lon // 30) % 12
     houses = []
     for h in range(12):
         s = (asc_sign + h) % 12
-        houses.append({"house": h + 1, "sign": _SIGNS[s], "sign_zh": _SIGNS_ZH[s], "sign_index": s})
+        houses.append({"house": h + 1, "sign": _SIGNS[s], "sign_zh": _SIGNS_ZH[s],
+                       "sign_index": s, "longitude": float(s * 30)})
     return houses
 
 

@@ -143,6 +143,37 @@ def test_chart_ruler_and_angular_in_readings():
     assert "aspects" in c.readings
 
 
+def test_all_house_systems_have_cusp_longitudes():
+    for hs in ("whole_sign", "equal", "placidus", "koch", "regiomontanus", "campanus"):
+        houses = casting.cast("astrology", BIRTH, house_system=hs).ascendant["houses"]
+        assert all("longitude" in h for h in houses) and len(houses) == 12
+
+
+# --- transits + synastry -------------------------------------------------------
+
+def test_transits_overlay_present():
+    c = casting.cast("astrology", BIRTH, transits=True)
+    assert c.chart["transits"] and len(c.chart["transits"]) == 7
+    assert "transit_aspects" in c.chart
+    assert "transit_date" in c.readings
+
+
+def test_transits_off_by_default():
+    assert "transits" not in casting.cast("astrology", BIRTH).chart
+
+
+def test_synastry_cross_aspects():
+    from datetime import time
+    from fortune import synastry
+    a = BIRTH
+    b = BirthInput(name="K", gender="male", birth_date=date(1988, 11, 2), birth_time=time(9, 15),
+                   latitude=25.04, longitude=121.56)
+    s = synastry.compute(a, b)
+    assert s.a.system == "astrology" and s.b.system == "astrology"
+    assert all({"a", "b", "type"} <= set(x) for x in s.cross_aspects)
+    assert "✕" in s.summary
+
+
 # --- ③ streaming ---------------------------------------------------------------
 
 def test_interpret_stream_matches_sync_on_mock():

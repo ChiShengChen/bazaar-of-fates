@@ -32,6 +32,15 @@ class Reading(Chart):
     cost_usd: float = 0.0
 
 
+class Synastry(BaseModel):
+    """Two natal charts compared (合盤) with their cross-aspects."""
+    a: Chart
+    b: Chart
+    cross_aspects: list[dict[str, Any]] = Field(default_factory=list)   # {a, b, type, orb}
+    summary: str = ""
+    interpretation: str = ""
+
+
 class Period(BaseModel):
     """One segment of a life-timeline (大運 / Mahādaśā / 流年)."""
     index: int

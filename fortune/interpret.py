@@ -74,3 +74,27 @@ def interpret_stream(chart: Chart, *, focus: str | None = None) -> Iterator[str]
     """Yield the reading text incrementally (for SSE)."""
     system, user = _prompts(chart, focus)
     yield from stream(system, user)
+
+
+_SYNASTRY_SYSTEM = (
+    "You are a relationship astrologer reading a 合盤 (synastry). Use ONLY the two charts "
+    "and their cross-aspects below. Discuss the relationship dynamic — where the two charts "
+    "support each other (trine/sextile/conjunction) and where they challenge (square/opposition) "
+    "— honestly and kindly, never deterministically. Write English first, then 中文. "
+    "你是合盤占星師：只依據以下兩張命盤與星際相位，論關係的契合與張力，先英後中。"
+)
+
+
+def interpret_synastry(syn, *, focus: str | None = None) -> str:
+    facts = {
+        "person_A": {"subject": syn.a.subject, "summary": syn.a.summary},
+        "person_B": {"subject": syn.b.subject, "summary": syn.b.summary},
+        "cross_aspects": [f"A {x['a']} {x['type']} B {x['b']} ({x['orb']}°)" for x in syn.cross_aspects],
+        "headline": syn.summary,
+    }
+    head = "合盤 / Synastry reading.\n"
+    if focus:
+        head += f"★ They ask about / 想問: {focus}\n"
+    user = (head + f"\nFacts (JSON):\n{json.dumps(facts, ensure_ascii=False, indent=2)}\n\n"
+            "Read the relationship bilingually (English then 中文).")
+    return complete(_SYNASTRY_SYSTEM, user)
