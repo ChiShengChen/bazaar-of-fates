@@ -301,6 +301,23 @@ def test_cross_aspects_carry_phase_and_exact():
         assert all(("exact_date" in a) for a in asp)
 
 
+def test_aspects_ranked_by_importance():
+    c = casting.cast("astrology", BIRTH, transits=True, transit_date="2024-06-01")
+    imps = [a["importance"] for a in c.chart["transit_aspects"]]
+    assert imps == sorted(imps, reverse=True)            # most important first
+    assert all(0 < i <= 1 for i in imps)
+
+
+def test_solar_return_chart():
+    c = casting.cast("astrology", BIRTH, solar_return=True, transit_date="2025-03-01")
+    assert c.readings["solar_return_year"] == 2025
+    assert len(c.chart["solar_return"]) == 7 and len(c.chart["solar_return_houses"]) == 12
+    # at the Solar Return moment, the Sun is back on its natal longitude
+    nat = next(p["ecliptic_lon"] for p in c.chart["planets"] if p["body"] == "Sun")
+    sr = next(p["ecliptic_lon"] for p in c.chart["solar_return"] if p["body"] == "Sun")
+    assert abs((sr - nat + 180) % 360 - 180) < 0.05
+
+
 def test_solar_arc_directions_to_angles():
     c = casting.cast("astrology", BIRTH, progress=True, progress_method="solar_arc", transit_date="2025-06-15")
     dirs = c.chart["solar_arc_directions"]

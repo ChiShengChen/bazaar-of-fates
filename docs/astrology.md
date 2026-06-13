@@ -36,6 +36,8 @@ The wheel has three layers, from outside in:
         ♓ ♒ ♑
 ```
 
+![natal wheel 本命星盤](img/natal-wheel.png)
+
 - **星座 signs**（牡羊…雙魚）：行星落在哪個星座 → 那顆星的「風格」。
 - **行星 planets**：☉日 ☽月 ☿水 ♀金 ♂火 ♃木 ♄土（℞＝逆行 retrograde，黃色）。
 - **宮位 houses**：人生的 12 個領域（1=自我、7=關係、10=事業…）。**ASC（上升）** 與 **MC（天頂）** 用紫色粗線標。
@@ -91,6 +93,9 @@ Pick *transits*: a blue outer ring shows today's (or any day's) planets over you
 
 **所有行運相位**（不只對角點）現在也都標**入相/出相＋精確日**（看下方「命盤要素」列表）。
 
+![transits overlay 行運疊加](img/transits-wheel.png)
+> 內圈綠＝本命行星，外圈藍＝行運行星，外環有細刻度尺；金色光環＝重要行運打到角點。
+
 ---
 
 ## 6. 推運 / Progressions 推運 — 「你內在的成長時鐘」
@@ -118,6 +123,8 @@ Pick *transits*: a blue outer ring shows today's (or any day's) planets over you
 
 切到 **Synastry 合盤**，填兩個人的生辰，按 **Compare**。你會得到**三張盤**，每張都有解讀：
 
+![synastry bi-wheel 合盤雙輪](img/synastry-biwheel.png)
+
 1. **雙輪盤 bi-wheel**：A 在內、B 在外，中間虛線＝**跨盤相位**（綠＝契合、紅＝張力）。
 2. **組合中點盤 composite**：把兩人每顆星取**中點**，合成「這段關係本身」的一張盤。
 3. **Davison 時空中點盤**：用兩人**生時與生地的中點**，排一張**真實天象盤**（跟 composite 不同，這是某個真實時刻的天空）。Davison 還附**土星/木星回歸時間軸**＝這段關係的人生里程碑。
@@ -127,6 +134,8 @@ Pick *transits*: a blue outer ring shows today's (or any day's) planets over you
 ## 8. 團體合盤 / Group 團體 — 三人以上的默契地圖
 
 切到 **Group 團體**，加 2–8 人，按 **Compare group**：
+
+![group matrix 團體矩陣](img/group-matrix.png)
 
 ```
         Mei   Ken   Lin

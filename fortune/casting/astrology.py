@@ -7,7 +7,7 @@ gracefully fall back to the planets-only chart and flag the ascendant as unknown
 
 from __future__ import annotations
 
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 
 from fortune import astro_ext as AX
 from fortune.birth import BirthInput
@@ -17,16 +17,27 @@ from fortune.schemas import Chart
 KEY, ZH, EN, ORB = "astrology", "西洋占星", "Western Astrology", 6.0
 
 
+# how strongly each aspect type reads (used to rank aspects so the wheel/list lead with what matters)
+_ASPECT_POTENCY = {"conjunction": 1.0, "opposition": 0.9, "square": 0.85, "trine": 0.8, "sextile": 0.6}
+
+
+def _importance(aspect_type: str, orb: float) -> float:
+    return round(_ASPECT_POTENCY.get(aspect_type, 0.5) * (1.0 - 0.5 * orb / ORB), 3)
+
+
 def _cross_aspects(natal: list[dict], transit: list[dict], orb: float = ORB) -> list[dict]:
-    """Aspects between two planet sets (natal × transit, or synastry A × B)."""
+    """Aspects between two planet sets (natal × transit, or synastry A × B), ranked by importance."""
     out: list[dict] = []
     for n in natal:
         for t in transit:
             sep = astro._separation(n["ecliptic_lon"], t["ecliptic_lon"])
             for name, ang in astro._ASPECTS.items():
-                if abs(sep - ang) <= orb:
-                    out.append({"a": n["body"], "b": t["body"], "type": name, "orb": round(abs(sep - ang), 1)})
+                o = abs(sep - ang)
+                if o <= orb:
+                    out.append({"a": n["body"], "b": t["body"], "type": name,
+                                "orb": round(o, 1), "importance": _importance(name, o)})
                     break
+    out.sort(key=lambda x: x["importance"], reverse=True)
     return out
 
 
@@ -73,6 +84,32 @@ def _prog_lon(birth: BirthInput, body: str, target: date, method: str,
     if method == "solar_arc":
         return (natal_lon + (rows["Sun"] - natal_sun) % 360.0) % 360.0
     return rows[body]
+
+
+def _find_solar_return(year: int, month: int, day: int, natal_sun: float) -> datetime:
+    """UT moment in `year` when the transiting Sun returns to the natal Sun longitude
+    (the Solar Return), found near the birthday by hourly scan + bisection."""
+    def sun(dt: datetime) -> float:
+        return {p["body"]: p["ecliptic_lon"] for p in AX.planets_at(dt)}["Sun"]
+    try:
+        start = datetime(year, month, day) - timedelta(days=2)
+    except ValueError:                                        # Feb 29 etc.
+        start = datetime(year, month, 28) - timedelta(days=2)
+    prev, pv = start, _signed_arc(sun(start) - natal_sun)
+    for h in range(1, 5 * 24 + 1):
+        t = start + timedelta(hours=h)
+        cur = _signed_arc(sun(t) - natal_sun)
+        if pv == 0.0 or pv * cur < 0:
+            lo, hi = prev, t
+            for _ in range(22):
+                mid = lo + (hi - lo) / 2
+                if _signed_arc(sun(mid) - natal_sun) * pv <= 0:
+                    hi = mid
+                else:
+                    lo = mid
+            return lo
+        prev, pv = t, cur
+    return start + timedelta(days=2)
 
 
 def _age_for_arc(birth: BirthInput, natal_sun: float, arc_needed: float) -> float:
@@ -140,10 +177,12 @@ def aspects_within(rows: list[dict], orb: float = ORB) -> list[dict]:
         for j in range(i + 1, len(rows)):
             sep = astro._separation(rows[i]["ecliptic_lon"], rows[j]["ecliptic_lon"])
             for name, ang in astro._ASPECTS.items():
-                if abs(sep - ang) <= orb:
+                o = abs(sep - ang)
+                if o <= orb:
                     out.append({"a": rows[i]["body"], "b": rows[j]["body"], "type": name,
-                                "orb": round(abs(sep - ang), 1)})
+                                "orb": round(o, 1), "importance": _importance(name, o)})
                     break
+    out.sort(key=lambda x: x["importance"], reverse=True)
     return out
 
 # traditional (7-body) rulerships — the engine tracks exactly these classical bodies
@@ -162,7 +201,8 @@ _ASPECT_WEIGHT = {"conjunction": 1.0, "opposition": 0.8, "square": 0.6}
 
 def cast(birth: BirthInput, *, house_system: str = "whole_sign",
          transits: bool = False, transit_date: str | None = None,
-         progress: bool = False, progress_method: str = "secondary") -> Chart:
+         progress: bool = False, progress_method: str = "secondary",
+         solar_return: bool = False) -> Chart:
     d = birth.as_date
     chart_rows = [
         {"body": b, "ecliptic_lon": lon, "sign": sign, "sign_zh": astro.sign_zh(lon), "retrograde": retro}
@@ -358,12 +398,34 @@ def cast(birth: BirthInput, *, house_system: str = "whole_sign",
             (m["event"] + "：" + (m.get("sign") or m.get("to") or str(m.get("house", "")))
              + (f"（{m['date']}）" if m.get("date") else "")) for m in mp]
 
+    if solar_return:                                              # 太陽回歸：the year's chart
+        yr = (date.fromisoformat(transit_date) if transit_date else date.today()).year
+        natal_sun = next(p["ecliptic_lon"] for p in chart_rows if p["body"] == "Sun")
+        sr_ut = _find_solar_return(yr, d.month, d.day, natal_sun)
+        srows = AX.planets_at(sr_ut)
+        sr_local = sr_ut + timedelta(hours=birth.tz_offset_hours)
+        bsyn = BirthInput(birth_date=sr_local.date(), birth_time=sr_local.time().replace(microsecond=0),
+                          latitude=birth.latitude, longitude=birth.longitude, tz_offset_hours=birth.tz_offset_hours)
+        sr_asc = AX.ascendant_block(bsyn, house_system=house_system)
+        sasp = _cross_aspects(chart_rows, srows)
+        chart_payload["solar_return"] = srows
+        chart_payload["solar_return_aspects"] = sasp
+        chart_payload["solar_return_houses"] = sr_asc["houses"] if sr_asc else None
+        readings["solar_return_year"] = yr
+        readings["solar_return_moment"] = sr_ut.isoformat(timespec="minutes") + " UT"
+        if sr_asc:
+            readings["solar_return_asc"] = f"{sr_asc['sign']} {sr_asc['sign_zh']}"
+        readings["solar_return_hits"] = [
+            f"SR {x['b']} {x['type']} natal {x['a']} ({x['orb']}°)" for x in sasp[:10]] or ["none 無"]
+        chain.append(f"Solar Return 太陽回歸 {yr}（{sr_ut.date().isoformat()}）：{len(sasp)} aspect(s) to natal.")
+
     summary = (
         f"太陽 {sun['sign_zh'] if sun else ''}座{asc_str}"
         f"・月相 {moon}"
         f"・水星{'逆行' if readings.get('mercury_retrograde') == 'yes' else '順行'}"
         + (f"・行運 {len(chart_payload['transit_aspects'])} 相位" if transits else "")
         + (f"・推運 {len(chart_payload['progression_aspects'])} 相位" if progress else "")
+        + (f"・太陽回歸 {readings.get('solar_return_year', '')}" if solar_return else "")
     )
     return Chart(
         system=KEY, system_en=EN, system_zh=ZH, subject=birth.label(), cast_at=birth.dt,

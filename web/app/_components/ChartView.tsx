@@ -6,20 +6,28 @@ import { QizhengChart } from "../_charts/QizhengChart";
 
 // Dispatch each system to its richest available renderer; fall back to a clean
 // reasoning panel for the text-only divinations.
-export function ChartView({ r }: { r: Chart }) {
+export function ChartView({ r, tightOnly = false }: { r: Chart; tightOnly?: boolean }) {
   const c = r.chart || {};
+  const tight = <T extends { orb?: number }>(xs?: T[]) =>
+    (xs || []).filter((x) => !tightOnly || (x.orb ?? 0) <= 3);
 
   if (r.system === "astrology") {
-    const prog = (c.progressions || []).length > 0;   // progressions take the outer ring if present
+    // pick whichever overlay is present for the outer ring
+    let outer = [], outerCusps = [], crossA, label, majorT = c.major_transits || [];
+    if ((c.progressions || []).length) {
+      outer = c.progressions; outerCusps = c.progression_houses || []; crossA = c.progression_aspects;
+      label = `progressions 推運 (age ${r.readings?.progressed_age ?? ""})`; majorT = [];
+    } else if ((c.solar_return || []).length) {
+      outer = c.solar_return; outerCusps = c.solar_return_houses || []; crossA = c.solar_return_aspects;
+      label = `solar return 太陽回歸 ${r.readings?.solar_return_year ?? ""}`; majorT = [];
+    } else if ((c.transits || []).length) {
+      outer = c.transits; crossA = c.transit_aspects; label = `transits 行運 ${r.readings?.transit_date || ""}`;
+    }
     return (
-      <StarChart chart={c.planets || []} aspects={c.aspects || []} aspectsDetail={c.aspects_detail}
+      <StarChart chart={c.planets || []} aspects={c.aspects || []} aspectsDetail={tight(c.aspects_detail)}
                  cusps={r.ascendant?.houses || []}
-                 outer={prog ? c.progressions : (c.transits || [])}
-                 outerCusps={prog ? (c.progression_houses || []) : []}
-                 crossAspects={prog ? c.progression_aspects : (c.transit_aspects || [])}
-                 majorTransits={prog ? [] : (c.major_transits || [])}
-                 outerLabel={prog ? `progressions 推運 (age ${r.readings?.progressed_age ?? ""})`
-                   : c.transits?.length ? `transits 行運 ${r.readings?.transit_date || ""}` : undefined} />
+                 outer={outer} outerCusps={outerCusps} crossAspects={tight(crossA)} majorTransits={majorT}
+                 outerLabel={label} />
     );
   }
 

@@ -21,8 +21,9 @@ export default function Page() {
   const [sys, setSys] = useState("bazi");
   const [mode, setMode] = useState<"single" | "synastry" | "group">("single");
   const [houseSystem, setHouseSystem] = useState("whole_sign");
-  const [overlay, setOverlay] = useState<"none" | "transits" | "progress">("none");
+  const [overlay, setOverlay] = useState<"none" | "transits" | "progress" | "solar_return">("none");
   const [progMethod, setProgMethod] = useState("secondary");
+  const [tightOnly, setTightOnly] = useState(false);
   const [transitOffset, setTransitOffset] = useState(0);   // days from today
   const [focus, setFocus] = useState("");
 
@@ -57,7 +58,8 @@ export default function Page() {
       let acc = "";
       await streamReading(
         sys, b, focus || null, houseSystem,
-        overlay === "transits", overlay !== "none" ? transitDate : null, overlay === "progress", progMethod,
+        overlay === "transits", overlay !== "none" ? transitDate : null,
+        overlay === "progress", progMethod, overlay === "solar_return",
         (chart) => setReading({ ...(chart as Reading), interpretation: "" }),
         (delta) => { acc += delta; setReading((r) => (r ? { ...r, interpretation: acc } : r)); },
       );
@@ -75,14 +77,16 @@ export default function Page() {
       try {
         const c = await getCast("astrology", toBirth(formA), {
           house_system: houseSystem, transit_date: td,
-          transits: overlay === "transits", progress: overlay === "progress", progress_method: progMethod,
+          transits: overlay === "transits", progress: overlay === "progress",
+          progress_method: progMethod, solar_return: overlay === "solar_return",
         });
         setReading((r) => (r ? { ...r, chart: {
           ...r.chart,
           transits: c.chart.transits, transit_aspects: c.chart.transit_aspects, major_transits: c.chart.major_transits,
           progressions: c.chart.progressions, progression_aspects: c.chart.progression_aspects,
           progression_houses: c.chart.progression_houses, major_progressions: c.chart.major_progressions,
-        }, readings: { ...r.readings, transit_date: td, major_transits: c.readings.major_transits, progressed_age: c.readings.progressed_age, major_progressions: c.readings.major_progressions } } : r));
+          solar_return: c.chart.solar_return, solar_return_aspects: c.chart.solar_return_aspects, solar_return_houses: c.chart.solar_return_houses,
+        }, readings: { ...r.readings, ...c.readings } } : r));
       } catch { /* ignore scrub errors */ }
     }, 120);
   }
@@ -196,7 +200,16 @@ export default function Page() {
                 <option value="none">none 無</option>
                 <option value="transits">transits 行運</option>
                 <option value="progress">progressions 推運</option>
+                <option value="solar_return">solar return 太陽回歸</option>
               </select>
+            </div>
+          )}
+          {mode === "single" && sys === "astrology" && overlay !== "none" && (
+            <div style={{ flex: 0 }}><label>&nbsp;</label>
+              <label style={{ display: "flex", gap: 6, alignItems: "center", cursor: "pointer", fontSize: 13 }}>
+                <input type="checkbox" checked={tightOnly} onChange={(e) => setTightOnly(e.target.checked)} style={{ width: "auto" }} />
+                tight ≤3° 緊密
+              </label>
             </div>
           )}
           {mode === "single" && sys === "astrology" && overlay === "progress" && (
@@ -215,7 +228,7 @@ export default function Page() {
         </div>
         {mode === "single" && sys === "astrology" && overlay !== "none" && (
           <div style={{ marginTop: 12 }}>
-            <label>{overlay === "progress" ? "Progress-to date 推運至" : "Transit date 行運日期"} — drag to scrub 拖曳 · <b>{transitDate}</b>{transitOffset === 0 ? " (today 今天)" : ` (${transitOffset > 0 ? "+" : ""}${transitOffset}d)`}</label>
+            <label>{overlay === "progress" ? "Progress-to date 推運至" : overlay === "solar_return" ? "Return year 回歸年份" : "Transit date 行運日期"} — drag to scrub 拖曳 · <b>{overlay === "solar_return" ? transitDate.slice(0, 4) : transitDate}</b>{transitOffset === 0 ? " (today 今天)" : ` (${transitOffset > 0 ? "+" : ""}${transitOffset}d)`}</label>
             <input type="range" min={-1825} max={1825} value={transitOffset}
                    onChange={(e) => scrubTransit(Number(e.target.value))} style={{ width: "100%" }} />
           </div>
@@ -242,7 +255,7 @@ export default function Page() {
             <h3>{reading.system_en} · {reading.system_zh} · {reading.subject}</h3>
             <div className="summary">{reading.summary}</div>
             <div className="cols">
-              <div id="chart-area"><ChartView r={reading} /></div>
+              <div id="chart-area"><ChartView r={reading} tightOnly={tightOnly} /></div>
               <div>
                 <h3>Casting steps 排盤步驟</h3>
                 <ul className="chain">{reading.reasoning_chain.map((c, i) => <li key={i}>{c}</li>)}</ul>

@@ -90,13 +90,14 @@ export const getGroup = (births: BirthInput[], focus: string | null, house_syste
 // lightweight chart-only cast (no LLM) — used by the transit slider for live scrubbing
 export async function getCast(
   system: string, birth: BirthInput,
-  opts: { house_system?: string; transits?: boolean; transit_date?: string; progress?: boolean; progress_method?: string } = {},
+  opts: { house_system?: string; transits?: boolean; transit_date?: string; progress?: boolean; progress_method?: string; solar_return?: boolean } = {},
 ): Promise<Chart> {
   const q = new URLSearchParams();
   if (opts.house_system) q.set("house_system", opts.house_system);
   if (opts.transits) q.set("transits", "true");
   if (opts.progress) q.set("progress", "true");
   if (opts.progress_method) q.set("progress_method", opts.progress_method);
+  if (opts.solar_return) q.set("solar_return", "true");
   if (opts.transit_date) q.set("transit_date", opts.transit_date);
   const r = await fetch(`${BASE}/cast/${system}?${q.toString()}`, {
     method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(birth),
@@ -108,12 +109,12 @@ export async function getCast(
 export async function streamReading(
   system: string, birth: BirthInput, focus: string | null,
   house_system: string, transits: boolean, transit_date: string | null,
-  progress: boolean, progress_method: string,
+  progress: boolean, progress_method: string, solar_return: boolean,
   onChart: (c: Chart) => void, onDelta: (t: string) => void,
 ): Promise<void> {
   const res = await fetch(`${BASE}/reading/${system}/stream`, {
     method: "POST", headers: { "content-type": "application/json" },
-    body: JSON.stringify({ birth, focus, house_system, transits, transit_date, progress, progress_method }),
+    body: JSON.stringify({ birth, focus, house_system, transits, transit_date, progress, progress_method, solar_return }),
   });
   if (!res.ok || !res.body) throw new Error((await res.json().catch(() => ({}))).detail || res.statusText);
   const reader = res.body.getReader();
