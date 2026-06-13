@@ -109,6 +109,17 @@ def test_astrology_planet_returns_timeline():
     assert 28 < sr1.start_age < 31
 
 
+def test_annual_report_assembles_all_systems():
+    from fortune import annual
+    r = annual.compute(BIRTH, 2026)
+    s = r["sections"]
+    assert s["solar_return"]["ascendant"] and s["solar_return"]["highlights"]
+    assert s["bazi"]["liunian_element"] and s["bazi"]["verdict"]
+    assert len(s["ziwei"]["sihua"]) == 4
+    assert s["jyotish"]["mahadasha_lord"]
+    assert "2026" in r["summary"]
+
+
 def test_solar_return_year_timeline():
     c = casting.cast("astrology", BIRTH, solar_return=True, transit_date="2020-03-01")
     tln = c.chart["solar_return_timeline"]

@@ -5,6 +5,8 @@ From your birth (converted to the lunar calendar) it casts a **12-palace chart**
 
 > 開啟 / Open: 首頁選 **Zi Wei Dou Shu · 紫微斗數**。**命宮由時辰決定**，務必填出生時刻。
 
+![ziwei 紫微命盤](img/ziwei-chart.png)
+
 ## 命盤怎麼讀 / Reading the board
 
 12 宮排在 **4×4 方盤**的外圈、按地支固定方位；中央放命主資訊：

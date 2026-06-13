@@ -5,6 +5,8 @@ The birth date's numbers cast a **hexagram** (six lines); the 體/用 five-eleme
 
 > 開啟 / Open: 首頁選 **Plum-Blossom I Ching · 梅花易數**。只需日期即可（時間起卦）。
 
+![iching 卦象](img/iching-chart.png)
+
 ## 卦象怎麼讀 / Reading the hexagram
 
 ```

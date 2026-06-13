@@ -5,6 +5,8 @@ One of the Three Cosmic Boards (三式): time is laid into a **nine-palace grid 
 
 > 開啟 / Open: 首頁選 **Qi Men Dun Jia · 奇門遁甲**。
 
+![qimen 奇門局](img/qimen-chart.png)
+
 ## 怎麼讀 / Reading the board
 
 ```

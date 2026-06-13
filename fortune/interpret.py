@@ -159,6 +159,25 @@ def interpret_group(grp: dict, *, focus: str | None = None) -> str:
     return complete(_GROUP_SYSTEM, user)
 
 
+_ANNUAL_SYSTEM = (
+    "You are a diviner writing a person's ANNUAL report (年度報告) for one year, drawing on "
+    "several traditions at once: the Western Solar Return, BaZi 流年/大運, 紫微 流年四化, and "
+    "Jyotiṣa Mahādaśā. Use ONLY the facts below; synthesise them into one coherent year-ahead "
+    "outlook — note where the systems agree, be honest and kind, never fear-mongering. Give a "
+    "short overview, then a few themes (career/relationships/wellbeing as the facts suggest), "
+    "then a one-line takeaway. English first, then 中文. "
+    "你在寫某人某年的年度報告，綜合太陽回歸、八字流年大運、紫微流年四化、Jyotiṣa 大運，先英後中。"
+)
+
+
+def interpret_annual(report: dict, *, focus: str | None = None) -> str:
+    head = f"Annual report 年度報告 · {report.get('subject')} · {report.get('year')}\n"
+    if focus:
+        head += f"★ They ask about / 想問: {focus}\n"
+    user = head + f"\nFacts (JSON):\n{json.dumps(report.get('sections', {}), ensure_ascii=False, indent=2)}\n\nWrite the report bilingually."
+    return complete(_ANNUAL_SYSTEM, user)
+
+
 def interpret_synastry(syn, *, focus: str | None = None) -> str:
     facts = {
         "person_A": {"subject": syn.a.subject, "summary": syn.a.summary},

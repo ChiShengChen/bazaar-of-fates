@@ -5,6 +5,8 @@ Same four 干支 pillars as BaZi, but read the **Japanese** way — the spine is
 
 > 開啟 / Open: 首頁選 **Shichū-Suimei · 四柱推命（日）**。
 
+![suimei 四柱推命](img/suimei-chart.png)
+
 ## 命盤怎麼讀 / Reading the chart
 
 ```

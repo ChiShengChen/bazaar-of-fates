@@ -5,6 +5,8 @@ One of the Three Boards: from accumulated years it places 太乙 in the **nine p
 
 > 開啟 / Open: 首頁選 **Tai Yi Shen Shu · 太乙神數**。
 
+![taiyi 太乙九宮](img/taiyi-chart.png)
+
 ## 怎麼讀 / Reading it
 
 ```

@@ -5,6 +5,8 @@ A numerological system: the birth date yields a **命數 (life number)**; each y
 
 > 開啟 / Open: 首頁選 **Iron Plate · 鐵板神數**。只需日期。
 
+![tieban 鐵板命數](img/tieban-chart.png)
+
 ## 怎麼讀 / Reading it
 
 ```

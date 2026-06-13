@@ -1,4 +1,4 @@
-"""Capture real screenshots of the running Next app for docs/astrology.md.
+"""Capture real screenshots of the running Next app for the docs.
 Run with both servers up:  uvicorn (:8000) + next start (:3000).
 """
 
@@ -9,31 +9,51 @@ from playwright.sync_api import sync_playwright
 OUT = Path(__file__).resolve().parent.parent / "docs" / "img"
 OUT.mkdir(parents=True, exist_ok=True)
 
+# per-system result-card captures: (pill text fragment, output filename)
+SYSTEMS = [
+    ("八字", "bazi-chart.png"), ("紫微斗數", "ziwei-chart.png"), ("梅花易數", "iching-chart.png"),
+    ("四柱推命", "suimei-chart.png"), ("七政四餘", "qizheng-chart.png"), ("鐵板神數", "tieban-chart.png"),
+    ("奇門遁甲", "qimen-chart.png"), ("大六壬", "liuren-chart.png"), ("太乙神數", "taiyi-chart.png"),
+    ("Jyoti", "jyotish-chart.png"),
+]
+
 
 def shot(loc, name):
     loc.screenshot(path=str(OUT / name))
     print("  ✓", name)
 
 
+def result_card(pg):
+    return pg.locator("#chart-area").locator("xpath=ancestor::div[contains(@class,'card')][1]")
+
+
 with sync_playwright() as p:
     b = p.chromium.launch()
-    pg = b.new_page(viewport={"width": 1100, "height": 1400}, device_scale_factor=2)
+    pg = b.new_page(viewport={"width": 1100, "height": 1500}, device_scale_factor=2)
     pg.goto("http://localhost:3000/", wait_until="networkidle")
+    cast = lambda: pg.get_by_role("button", name="Cast + Read 排盤＋解讀").click()
 
-    # --- natal astrology wheel ---
+    # --- per-system result cards (single mode, no overlay) ---
+    for frag, name in SYSTEMS:
+        pg.locator(".pill", has_text=frag).first.click()
+        cast()
+        pg.wait_for_selector("#chart-area", timeout=20000)
+        pg.wait_for_timeout(900)
+        shot(result_card(pg), name)
+
+    # --- astrology natal wheel + overlays ---
     pg.get_by_text("Western Astrology", exact=False).first.click()
-    pg.get_by_role("button", name="Cast + Read 排盤＋解讀").click()
+    cast()
     pg.wait_for_selector("#chart-area svg", timeout=20000)
     pg.wait_for_timeout(800)
     shot(pg.locator("#chart-area svg"), "natal-wheel.png")
 
-    # --- overlay wheels: transits / progressions / solar-arc / solar-return / lunar-return ---
     def overlay_shot(value, name, method=None):
         pg.locator("select:has(option[value='transits'])").select_option(value)
         if method:
             pg.locator("select:has(option[value='solar_arc'])").select_option(method)
         pg.wait_for_timeout(200)
-        pg.get_by_role("button", name="Cast + Read 排盤＋解讀").click()
+        cast()
         pg.wait_for_selector("#chart-area svg", timeout=20000)
         pg.wait_for_timeout(900)
         shot(pg.locator("#chart-area svg"), name)
@@ -44,7 +64,7 @@ with sync_playwright() as p:
     overlay_shot("solar_return", "solar-return-wheel.png")
     overlay_shot("lunar_return", "lunar-return-wheel.png")
 
-    # --- synastry bi-wheel ---
+    # --- synastry: bi-wheel + composite + Davison ---
     pg.get_by_text("Synastry 合盤", exact=False).first.click()
     pg.get_by_role("button", name="Compare 合盤").click()
     pg.wait_for_selector("#chart-area svg", timeout=20000)
@@ -53,7 +73,7 @@ with sync_playwright() as p:
     shot(pg.locator(".card").filter(has_text="Composite chart").first.locator("svg"), "composite-wheel.png")
     shot(pg.locator(".card").filter(has_text="Davison chart").first.locator("svg"), "davison-wheel.png")
 
-    # --- group matrix ---
+    # --- group: matrix + group composite ---
     pg.get_by_text("Group 團體", exact=False).first.click()
     pg.get_by_role("button", name="Compare group 團體合盤").click()
     pg.wait_for_selector("table", timeout=20000)

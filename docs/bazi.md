@@ -5,6 +5,8 @@ Your birth **year / month / day / hour** each become a 干支 (heavenly-stem + e
 
 > 開啟 / Open: 首頁選 **BaZi · 八字（四柱）**，填生辰按 **Cast + Read**。時辰決定**時柱**，建議填。
 
+![bazi 八字命盤](img/bazi-chart.png)
+
 ## 命盤怎麼讀 / Reading the chart
 
 ```

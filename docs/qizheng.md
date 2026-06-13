@@ -5,6 +5,8 @@ Chinese astral astrology: a star chart of the **七政** (Sun, Moon, 5 visible p
 
 > 開啟 / Open: 首頁選 **Seven Luminaries · 七政四餘**。**命宮（命度）需要時辰＋出生地**。
 
+![qizheng 七政四餘星盤](img/qizheng-chart.png)
+
 ## 命盤怎麼讀 / Reading the chart
 
 - **七政**：日、月、水、金、火、木、土——落在黃道十二宮哪一宮。

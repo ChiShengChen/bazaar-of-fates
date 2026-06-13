@@ -5,6 +5,8 @@ One of the Three Boards: from the day-stem, month-general and hour it raises the
 
 > 開啟 / Open: 首頁選 **Da Liu Ren · 大六壬**。日干取自八字日柱。
 
+![liuren 大六壬](img/liuren-chart.png)
+
 ## 怎麼讀 / Reading it
 
 ```

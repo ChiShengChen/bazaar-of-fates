@@ -85,6 +85,18 @@ export interface GroupResult {
 export const getGroup = (births: BirthInput[], focus: string | null, house_system: string) =>
   post<GroupResult>(`/group`, { births, focus, house_system });
 
+export interface AnnualReport {
+  year: number; subject: string; summary: string; interpretation: string;
+  sections: {
+    solar_return?: { ascendant?: string; moment?: string; highlights?: string[]; key_transits?: any[] };
+    bazi?: { liunian_element?: string; favourable?: string[]; verdict?: string; dayun?: string };
+    ziwei?: { year_stem?: string; sihua?: string[] };
+    jyotish?: { mahadasha_lord?: string; nature?: string };
+  };
+}
+export const getAnnual = (birth: BirthInput, year: number, focus: string | null) =>
+  post<AnnualReport>(`/annual-report`, { birth, year, focus });
+
 // Stream a reading via SSE: onChart fires once with the deterministic 命盤,
 // onDelta fires for each text chunk of the 解讀.
 // lightweight chart-only cast (no LLM) — used by the transit slider for live scrubbing

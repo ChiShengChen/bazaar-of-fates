@@ -1,14 +1,15 @@
 "use client";
 import { useEffect, useState } from "react";
 import {
-  apiBase, getSystems, getTimeline, streamReading, getSynastry, getGroup, getCast,
-  SystemInfo, Reading, Timeline, Synastry, GroupResult,
+  apiBase, getSystems, getTimeline, streamReading, getSynastry, getGroup, getCast, getAnnual,
+  SystemInfo, Reading, Timeline, Synastry, GroupResult, AnnualReport,
 } from "@/lib/api";
 import { ChartView } from "./_components/ChartView";
 import { Houses } from "./_components/Houses";
 import { TimelineView } from "./_components/TimelineView";
 import { SynastryView } from "./_components/SynastryView";
 import { GroupView } from "./_components/GroupView";
+import { AnnualView } from "./_components/AnnualView";
 import { BirthFields, FormState, emptyForm, toBirth } from "./_components/BirthFields";
 
 const HOUSE_OPTS = [
@@ -19,7 +20,7 @@ const HOUSE_OPTS = [
 export default function Page() {
   const [systems, setSystems] = useState<SystemInfo[]>([]);
   const [sys, setSys] = useState("bazi");
-  const [mode, setMode] = useState<"single" | "synastry" | "group">("single");
+  const [mode, setMode] = useState<"single" | "synastry" | "group" | "annual">("single");
   const [houseSystem, setHouseSystem] = useState("whole_sign");
   const [overlay, setOverlay] = useState<"none" | "transits" | "progress" | "solar_return" | "lunar_return">("none");
   const [progMethod, setProgMethod] = useState("secondary");
@@ -35,6 +36,8 @@ export default function Page() {
   const [timeline, setTimeline] = useState<Timeline | null>(null);
   const [synastry, setSynastry] = useState<Synastry | null>(null);
   const [group, setGroup] = useState<GroupResult | null>(null);
+  const [annual, setAnnual] = useState<AnnualReport | null>(null);
+  const [annualYear, setAnnualYear] = useState(new Date().getFullYear());
   const [formsG, setFormsG] = useState<FormState[]>([
     emptyForm({ name: "Mei 小美", gender: "female", time: "14:30", place: "Taipei", lat: "25.04", lon: "121.56" }),
     emptyForm({ name: "Ken 阿肯", gender: "male", date: "1988-11-02", time: "09:15", place: "Tokyo", lat: "35.68", lon: "139.69" }),
@@ -108,6 +111,14 @@ export default function Page() {
     finally { setBusy(false); }
   }
 
+  async function generateAnnual() {
+    setBusy(true); setErr(null); setAnnual(null);
+    try {
+      setAnnual(await getAnnual(toBirth(formA), annualYear, focus || null));
+    } catch (e: any) { setErr(String(e.message || e)); }
+    finally { setBusy(false); }
+  }
+
   function exportPng() {
     const svg = document.querySelector("#chart-area svg") as SVGSVGElement | null;
     if (!svg) return;
@@ -132,7 +143,7 @@ export default function Page() {
   }
 
   const hasSvgChart = mode === "synastry" || (mode === "single" && reading && ["astrology", "qizheng", "jyotish"].includes(reading.system));
-  const showResults = mode === "single" ? reading : mode === "synastry" ? synastry : group;
+  const showResults = mode === "single" ? reading : mode === "synastry" ? synastry : mode === "group" ? group : annual;
 
   return (
     <div className="wrap">
@@ -147,6 +158,7 @@ export default function Page() {
           <div className={`pill${mode === "single" ? " on" : ""}`} onClick={() => setMode("single")}>Single 單人</div>
           <div className={`pill${mode === "synastry" ? " on" : ""}`} onClick={() => setMode("synastry")}>Synastry 合盤</div>
           <div className={`pill${mode === "group" ? " on" : ""}`} onClick={() => setMode("group")}>Group 團體</div>
+          <div className={`pill${mode === "annual" ? " on" : ""}`} onClick={() => setMode("annual")}>Annual 年度報告</div>
         </div>
 
         {mode !== "group" && <BirthFields f={formA} set={setA} />}
@@ -188,7 +200,7 @@ export default function Page() {
         <div className="row">
           <div><label>Ask about (optional) 想問</label>
             <input value={focus} onChange={(e) => setFocus(e.target.value)} placeholder="career / love / health 事業 / 感情 / 健康" /></div>
-          {(mode !== "single" || sys === "astrology") && (
+          {(mode === "synastry" || mode === "group" || (mode === "single" && sys === "astrology")) && (
             <div style={{ flex: 0, minWidth: 160 }}><label>Houses 宮位制</label>
               <select value={houseSystem} onChange={(e) => setHouseSystem(e.target.value)}>
                 {HOUSE_OPTS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
@@ -222,10 +234,15 @@ export default function Page() {
               </select>
             </div>
           )}
+          {mode === "annual" && (
+            <div style={{ flex: 0, minWidth: 110 }}><label>Year 年份</label>
+              <input type="number" value={annualYear} onChange={(e) => setAnnualYear(Number(e.target.value))} /></div>
+          )}
           <div style={{ flex: 0 }}>
             {mode === "single" && <button onClick={cast} disabled={busy}>{busy ? "Casting… 排盤中" : "Cast + Read 排盤＋解讀"}</button>}
             {mode === "synastry" && <button onClick={compare} disabled={busy}>{busy ? "Comparing… 合盤中" : "Compare 合盤"}</button>}
             {mode === "group" && <button onClick={compareGroup} disabled={busy}>{busy ? "Comparing… 合盤中" : "Compare group 團體合盤"}</button>}
+            {mode === "annual" && <button onClick={generateAnnual} disabled={busy}>{busy ? "Generating… 產生中" : "Annual report 年度報告"}</button>}
           </div>
         </div>
         {mode === "single" && sys === "astrology" && overlay !== "none" && (
@@ -250,6 +267,7 @@ export default function Page() {
 
       {mode === "synastry" && synastry && <SynastryView s={synastry} busy={busy} />}
       {mode === "group" && group && <GroupView g={group} />}
+      {mode === "annual" && annual && <AnnualView a={annual} />}
 
       {mode === "single" && reading && (
         <>

@@ -15,10 +15,11 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
-from fortune import casting, group as grp_mod, synastry as syn_mod, timeline as tl
+from fortune import annual as annual_mod, casting, group as grp_mod, synastry as syn_mod, timeline as tl
 from fortune.birth import BirthInput
 from fortune.interpret import (
-    interpret, interpret_composite, interpret_davison, interpret_group, interpret_stream, interpret_synastry,
+    interpret, interpret_annual, interpret_composite, interpret_davison, interpret_group,
+    interpret_stream, interpret_synastry,
 )
 from fortune.schemas import Chart, Group, Reading, Synastry, Timeline
 from fortune.shared.config import get_settings
@@ -60,6 +61,12 @@ class GroupRequest(BaseModel):
     births: list[BirthInput]
     focus: str | None = None
     house_system: str = "whole_sign"
+
+
+class AnnualRequest(BaseModel):
+    birth: BirthInput
+    year: int
+    focus: str | None = None
 
 
 @app.get("/health")
@@ -141,6 +148,18 @@ def group(req: GroupRequest) -> Group:
     if g.get("composite"):
         g["composite"]["interpretation"] = interpret_composite(g["composite"], focus=req.focus)
     return Group(**g)
+
+
+@app.post("/annual-report")
+def annual_report(req: AnnualRequest) -> dict:
+    """年度報告: one year across Solar Return + 八字流年/大運 + 紫微四化 + Jyotiṣa daśā + a synthesis."""
+    try:
+        rep = annual_mod.compute(req.birth, req.year)
+    except Exception as e:  # noqa: BLE001
+        log.exception("annual_failed")
+        raise HTTPException(500, f"annual report failed / 年度報告失敗：{e}") from e
+    rep["interpretation"] = interpret_annual(rep, focus=req.focus)
+    return rep
 
 
 def _sse(event: str, data: str) -> str:
