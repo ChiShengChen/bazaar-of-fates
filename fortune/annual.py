@@ -94,6 +94,14 @@ def overview(birth: BirthInput, start_year: int, count: int = 6) -> dict:
             "jyotish_lord": s["jyotish"]["mahadasha_lord"], "jyotish_nature": s["jyotish"]["nature"],
         })
 
+    # planet returns (Saturn ~29.5 yr, Jupiter ~12 yr) landing in any of these years
+    returns_by_year: dict[str, list[str]] = {}
+    try:
+        for p in tl.astrology_returns(birth).periods:
+            returns_by_year.setdefault(p.start[:4], []).append(p.label)
+    except Exception:  # noqa: BLE001 — never let the milestone scan break the overview
+        pass
+
     prev = None
     for r in rows:
         r["score"] = _year_score(r)
@@ -107,6 +115,7 @@ def overview(birth: BirthInput, start_year: int, count: int = 6) -> dict:
             cf = r["bazi_verdict"].startswith("favourable")
             if pf != cf:
                 t.append("八字 → " + ("favourable 喜用" if cf else "challenging 忌耗"))
+        t.extend(returns_by_year.get(str(r["year"]), []))   # e.g. "Saturn return #1"
         r["turning"] = t
         prev = r
 

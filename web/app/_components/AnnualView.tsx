@@ -57,18 +57,20 @@ function scoreColor(score: number): string {
   return m[Math.max(-2, Math.min(2, score))] ?? "#3f3f46";
 }
 
-export function OverviewView({ o }: { o: AnnualOverview }) {
+export function OverviewView({ o, onYear }: { o: AnnualOverview; onYear?: (year: number) => void }) {
   return (
     <>
       <div className="card">
         <h3>多年運勢 Multi-year outlook · {o.subject} · {o.start_year}–{o.start_year + o.count - 1}</h3>
 
-        {/* heatmap strip: one colour block per year, ★ marks a turning point */}
+        {/* heatmap strip: one colour block per year, ★ marks a turning point; click to expand */}
         <div style={{ display: "flex", gap: 3, margin: "4px 0 6px", overflowX: "auto" }}>
           {o.years.map((y) => (
-            <div key={y.year} title={(y.turning || []).join(" · ") || `score ${y.score}`}
+            <div key={y.year} onClick={() => onYear?.(y.year)}
+                 title={[(y.turning || []).join(" · ") || `score ${y.score}`, onYear ? "— click for full report 點看完整年度報告" : ""].filter(Boolean).join(" ")}
                  style={{ flex: "1 0 42px", minWidth: 42, textAlign: "center", padding: "8px 2px",
                           borderRadius: 5, background: scoreColor(y.score), fontSize: 11,
+                          cursor: onYear ? "pointer" : "default",
                           outline: (y.turning?.length ? "2px solid var(--accent)" : "none") }}>
               <div style={{ fontWeight: 600 }}>{String(y.year).slice(2)}{y.turning?.length ? " ★" : ""}</div>
               <div className="muted" style={{ fontSize: 9 }}>{y.bazi_element}</div>
@@ -76,8 +78,8 @@ export function OverviewView({ o }: { o: AnnualOverview }) {
           ))}
         </div>
         <p className="muted" style={{ fontSize: 11, marginTop: 0 }}>
-          綠＝喜用/吉、紅＝忌耗/凶（八字流年＋Jyotiṣa 大運）；★＝關鍵轉折年（換大運/換 daśā/八字翻轉）。
-          green = favourable · red = challenging · ★ = turning point.
+          綠＝喜用/吉、紅＝忌耗/凶（八字流年＋Jyotiṣa 大運）；★＝關鍵轉折年（換大運/換 daśā/八字翻轉/行星回歸）；**點任一年看完整年度報告**。
+          green = favourable · red = challenging · ★ = turning point · click a year for its full report.
         </p>
 
         {(o.turning_points?.length ?? 0) > 0 && (
@@ -96,7 +98,8 @@ export function OverviewView({ o }: { o: AnnualOverview }) {
             </tr></thead>
             <tbody>
               {o.years.map((y) => (
-                <tr key={y.year} style={y.turning?.length ? { outline: "1px solid var(--accent)" } : {}}>
+                <tr key={y.year} onClick={() => onYear?.(y.year)}
+                    style={{ cursor: onYear ? "pointer" : "default", ...(y.turning?.length ? { outline: "1px solid var(--accent)" } : {}) }}>
                   <td><b>{y.year}</b></td><td className="muted">{y.age}</td>
                   <td>{y.sr_ascendant}</td>
                   <td style={fav(y.bazi_verdict)}>{y.bazi_element}</td>

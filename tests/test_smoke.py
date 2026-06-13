@@ -136,10 +136,11 @@ def test_annual_overview_arc():
 
 def test_overview_turning_points_detected():
     from fortune import annual
-    ov = annual.overview(BIRTH, 2018, 12)   # spans a 八字 flip and a 大運 change
+    ov = annual.overview(BIRTH, 2018, 12)   # spans a 八字 flip, a 大運 change, and a Saturn return
     assert ov["turning_points"]
     events = " ".join(e for t in ov["turning_points"] for e in t["events"])
     assert "大運" in events or "八字" in events or "daśā" in events
+    assert "Saturn return" in events        # the ~age-29.5 milestone is flagged
     # the year of a turning point carries its events on the row too
     tp = ov["turning_points"][0]
     row = next(y for y in ov["years"] if y["year"] == tp["year"])

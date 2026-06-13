@@ -129,6 +129,15 @@ export default function Page() {
     finally { setBusy(false); }
   }
 
+  // click a year in the overview → expand that year's full report (keep the overview)
+  async function openAnnualYear(year: number) {
+    setBusy(true); setErr(null); setAnnualYear(year);
+    try {
+      setAnnual(await getAnnual(toBirth(formA), year, focus || null));
+    } catch (e: any) { setErr(String(e.message || e)); }
+    finally { setBusy(false); }
+  }
+
   function exportPng() {
     const svg = document.querySelector("#chart-area svg") as SVGSVGElement | null;
     if (!svg) return;
@@ -286,8 +295,8 @@ export default function Page() {
 
       {mode === "synastry" && synastry && <SynastryView s={synastry} busy={busy} />}
       {mode === "group" && group && <GroupView g={group} />}
+      {mode === "annual" && overview && <OverviewView o={overview} onYear={openAnnualYear} />}
       {mode === "annual" && annual && <AnnualView a={annual} />}
-      {mode === "annual" && overview && <OverviewView o={overview} />}
 
       {mode === "single" && reading && (
         <>
