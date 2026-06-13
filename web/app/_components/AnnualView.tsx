@@ -67,6 +67,61 @@ function marker(ev: string): { s: string; c: string } {
   return { s: "★", c: "#a78bfa" };
 }
 
+// a colour-block strip (no trend line) for one person, used in the comparison view
+function Strip({ years, label, color }: { years: AnnualOverview["years"]; label: string; color: string }) {
+  return (
+    <div style={{ margin: "2px 0" }}>
+      <div style={{ fontSize: 11, color }}>{label}</div>
+      <div style={{ display: "flex", gap: 3 }}>
+        {years.map((y) => (
+          <div key={y.year} title={`${y.year} · score ${y.score} · 八字 ${y.bazi_element}（${y.bazi_verdict}）· Jyotiṣa ${y.jyotish_lord}`}
+               style={{ flex: "1 0 40px", minWidth: 40, textAlign: "center", padding: "5px 2px",
+                        borderRadius: 4, background: scoreColor(y.score), fontSize: 10 }}>
+            {y.bazi_element}{y.turning?.length ? " ★" : ""}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+export function CompareView({ a, b }: { a: AnnualOverview; b: AnnualOverview }) {
+  const n = Math.min(a.years.length, b.years.length);
+  const yOf = (sc: number) => 20 - sc * 7;
+  const line = (ys: AnnualOverview["years"]) => ys.slice(0, n).map((y, i) => `${i + 0.5},${yOf(y.score)}`).join(" ");
+  const dots = (ys: AnnualOverview["years"], color: string, name: string) =>
+    ys.slice(0, n).map((y, i) => (
+      <div key={name + y.year}
+           title={`${name} · ${y.year} · score ${y.score > 0 ? "+" : ""}${y.score} · 八字 ${y.bazi_element}（${y.bazi_verdict}）· Jyotiṣa ${y.jyotish_lord}`}
+           style={{ position: "absolute", left: `${((i + 0.5) / n) * 100}%`, top: `${(yOf(y.score) / 40) * 100}%`,
+                    transform: "translate(-50%,-50%)", width: 9, height: 9, borderRadius: "50%",
+                    background: color, border: "1.5px solid #1c1917" }} />
+    ));
+  return (
+    <div className="card">
+      <h3>雙人對照 Two-person comparison · {a.subject} ✕ {b.subject}</h3>
+      <p className="muted" style={{ fontSize: 12, marginTop: -4 }}>
+        <span style={{ color: "#fde047" }}>● {a.subject.split(" ")[0]}</span>
+        <span style={{ color: "#22d3ee" }}>● {b.subject.split(" ")[0]}</span>　— favourability trend −2…+2 over {a.start_year}–{a.start_year + n - 1}
+      </p>
+      <div style={{ position: "relative", height: 96 }}>
+        <svg viewBox={`0 0 ${n} 40`} preserveAspectRatio="none" style={{ width: "100%", height: "100%" }}>
+          <line x1={0} y1={20} x2={n} y2={20} stroke="#52525b" strokeWidth={1} vectorEffect="non-scaling-stroke" opacity={0.5} strokeDasharray="3 3" />
+          <polyline points={line(a.years)} fill="none" stroke="#fde047" strokeWidth={2} vectorEffect="non-scaling-stroke" />
+          <polyline points={line(b.years)} fill="none" stroke="#22d3ee" strokeWidth={2} vectorEffect="non-scaling-stroke" />
+        </svg>
+        {dots(a.years, "#fde047", a.subject.split(" ")[0])}
+        {dots(b.years, "#22d3ee", b.subject.split(" ")[0])}
+      </div>
+      <div style={{ display: "flex", gap: 3, fontSize: 10, color: "#71717a", margin: "2px 0 6px" }}>
+        {a.years.slice(0, n).map((y) => <div key={y.year} style={{ flex: "1 0 40px", minWidth: 40, textAlign: "center" }}>{String(y.year).slice(2)}</div>)}
+      </div>
+      <Strip years={a.years.slice(0, n)} label={a.subject} color="#fde047" />
+      <Strip years={b.years.slice(0, n)} label={b.subject} color="#22d3ee" />
+    </div>
+  );
+}
+
 export function OverviewView({ o, onYear }: { o: AnnualOverview; onYear?: (year: number) => void }) {
   return (
     <>
@@ -101,6 +156,14 @@ export function OverviewView({ o, onYear }: { o: AnnualOverview; onYear?: (year:
                 <line x1={0} y1={20} x2={n} y2={20} stroke="#52525b" strokeWidth={1} vectorEffect="non-scaling-stroke" opacity={0.5} strokeDasharray="3 3" />
                 <polyline points={pts} fill="none" stroke="#fde047" strokeWidth={2} vectorEffect="non-scaling-stroke" opacity={0.95} />
               </svg>
+              {/* hover nodes: each year's score + its make-up */}
+              {o.years.map((y, i) => (
+                <div key={`d${y.year}`} onClick={() => onYear?.(y.year)}
+                     title={`${y.year} · score ${y.score > 0 ? "+" : ""}${y.score} · 八字 ${y.bazi_element}（${y.bazi_verdict}）· Jyotiṣa ${y.jyotish_lord}（${y.jyotish_nature}）`}
+                     style={{ position: "absolute", left: `${((i + 0.5) / n) * 100}%`, top: `${(yOf(y.score) / 40) * 100}%`,
+                              transform: "translate(-50%,-50%)", width: 10, height: 10, borderRadius: "50%",
+                              background: "#fde047", border: "1.5px solid #1c1917", cursor: onYear ? "pointer" : "default" }} />
+              ))}
             </div>
           );
         })()}

@@ -91,5 +91,13 @@ with sync_playwright() as p:
     pg.wait_for_timeout(1000)
     shot(pg.locator(".card").filter(has_text="Multi-year outlook").first, "annual-overview.png")
 
+    # --- two-person comparison ---
+    pg.get_by_text("vs Person B", exact=False).first.click()
+    pg.wait_for_timeout(200)
+    pg.get_by_role("button", name="Multi-year 多年").click()
+    pg.wait_for_selector("text=Two-person comparison", timeout=20000)
+    pg.wait_for_timeout(1200)
+    shot(pg.locator(".card").filter(has_text="Two-person comparison").first, "compare-overview.png")
+
     b.close()
 print("done")

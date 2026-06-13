@@ -21,7 +21,14 @@ Plain-language guides — what each divination system is and how to read its cha
 
 跨系統的**年度報告**（太陽回歸＋八字流年大運＋紫微四化＋Jyotiṣa 大運）與**多年走勢**——逐年吉凶色塊（綠＝喜用、紅＝忌耗）＋自動標出**關鍵轉折年**（換大運／換 daśā／八字翻轉）。在首頁 **Annual 年度報告** 模式產生，可列印存 PDF。
 
+逐年色塊有**趨勢折線**（黃線＝吉凶分數）與**分類轉折符號**（♄土星回歸・♃木星回歸・運換大運・↻換 daśā・☯八字翻轉）；折線節點可**懸停看該年分數與組成**、**點任一年展開完整年度報告**。
+
 ![multi-year overview 多年走勢熱力圖](img/annual-overview.png)
+
+**雙人對照**：疊兩條趨勢線比較兩人的人生起伏（黃＝甲方、青＝乙方），看誰在哪幾年順、何時交會或分歧。
+Two-person comparison overlays both arcs on one chart.
+
+![two-person comparison 雙人對照](img/compare-overview.png)
 
 ---
 

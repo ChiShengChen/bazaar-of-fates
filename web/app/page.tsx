@@ -9,7 +9,7 @@ import { Houses } from "./_components/Houses";
 import { TimelineView } from "./_components/TimelineView";
 import { SynastryView } from "./_components/SynastryView";
 import { GroupView } from "./_components/GroupView";
-import { AnnualView, OverviewView } from "./_components/AnnualView";
+import { AnnualView, OverviewView, CompareView } from "./_components/AnnualView";
 import { BirthFields, FormState, emptyForm, toBirth } from "./_components/BirthFields";
 
 const HOUSE_OPTS = [
@@ -38,6 +38,8 @@ export default function Page() {
   const [group, setGroup] = useState<GroupResult | null>(null);
   const [annual, setAnnual] = useState<AnnualReport | null>(null);
   const [overview, setOverview] = useState<AnnualOverview | null>(null);
+  const [compareOv, setCompareOv] = useState<{ a: AnnualOverview; b: AnnualOverview } | null>(null);
+  const [annualCompare, setAnnualCompare] = useState(false);
   const [annualYear, setAnnualYear] = useState(new Date().getFullYear());
   const [annualSpan, setAnnualSpan] = useState(6);
   const [formsG, setFormsG] = useState<FormState[]>([
@@ -114,7 +116,7 @@ export default function Page() {
   }
 
   async function generateAnnual() {
-    setBusy(true); setErr(null); setAnnual(null); setOverview(null);
+    setBusy(true); setErr(null); setAnnual(null); setOverview(null); setCompareOv(null);
     try {
       setAnnual(await getAnnual(toBirth(formA), annualYear, focus || null));
     } catch (e: any) { setErr(String(e.message || e)); }
@@ -122,9 +124,17 @@ export default function Page() {
   }
 
   async function generateOverview() {
-    setBusy(true); setErr(null); setAnnual(null); setOverview(null);
+    setBusy(true); setErr(null); setAnnual(null); setOverview(null); setCompareOv(null);
     try {
-      setOverview(await getOverview(toBirth(formA), annualYear, annualSpan, focus || null));
+      if (annualCompare) {
+        const [a, b] = await Promise.all([
+          getOverview(toBirth(formA), annualYear, annualSpan, focus || null),
+          getOverview(toBirth(formB), annualYear, annualSpan, focus || null),
+        ]);
+        setCompareOv({ a, b });
+      } else {
+        setOverview(await getOverview(toBirth(formA), annualYear, annualSpan, focus || null));
+      }
     } catch (e: any) { setErr(String(e.message || e)); }
     finally { setBusy(false); }
   }
@@ -162,7 +172,7 @@ export default function Page() {
   }
 
   const hasSvgChart = mode === "synastry" || (mode === "single" && reading && ["astrology", "qizheng", "jyotish"].includes(reading.system));
-  const showResults = mode === "single" ? reading : mode === "synastry" ? synastry : mode === "group" ? group : (annual || overview);
+  const showResults = mode === "single" ? reading : mode === "synastry" ? synastry : mode === "group" ? group : (annual || overview || compareOv);
 
   return (
     <div className="wrap">
@@ -185,6 +195,15 @@ export default function Page() {
           <>
             <div className="muted" style={{ margin: "12px 0 4px" }}>Person B 第二人（合盤對象）</div>
             <BirthFields f={formB} set={setB} />
+          </>
+        )}
+        {mode === "annual" && (
+          <>
+            <label style={{ display: "flex", gap: 6, alignItems: "center", cursor: "pointer", margin: "10px 0 4px", fontSize: 13 }}>
+              <input type="checkbox" checked={annualCompare} onChange={(e) => setAnnualCompare(e.target.checked)} style={{ width: "auto" }} />
+              vs Person B 雙人對照（multi-year 多年）
+            </label>
+            {annualCompare && <BirthFields f={formB} set={setB} />}
           </>
         )}
         {mode === "group" && (
@@ -295,6 +314,7 @@ export default function Page() {
 
       {mode === "synastry" && synastry && <SynastryView s={synastry} busy={busy} />}
       {mode === "group" && group && <GroupView g={group} />}
+      {mode === "annual" && compareOv && <CompareView a={compareOv.a} b={compareOv.b} />}
       {mode === "annual" && overview && <OverviewView o={overview} onYear={openAnnualYear} />}
       {mode === "annual" && annual && <AnnualView a={annual} />}
 
