@@ -19,7 +19,7 @@ from fortune import annual as annual_mod, casting, group as grp_mod, synastry as
 from fortune.birth import BirthInput
 from fortune.interpret import (
     interpret, interpret_annual, interpret_composite, interpret_davison, interpret_group,
-    interpret_stream, interpret_synastry,
+    interpret_overview, interpret_stream, interpret_synastry,
 )
 from fortune.schemas import Chart, Group, Reading, Synastry, Timeline
 from fortune.shared.config import get_settings
@@ -66,6 +66,13 @@ class GroupRequest(BaseModel):
 class AnnualRequest(BaseModel):
     birth: BirthInput
     year: int
+    focus: str | None = None
+
+
+class OverviewRequest(BaseModel):
+    birth: BirthInput
+    start_year: int
+    count: int = 6
     focus: str | None = None
 
 
@@ -160,6 +167,20 @@ def annual_report(req: AnnualRequest) -> dict:
         raise HTTPException(500, f"annual report failed / 年度報告失敗：{e}") from e
     rep["interpretation"] = interpret_annual(rep, focus=req.focus)
     return rep
+
+
+@app.post("/annual-overview")
+def annual_overview(req: OverviewRequest) -> dict:
+    """多年運勢概覽: a compact per-year arc across several years + a synthesis."""
+    if not 1 <= req.count <= 20:
+        raise HTTPException(400, "count must be 1–20 / 年數需 1–20")
+    try:
+        ov = annual_mod.overview(req.birth, req.start_year, req.count)
+    except Exception as e:  # noqa: BLE001
+        log.exception("overview_failed")
+        raise HTTPException(500, f"overview failed / 多年概覽失敗：{e}") from e
+    ov["interpretation"] = interpret_overview(ov, focus=req.focus)
+    return ov
 
 
 def _sse(event: str, data: str) -> str:

@@ -118,6 +118,19 @@ def test_annual_report_assembles_all_systems():
     assert len(s["ziwei"]["sihua"]) == 4
     assert s["jyotish"]["mahadasha_lord"]
     assert "2026" in r["summary"]
+    # the report carries the SR chart payload for the wheel
+    ch = s["solar_return"]["chart"]
+    assert len(ch["natal"]) == 7 and len(ch["sr_planets"]) == 7 and len(ch["sr_houses"]) == 12
+
+
+def test_annual_overview_arc():
+    from fortune import annual
+    ov = annual.overview(BIRTH, 2024, 5)
+    assert len(ov["years"]) == 5
+    assert [y["year"] for y in ov["years"]] == [2024, 2025, 2026, 2027, 2028]
+    assert all(y["sr_ascendant"] and y["bazi_element"] and y["jyotish_lord"] for y in ov["years"])
+    # light mode omits the heavy chart payload
+    assert "chart" not in annual.compute(BIRTH, 2026, light=True)["sections"]["solar_return"]
 
 
 def test_solar_return_year_timeline():

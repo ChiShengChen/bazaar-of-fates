@@ -178,6 +178,24 @@ def interpret_annual(report: dict, *, focus: str | None = None) -> str:
     return complete(_ANNUAL_SYSTEM, user)
 
 
+_OVERVIEW_SYSTEM = (
+    "You are a diviner sketching a person's MULTI-YEAR arc from a compact per-year table "
+    "(Solar Return ascendant, BaZi 流年 element & favourability, BaZi 大運 period, 紫微 year "
+    "stem, Jyotiṣa daśā lord). Use ONLY the table; describe the overall trajectory — the "
+    "smoother stretches and the more demanding ones, and any turning points (a new 大運, a "
+    "daśā change). Be honest and kind, not deterministic. English first, then 中文. "
+    "你在勾勒某人連續數年的運勢起伏：依下表的逐年資料，講整體走向與轉折，先英後中。"
+)
+
+
+def interpret_overview(ov: dict, *, focus: str | None = None) -> str:
+    head = f"Multi-year outlook 多年運勢 · {ov.get('subject')} · {ov.get('start_year')}–{ov.get('start_year', 0) + ov.get('count', 1) - 1}\n"
+    if focus:
+        head += f"★ They ask about / 想問: {focus}\n"
+    user = head + f"\nPer-year facts (JSON):\n{json.dumps(ov.get('years', []), ensure_ascii=False, indent=2)}\n\nSketch the arc bilingually."
+    return complete(_OVERVIEW_SYSTEM, user)
+
+
 def interpret_synastry(syn, *, focus: str | None = None) -> str:
     facts = {
         "person_A": {"subject": syn.a.subject, "summary": syn.a.summary},

@@ -1,15 +1,15 @@
 "use client";
 import { useEffect, useState } from "react";
 import {
-  apiBase, getSystems, getTimeline, streamReading, getSynastry, getGroup, getCast, getAnnual,
-  SystemInfo, Reading, Timeline, Synastry, GroupResult, AnnualReport,
+  apiBase, getSystems, getTimeline, streamReading, getSynastry, getGroup, getCast, getAnnual, getOverview,
+  SystemInfo, Reading, Timeline, Synastry, GroupResult, AnnualReport, AnnualOverview,
 } from "@/lib/api";
 import { ChartView } from "./_components/ChartView";
 import { Houses } from "./_components/Houses";
 import { TimelineView } from "./_components/TimelineView";
 import { SynastryView } from "./_components/SynastryView";
 import { GroupView } from "./_components/GroupView";
-import { AnnualView } from "./_components/AnnualView";
+import { AnnualView, OverviewView } from "./_components/AnnualView";
 import { BirthFields, FormState, emptyForm, toBirth } from "./_components/BirthFields";
 
 const HOUSE_OPTS = [
@@ -37,7 +37,9 @@ export default function Page() {
   const [synastry, setSynastry] = useState<Synastry | null>(null);
   const [group, setGroup] = useState<GroupResult | null>(null);
   const [annual, setAnnual] = useState<AnnualReport | null>(null);
+  const [overview, setOverview] = useState<AnnualOverview | null>(null);
   const [annualYear, setAnnualYear] = useState(new Date().getFullYear());
+  const [annualSpan, setAnnualSpan] = useState(6);
   const [formsG, setFormsG] = useState<FormState[]>([
     emptyForm({ name: "Mei 小美", gender: "female", time: "14:30", place: "Taipei", lat: "25.04", lon: "121.56" }),
     emptyForm({ name: "Ken 阿肯", gender: "male", date: "1988-11-02", time: "09:15", place: "Tokyo", lat: "35.68", lon: "139.69" }),
@@ -112,9 +114,17 @@ export default function Page() {
   }
 
   async function generateAnnual() {
-    setBusy(true); setErr(null); setAnnual(null);
+    setBusy(true); setErr(null); setAnnual(null); setOverview(null);
     try {
       setAnnual(await getAnnual(toBirth(formA), annualYear, focus || null));
+    } catch (e: any) { setErr(String(e.message || e)); }
+    finally { setBusy(false); }
+  }
+
+  async function generateOverview() {
+    setBusy(true); setErr(null); setAnnual(null); setOverview(null);
+    try {
+      setOverview(await getOverview(toBirth(formA), annualYear, annualSpan, focus || null));
     } catch (e: any) { setErr(String(e.message || e)); }
     finally { setBusy(false); }
   }
@@ -143,7 +153,7 @@ export default function Page() {
   }
 
   const hasSvgChart = mode === "synastry" || (mode === "single" && reading && ["astrology", "qizheng", "jyotish"].includes(reading.system));
-  const showResults = mode === "single" ? reading : mode === "synastry" ? synastry : mode === "group" ? group : annual;
+  const showResults = mode === "single" ? reading : mode === "synastry" ? synastry : mode === "group" ? group : (annual || overview);
 
   return (
     <div className="wrap">
@@ -235,14 +245,23 @@ export default function Page() {
             </div>
           )}
           {mode === "annual" && (
-            <div style={{ flex: 0, minWidth: 110 }}><label>Year 年份</label>
-              <input type="number" value={annualYear} onChange={(e) => setAnnualYear(Number(e.target.value))} /></div>
+            <>
+              <div style={{ flex: 0, minWidth: 90 }}><label>Year 年份</label>
+                <input type="number" value={annualYear} onChange={(e) => setAnnualYear(Number(e.target.value))} /></div>
+              <div style={{ flex: 0, minWidth: 80 }}><label>Span 年數</label>
+                <input type="number" min={1} max={20} value={annualSpan} onChange={(e) => setAnnualSpan(Number(e.target.value))} /></div>
+            </>
           )}
           <div style={{ flex: 0 }}>
             {mode === "single" && <button onClick={cast} disabled={busy}>{busy ? "Casting… 排盤中" : "Cast + Read 排盤＋解讀"}</button>}
             {mode === "synastry" && <button onClick={compare} disabled={busy}>{busy ? "Comparing… 合盤中" : "Compare 合盤"}</button>}
             {mode === "group" && <button onClick={compareGroup} disabled={busy}>{busy ? "Comparing… 合盤中" : "Compare group 團體合盤"}</button>}
-            {mode === "annual" && <button onClick={generateAnnual} disabled={busy}>{busy ? "Generating… 產生中" : "Annual report 年度報告"}</button>}
+            {mode === "annual" && (
+              <div style={{ display: "flex", gap: 8 }}>
+                <button onClick={generateAnnual} disabled={busy}>{busy ? "…" : "Year report 年度報告"}</button>
+                <button onClick={generateOverview} disabled={busy} style={{ background: "#27272a", color: "var(--ink)" }}>{busy ? "…" : "Multi-year 多年"}</button>
+              </div>
+            )}
           </div>
         </div>
         {mode === "single" && sys === "astrology" && overlay !== "none" && (
@@ -268,6 +287,7 @@ export default function Page() {
       {mode === "synastry" && synastry && <SynastryView s={synastry} busy={busy} />}
       {mode === "group" && group && <GroupView g={group} />}
       {mode === "annual" && annual && <AnnualView a={annual} />}
+      {mode === "annual" && overview && <OverviewView o={overview} />}
 
       {mode === "single" && reading && (
         <>

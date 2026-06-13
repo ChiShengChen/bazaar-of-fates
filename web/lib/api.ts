@@ -88,7 +88,11 @@ export const getGroup = (births: BirthInput[], focus: string | null, house_syste
 export interface AnnualReport {
   year: number; subject: string; summary: string; interpretation: string;
   sections: {
-    solar_return?: { ascendant?: string; moment?: string; highlights?: string[]; key_transits?: any[] };
+    solar_return?: {
+      ascendant?: string; moment?: string; highlights?: string[]; key_transits?: any[];
+      chart?: { natal: PlanetPosition[]; natal_houses: HouseCusp[]; sr_planets: PlanetPosition[];
+                sr_houses: HouseCusp[]; sr_aspects: { a: string; b: string; type: string; orb: number }[] };
+    };
     bazi?: { liunian_element?: string; favourable?: string[]; verdict?: string; dayun?: string };
     ziwei?: { year_stem?: string; sihua?: string[] };
     jyotish?: { mahadasha_lord?: string; nature?: string };
@@ -96,6 +100,14 @@ export interface AnnualReport {
 }
 export const getAnnual = (birth: BirthInput, year: number, focus: string | null) =>
   post<AnnualReport>(`/annual-report`, { birth, year, focus });
+
+export interface AnnualOverview {
+  subject: string; start_year: number; count: number; summary: string; interpretation: string;
+  years: { year: number; age: number; sr_ascendant?: string; bazi_element?: string; bazi_verdict?: string;
+           dayun?: string; ziwei_stem?: string; jyotish_lord?: string; jyotish_nature?: string }[];
+}
+export const getOverview = (birth: BirthInput, start_year: number, count: number, focus: string | null) =>
+  post<AnnualOverview>(`/annual-overview`, { birth, start_year, count, focus });
 
 // Stream a reading via SSE: onChart fires once with the deterministic 命盤,
 // onDelta fires for each text chunk of the 解讀.
