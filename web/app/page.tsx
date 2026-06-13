@@ -271,6 +271,12 @@ export default function Page() {
 
           {timeline && timeline.kind !== "none" && <div className="card"><TimelineView t={timeline} /></div>}
 
+          {(reading.chart?.solar_return_timeline?.length ?? 0) > 0 && (
+            <div className="card"><TimelineView t={{ system: "astrology", system_zh: "", kind: "sr",
+              kind_label: `Solar Return ${reading.readings?.solar_return_year ?? ""} — key transits 流年關鍵行運`,
+              periods: reading.chart.solar_return_timeline, note: "" } as any} /></div>
+          )}
+
           <div className="card">
             <h3>Reading 解讀{busy ? " · streaming…" : ""}</h3>
             <div className="interp">{reading.interpretation}{busy && <span className="cursor">▍</span>}</div>

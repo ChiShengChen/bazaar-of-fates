@@ -86,6 +86,37 @@ def _prog_lon(birth: BirthInput, body: str, target: date, method: str,
     return rows[body]
 
 
+def _period_major_transits(angles: dict, start: date, span_days: int) -> list[dict]:
+    """Slow-planet (Jupiter/Saturn) hits to the given angles within [start, start+span],
+    deduped by (planet, angle, aspect), each with the exact perfection date — the key
+    transits inside a return period."""
+    end = start + timedelta(days=span_days)
+    seen: dict[tuple, dict] = {}
+    d = start
+    while d <= end:
+        for body_name in _SLOW:
+            cls = astro._BODIES[body_name]
+            lon = astro._lon(cls, d)
+            for an, alon in angles.items():
+                sep = astro._separation(lon, alon)
+                for asp, exact in _HARD.items():
+                    if abs(sep - exact) <= _ANGLE_ORB:
+                        key = (body_name, an, asp)
+                        if key not in seen:
+                            if asp == "conjunction":
+                                target = alon
+                            elif asp == "opposition":
+                                target = (alon + 180.0) % 360.0
+                            else:
+                                c1, c2 = (alon + 90.0) % 360.0, (alon - 90.0) % 360.0
+                                target = c1 if abs(_signed_arc(lon - c1)) <= abs(_signed_arc(lon - c2)) else c2
+                            seen[key] = {"transit": body_name, "angle": an, "type": asp,
+                                         "exact_date": _exact_date(cls, target, d)}
+                        break
+        d += timedelta(days=10)
+    return sorted(seen.values(), key=lambda h: h["exact_date"] or "9999")
+
+
 def _return_highlights(rows: list[dict], houses: list[dict] | None,
                        natal_asc_lon: float | None, kind: str) -> list[str]:
     """Year/month-ahead key points for a Solar/Lunar Return chart: its ascendant,
@@ -468,6 +499,20 @@ def cast(birth: BirthInput, *, house_system: str = "whole_sign",
             srows, sr_asc["houses"] if sr_asc else None, asc["longitude"] if asc else None, "SR")
         readings["solar_return_hits"] = [
             f"SR {x['b']} {x['type']} natal {x['a']} ({x['orb']}°)" for x in sasp[:10]] or ["none 無"]
+        # the year's own timeline: key slow-planet transits to natal angles over the SR year
+        if asc:
+            ang = {"ASC": asc["longitude"], "DSC": (asc["longitude"] + 180.0) % 360.0}
+            mc_l = AX.mc_lon(birth)
+            if mc_l is not None:
+                ang.update({"MC": mc_l, "IC": (mc_l + 180.0) % 360.0})
+            hits = _period_major_transits(ang, sr_ut.date(), 366)
+            chart_payload["solar_return_timeline"] = [
+                {"index": i, "label": f"{h['transit']} {h['type']} {h['angle']}", "detail": "",
+                 "start": h["exact_date"] or "", "end": "", "start_age": None,
+                 "nature": "malefic" if h["transit"] == "Saturn" else "benefic", "current": False}
+                for i, h in enumerate(hits)]
+            readings["solar_return_timeline"] = [
+                f"{h['transit']} {h['type']} natal {h['angle']} — {h['exact_date']}" for h in hits] or ["none 無"]
         chain.append(f"Solar Return 太陽回歸 {yr}（{sr_ut.date().isoformat()}）：{len(sasp)} aspect(s) to natal.")
 
     if lunar_return:                                              # 月亮回歸：the month's chart

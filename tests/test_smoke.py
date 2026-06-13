@@ -98,6 +98,24 @@ def test_timeline_none_for_pointwise_systems():
     assert tl.timeline("qimen", BIRTH).kind == "none"
 
 
+def test_astrology_planet_returns_timeline():
+    from fortune import timeline as tl
+    t = tl.timeline("astrology", BIRTH)
+    assert t.kind == "planet_returns" and t.periods
+    labels = [p.label for p in t.periods]
+    assert any("Saturn return" in s for s in labels) and any("Jupiter return" in s for s in labels)
+    # Saturn return #1 lands near age 29.5
+    sr1 = next(p for p in t.periods if p.label == "Saturn return #1")
+    assert 28 < sr1.start_age < 31
+
+
+def test_solar_return_year_timeline():
+    c = casting.cast("astrology", BIRTH, solar_return=True, transit_date="2020-03-01")
+    tln = c.chart["solar_return_timeline"]
+    assert tln and all(set(("label", "start", "nature")) <= set(p) for p in tln)
+    assert all(p["start"][:4] in ("2020", "2021") for p in tln)   # within the SR year
+
+
 # --- ② Equal + Koch ------------------------------------------------------------
 
 def test_equal_houses_are_30_apart_from_ascendant():

@@ -57,7 +57,7 @@ curl -s localhost:8000/cast/bazi -H 'content-type: application/json' -d '{
 # "日主 辛金・身弱（喜生扶）・喜用 土、金"
 ```
 
-> 📖 **Non-engineer's visual guide to the astrology stack: [docs/astrology.md](docs/astrology.md)** — what the wheel, houses, transits, progressions, synastry and group features mean and how to read them. / 給非工程的占星圖解指南。
+> 📖 **Non-engineer's visual guides — one per system: [docs/](docs/README.md)** — how to read each chart, with screenshots and a glossary. Every one of the 11 systems has a guide ([astrology](docs/astrology.md) · [bazi](docs/bazi.md) · [ziwei](docs/ziwei.md) · [iching](docs/iching.md) · [suimei](docs/suimei.md) · [qizheng](docs/qizheng.md) · [tieban](docs/tieban.md) · [qimen](docs/qimen.md) · [liuren](docs/liuren.md) · [taiyi](docs/taiyi.md) · [jyotish](docs/jyotish.md)). / 每一套命理系統都有一份給非工程的圖解指南。
 
 ## Features / 功能
 
@@ -121,9 +121,9 @@ sync 只覆蓋排盤數學與門派 prompt；其餘原生檔（含星盤渲染�
 ## Tests / 測試
 
 ```bash
-pytest -q     # 61 tests: every system casts; 6 house systems vs swisseph; transits +
+pytest -q     # 63 tests: every system casts; 6 house systems vs swisseph; transits +
               # applying/separating + exact dates + major-transit highlights; secondary &
-              # solar-arc progressions + major progressions + directed-to-angles; Solar & Lunar Returns + return highlights; aspect ranking; timelines; synastry / composite / Davison / returns;
+              # solar-arc progressions + major progressions + directed-to-angles; Solar & Lunar Returns + return highlights; aspect ranking; planet-return & Solar-Return-year timelines; timelines; synastry / composite / Davison / returns;
               # group matrix & composite
 ```
 

@@ -48,15 +48,18 @@ with sync_playwright() as p:
     pg.get_by_text("Synastry 合盤", exact=False).first.click()
     pg.get_by_role("button", name="Compare 合盤").click()
     pg.wait_for_selector("#chart-area svg", timeout=20000)
-    pg.wait_for_timeout(1000)
+    pg.wait_for_timeout(1200)
     shot(pg.locator("#chart-area svg"), "synastry-biwheel.png")
+    shot(pg.locator(".card").filter(has_text="Composite chart").first.locator("svg"), "composite-wheel.png")
+    shot(pg.locator(".card").filter(has_text="Davison chart").first.locator("svg"), "davison-wheel.png")
 
     # --- group matrix ---
     pg.get_by_text("Group 團體", exact=False).first.click()
     pg.get_by_role("button", name="Compare group 團體合盤").click()
     pg.wait_for_selector("table", timeout=20000)
-    pg.wait_for_timeout(1000)
+    pg.wait_for_timeout(1200)
     shot(pg.locator(".card").filter(has_text="Group dynamics").first, "group-matrix.png")
+    shot(pg.locator(".card").filter(has_text="Group composite").first.locator("svg"), "group-composite-wheel.png")
 
     b.close()
 print("done")

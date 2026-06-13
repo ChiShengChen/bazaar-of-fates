@@ -147,6 +147,10 @@ Pick *transits*: a blue outer ring shows today's (or any day's) planets over you
 2. **組合中點盤 composite**：把兩人每顆星取**中點**，合成「這段關係本身」的一張盤。
 3. **Davison 時空中點盤**：用兩人**生時與生地的中點**，排一張**真實天象盤**（跟 composite 不同，這是某個真實時刻的天空）。Davison 還附**土星/木星回歸時間軸**＝這段關係的人生里程碑。
 
+| composite 組合中點盤 | Davison 時空中點盤 |
+|---|---|
+| ![composite chart](img/composite-wheel.png) | ![davison chart](img/davison-wheel.png) |
+
 ---
 
 ## 8. 團體合盤 / Group 團體 — 三人以上的默契地圖
@@ -165,6 +169,8 @@ Pick *transits*: a blue outer ring shows today's (or any day's) planets over you
 - 每格＝兩人的**吉凶相位淨分**；**點格子**展開那一對的相位。
 - 上方可切換 **Net / Total / 吉 / 凶** 四種看法；可**依契合度排序**把最合的人群聚，或用 **▲▼** 手動調順序。
 - 另附**團體共同中點盤**（全員行星的平均）＋團體解讀。
+
+![group composite 團體共同中點盤](img/group-composite-wheel.png)
 
 ---
 

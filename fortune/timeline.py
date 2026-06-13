@@ -12,7 +12,10 @@ from __future__ import annotations
 
 from datetime import date, timedelta
 
+import ephem
+
 from fortune.birth import BirthInput
+from fortune.engines.astrology import astro as ASTRO
 from fortune.engines.bazi import bazi as BZ
 from fortune.engines.jyotish import jyotish as JY
 from fortune.engines.ziwei import ziwei as ZW
@@ -139,7 +142,57 @@ def ziwei_liunian(birth: BirthInput, count: int = 12) -> Timeline:
                     kind="liunian_sihua", kind_label="流年四化 · Annual Transformations", periods=periods)
 
 
-_BUILDERS = {"jyotish": jyotish_dasha, "bazi": bazi_dayun, "ziwei": ziwei_liunian}
+# --- 西洋占星 planet returns (life milestones) ---------------------------------
+
+_RETURNS = {"Jupiter": (ephem.Jupiter, 11.862, "benefic"),
+            "Saturn": (ephem.Saturn, 29.457, "malefic")}
+
+
+def _return_dates(natal_lon: float, body_cls, birth_date: date, period_years: float, n: int) -> list[date]:
+    """Dates of the first n returns of `body` to `natal_lon` after birth (transit conjunct natal)."""
+    out = []
+    for k in range(1, n + 1):
+        approx = birth_date + timedelta(days=int(period_years * k * _DAYS_PER_YEAR))
+        best = (approx, 999.0)
+        for off in range(-400, 401, 5):                   # coarse, then fine
+            dd = approx + timedelta(days=off)
+            sep = ASTRO._separation(ASTRO._lon(body_cls, dd), natal_lon)
+            if sep < best[1]:
+                best = (dd, sep)
+        d0 = best[0]
+        for off in range(-5, 6):
+            dd = d0 + timedelta(days=off)
+            sep = ASTRO._separation(ASTRO._lon(body_cls, dd), natal_lon)
+            if sep < best[1]:
+                best = (dd, sep)
+        out.append(best[0])
+    return out
+
+
+def astrology_returns(birth: BirthInput) -> Timeline:
+    """Jupiter (~12 yr) & Saturn (~29.5 yr) returns over the lifespan — the classic
+    'Saturn return at ~29' milestones."""
+    natal = {b: lon for (b, lon, _s, _r) in ASTRO.chart_for(birth.as_date)}
+    today = _today()
+    periods: list[Period] = []
+    for body, (cls, per, nature) in _RETURNS.items():
+        n = int(95 / per)
+        for k, rd in enumerate(_return_dates(natal[body], cls, birth.as_date, per, n), start=1):
+            age = round((rd - birth.as_date).days / _DAYS_PER_YEAR, 1)
+            periods.append(Period(
+                index=0, label=f"{body} return #{k}", detail=f"≈ age {age:.0f}",
+                start=rd.isoformat(), end="", start_age=age, nature=nature,
+                current=abs((rd - today).days) <= 183))
+    periods.sort(key=lambda p: p.start)
+    for i, p in enumerate(periods):
+        p.index = i
+    return Timeline(system="astrology", system_en="Western Astrology", system_zh="西洋占星",
+                    kind="planet_returns", kind_label="Planet returns 行星回歸（木12年・土29.5年）",
+                    periods=periods)
+
+
+_BUILDERS = {"jyotish": jyotish_dasha, "bazi": bazi_dayun, "ziwei": ziwei_liunian,
+             "astrology": astrology_returns}
 
 
 def timeline(system: str, birth: BirthInput) -> Timeline:
