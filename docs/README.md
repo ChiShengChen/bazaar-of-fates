@@ -25,8 +25,8 @@ Plain-language guides — what each divination system is and how to read its cha
 
 ![multi-year overview 多年走勢熱力圖](img/annual-overview.png)
 
-**雙人對照**：疊兩條趨勢線比較兩人的人生起伏（黃＝甲方、青＝乙方），看誰在哪幾年順、何時交會或分歧。
-Two-person comparison overlays both arcs on one chart.
+**雙人對照**：疊兩條趨勢線比較兩人的人生起伏（黃＝甲方、青＝乙方），看誰在哪幾年順、何時交會或分歧；自動標出**契合年 ✦**（兩人皆吉，宜共同大事）與共同低潮，**拖曳折線可縮放**年段。
+Two-person comparison overlays both arcs, flags shared good/rough years (✦), and supports drag-to-zoom.
 
 ![two-person comparison 雙人對照](img/compare-overview.png)
 
