@@ -292,6 +292,24 @@ def test_major_progressions_flagged():
     assert any("changed sign" in m["event"] for m in mp)   # prog Sun Gemini → Cancer by age 35
 
 
+def test_cross_aspects_carry_phase_and_exact():
+    for kwargs in ({"transits": True, "transit_date": "2024-06-01"},
+                   {"progress": True, "transit_date": "2025-06-15"}):
+        c = casting.cast("astrology", BIRTH, **kwargs)
+        asp = c.chart.get("transit_aspects") or c.chart.get("progression_aspects")
+        assert asp and all(a["phase"] in ("applying", "separating") for a in asp)
+        assert all(("exact_date" in a) for a in asp)
+
+
+def test_solar_arc_directions_to_angles():
+    c = casting.cast("astrology", BIRTH, progress=True, progress_method="solar_arc", transit_date="2025-06-15")
+    dirs = c.chart["solar_arc_directions"]
+    assert dirs and all(0 <= x["age"] <= 100 and x["angle"] in ("ASC", "MC", "DSC", "IC") for x in dirs)
+    assert dirs == sorted(dirs, key=lambda x: x["age"])     # sorted by age
+    # arc needed ≈ age (solar arc ~1°/yr)
+    assert all(abs(x["arc"] - x["age"]) < 8 for x in dirs)
+
+
 def test_davison_is_a_real_distinct_chart():
     from fortune import synastry
     s = synastry.compute(BIRTH, _partner())

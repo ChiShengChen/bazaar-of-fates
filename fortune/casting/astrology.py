@@ -75,6 +75,19 @@ def _prog_lon(birth: BirthInput, body: str, target: date, method: str,
     return rows[body]
 
 
+def _age_for_arc(birth: BirthInput, natal_sun: float, arc_needed: float) -> float:
+    """Age (years) at which the solar arc reaches `arc_needed`° (≈ Newton; arc ≈ 1°/yr)."""
+    birth_ut = birth.dt - timedelta(hours=birth.tz_offset_hours)
+    age = arc_needed
+    for _ in range(4):
+        sun = {p["body"]: p["ecliptic_lon"] for p in AX.planets_at(birth_ut + timedelta(days=age))}["Sun"]
+        err = _signed_arc(arc_needed - (sun - natal_sun) % 360.0)
+        age += err                                            # d(arc)/d(age) ≈ 1
+        if abs(err) < 0.01:
+            break
+    return age
+
+
 def _next_sign_ingress(birth: BirthInput, body: str, target: date, method: str,
                        natal_lon: float, natal_sun: float, max_years: float, step_days: int):
     """Date the progressed/directed `body` next crosses a sign boundary, scanning forward."""
@@ -95,6 +108,28 @@ def _next_sign_ingress(birth: BirthInput, body: str, target: date, method: str,
             return hi.isoformat(), AX.sign_of(lon(hi))
         t = t2
     return None, None
+
+
+def _exact_target_lon(a_lon: float, b_lon: float, aspect: str) -> float:
+    """The longitude the moving body (b) must reach to perfect `aspect` to the fixed
+    body (a) — the nearer side for the symmetric aspects."""
+    base = astro._ASPECTS[aspect]
+    cands = [(a_lon + base) % 360.0] if base in (0.0, 180.0) else [(a_lon + base) % 360.0, (a_lon - base) % 360.0]
+    return min(cands, key=lambda c: abs(_signed_arc(b_lon - c)))
+
+
+def _enrich_aspects(cross: list[dict], a_lons: dict, b_now: dict, b_next: dict,
+                    around: date, days_per_step: float) -> None:
+    """Add applying/separating + exact date to each cross-aspect, via linear extrapolation
+    of the moving body (b_now → b_next is one step; transits 1 day, progressions 1 year)."""
+    for x in cross:
+        a, b = a_lons[x["a"]], b_now[x["b"]]
+        tgt = _exact_target_lon(a, b, x["type"])
+        d0 = _signed_arc(b - tgt)
+        rate = _signed_arc(b_next[x["b"]] - b)                # deg per step
+        x["phase"] = "applying" if abs(d0 + rate) < abs(d0) else "separating"
+        x["exact_date"] = ((around + timedelta(days=(-d0 / rate) * days_per_step)).isoformat()
+                           if abs(rate) > 1e-6 and abs(-d0 / rate) < 200 else None)
 
 
 def aspects_within(rows: list[dict], orb: float = ORB) -> list[dict]:
@@ -176,10 +211,16 @@ def cast(birth: BirthInput, *, house_system: str = "whole_sign",
             for (b, lon, sign, retro) in astro.chart_for(td)
         ]
         tasp = _cross_aspects(chart_rows, trows)
+        natal_by = {p["body"]: p["ecliptic_lon"] for p in chart_rows}
+        t_now = {p["body"]: p["ecliptic_lon"] for p in trows}
+        t_next = {b: astro._lon(astro._BODIES[b], td + timedelta(days=1)) for b in t_now}
+        _enrich_aspects(tasp, natal_by, t_now, t_next, td, 1.0)
         chart_payload["transits"] = trows
         chart_payload["transit_aspects"] = tasp
         readings["transit_date"] = td.isoformat()
-        readings["transit_hits"] = [f"natal {x['a']} {x['type']} transit {x['b']} ({x['orb']}°)" for x in tasp] or ["none 無"]
+        readings["transit_hits"] = [
+            f"natal {x['a']} {x['type']} transit {x['b']} ({x['orb']}°, {x['phase']}"
+            + (f", exact {x['exact_date']}" if x.get("exact_date") else "") + ")" for x in tasp] or ["none 無"]
         chain.append(f"Transits 行運 ({td.isoformat()}): {len(tasp)} aspect(s) to the natal chart.")
 
         # major transits: a slow planet (Jupiter/Saturn) hitting a natal angle (ASC/MC/DSC/IC)
@@ -239,12 +280,40 @@ def cast(birth: BirthInput, *, house_system: str = "whole_sign",
                       "retrograde": p.get("retrograde", False)} for p in chart_rows]
             readings["solar_arc_deg"] = round(arc, 2)
             mlabel = f"solar-arc directions 太陽弧 (arc {arc:.1f}°)"
+            # ages when each natal planet is solar-arc directed (conjunct) to an angle
+            if asc:
+                mc_l = AX.mc_lon(birth)
+                angs = {"ASC": asc["longitude"], "DSC": (asc["longitude"] + 180.0) % 360.0}
+                if mc_l is not None:
+                    angs.update({"MC": mc_l, "IC": (mc_l + 180.0) % 360.0})
+                directions = []
+                for p in chart_rows:
+                    for an, alon in angs.items():
+                        arc_needed = (alon - p["ecliptic_lon"]) % 360.0
+                        age_hit = _age_for_arc(birth, natal_sun, arc_needed)
+                        if 0.0 <= age_hit <= 100.0:
+                            dd = d + timedelta(days=age_hit * 365.2425)
+                            directions.append({"planet": p["body"], "angle": an, "age": round(age_hit, 1),
+                                               "date": dd.isoformat(), "arc": round(arc_needed, 1)})
+                directions.sort(key=lambda x: x["age"])
+                chart_payload["solar_arc_directions"] = directions
+                readings["solar_arc_to_angles"] = [
+                    f"SA {x['planet']} → {x['angle']} at age {x['age']} ({x['date']})" for x in directions[:12]] or ["none 無"]
         else:
             arc = 0.0
             prows = AX.planets_at(prog_ut)
             mlabel = "secondary progressions 二次推運 (1 day = 1 year)"
 
         pasp = _cross_aspects(chart_rows, prows)
+        natal_by = {p["body"]: p["ecliptic_lon"] for p in chart_rows}
+        p_now = {p["body"]: p["ecliptic_lon"] for p in prows}
+        next_sec = {p["body"]: p["ecliptic_lon"] for p in AX.planets_at(prog_ut + timedelta(days=1))}  # +1 yr
+        if method == "solar_arc":
+            arc_next = (next_sec["Sun"] - natal_sun) % 360.0
+            p_next = {p["body"]: (p["ecliptic_lon"] + arc_next) % 360.0 for p in chart_rows}
+        else:
+            p_next = next_sec
+        _enrich_aspects(pasp, natal_by, p_now, p_next, target, 365.2425)
         chart_payload["progressions"] = prows
         chart_payload["progression_aspects"] = pasp
         chart_payload["progression_method"] = method
@@ -252,7 +321,8 @@ def cast(birth: BirthInput, *, house_system: str = "whole_sign",
         readings["progressed_age"] = round(age_years, 1)
         readings["progression_method"] = method
         readings["progression_hits"] = [
-            f"progressed {x['b']} {x['type']} natal {x['a']} ({x['orb']}°)" for x in pasp] or ["none 無"]
+            f"progressed {x['b']} {x['type']} natal {x['a']} ({x['orb']}°, {x['phase']}"
+            + (f", exact {x['exact_date']}" if x.get("exact_date") else "") + ")" for x in pasp] or ["none 無"]
         chain.append(f"{mlabel} (age {age_years:.0f}): {len(pasp)} aspect(s) to natal.")
 
         # progressed houses for the outer ring

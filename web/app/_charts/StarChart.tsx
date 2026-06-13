@@ -13,7 +13,7 @@ const ASPECT_COLOR: Record<string, string> = {
 };
 const ASPECT_ANGLE: Record<string, number> = { conjunction: 0, sextile: 60, square: 90, trine: 120, opposition: 180 };
 
-export interface CrossAspect { a: string; b: string; type: string; orb?: number; }
+export interface CrossAspect { a: string; b: string; type: string; orb?: number; phase?: string; exact_date?: string | null; }
 export interface MajorTransit { transit: string; angle: string; type: string; angle_lon: number; orb: number; weight?: number; phase?: string; }
 const ASPECT_GLYPH: Record<string, string> = { conjunction: "☌", opposition: "☍", square: "□" };
 
@@ -73,7 +73,8 @@ export function StarChart({
 
   const crossLines = crossAspects.map((x) => {
     const A = natal[x.a], B = outerP[x.b]; if (!A || !B) return null;
-    return { pa: pos(A.lon, rAspect), pb: pos(B.lon, rAspect), color: ASPECT_COLOR[x.type] || "#52525b", dash: "3 2", ...grade(x.orb ?? 3) };
+    const dash = x.phase ? (x.phase === "applying" ? "" : "4 3") : "3 2";   // applying solid, separating dashed
+    return { pa: pos(A.lon, rAspect), pb: pos(B.lon, rAspect), color: ASPECT_COLOR[x.type] || "#52525b", dash, ...grade(x.orb ?? 3) };
   }).filter(Boolean) as any[];
 
   return (
