@@ -86,6 +86,28 @@ def _prog_lon(birth: BirthInput, body: str, target: date, method: str,
     return rows[body]
 
 
+def _return_highlights(rows: list[dict], houses: list[dict] | None,
+                       natal_asc_lon: float | None, kind: str) -> list[str]:
+    """Year/month-ahead key points for a Solar/Lunar Return chart: its ascendant,
+    Sun/Moon house, angular planets, and which natal house the return ascendant lands in."""
+    if not houses:
+        return []
+    by = {p["body"]: p for p in rows}
+    asc_lon = houses[0]["longitude"]
+    hl = [f"{kind} ascendant 上升 {AX.sign_of(asc_lon)} {AX.sign_zh(asc_lon)}"]
+    for b in ("Sun", "Moon"):
+        if b in by:
+            h = AX.house_of_cusps(by[b]["ecliptic_lon"], houses)
+            hl.append(f"{kind} {b} in house 宮 {h} ({by[b]['sign']})")
+    angular = [f"{p['body']}(H{AX.house_of_cusps(p['ecliptic_lon'], houses)})"
+               for p in rows if AX.house_of_cusps(p["ecliptic_lon"], houses) in _ANGULAR]
+    if angular:
+        hl.append(f"{kind} angular planets 四正: " + ", ".join(angular))
+    if natal_asc_lon is not None:
+        hl.append(f"{kind} ascendant in natal house 落本命宮 {AX.house_of(asc_lon, natal_asc_lon)}")
+    return hl
+
+
 def _find_solar_return(year: int, month: int, day: int, natal_sun: float) -> datetime:
     """UT moment in `year` when the transiting Sun returns to the natal Sun longitude
     (the Solar Return), found near the birthday by hourly scan + bisection."""
@@ -110,6 +132,33 @@ def _find_solar_return(year: int, month: int, day: int, natal_sun: float) -> dat
             return lo
         prev, pv = t, cur
     return start + timedelta(days=2)
+
+
+def _find_lunar_return(target: date, natal_moon: float) -> datetime:
+    """UT moment nearest `target` when the transiting Moon returns to the natal Moon
+    longitude (≈ every 27.3 days) — the Lunar Return for that month."""
+    def moon(dt: datetime) -> float:
+        return astro._lon(astro.ephem.Moon, dt)
+    anchor = datetime(target.year, target.month, target.day)
+    start = anchor - timedelta(days=16)
+    prev, pv = start, _signed_arc(moon(start) - natal_moon)
+    best = None
+    for h in range(2, 33 * 24 + 1, 2):                        # ~33 days in 2-hour steps
+        t = start + timedelta(hours=h)
+        cur = _signed_arc(moon(t) - natal_moon)
+        # real conjunction only — both near 0 (skip the ±180° opposition discontinuity)
+        if (pv == 0.0 or pv * cur < 0) and abs(pv) < 90.0 and abs(cur) < 90.0:
+            lo, hi = prev, t
+            for _ in range(20):
+                mid = lo + (hi - lo) / 2
+                if _signed_arc(moon(mid) - natal_moon) * pv <= 0:
+                    hi = mid
+                else:
+                    lo = mid
+            if best is None or abs((lo - anchor).total_seconds()) < abs((best - anchor).total_seconds()):
+                best = lo
+        prev, pv = t, cur
+    return best or anchor
 
 
 def _age_for_arc(birth: BirthInput, natal_sun: float, arc_needed: float) -> float:
@@ -202,7 +251,7 @@ _ASPECT_WEIGHT = {"conjunction": 1.0, "opposition": 0.8, "square": 0.6}
 def cast(birth: BirthInput, *, house_system: str = "whole_sign",
          transits: bool = False, transit_date: str | None = None,
          progress: bool = False, progress_method: str = "secondary",
-         solar_return: bool = False) -> Chart:
+         solar_return: bool = False, lunar_return: bool = False) -> Chart:
     d = birth.as_date
     chart_rows = [
         {"body": b, "ecliptic_lon": lon, "sign": sign, "sign_zh": astro.sign_zh(lon), "retrograde": retro}
@@ -415,9 +464,33 @@ def cast(birth: BirthInput, *, house_system: str = "whole_sign",
         readings["solar_return_moment"] = sr_ut.isoformat(timespec="minutes") + " UT"
         if sr_asc:
             readings["solar_return_asc"] = f"{sr_asc['sign']} {sr_asc['sign_zh']}"
+        readings["solar_return_highlights"] = _return_highlights(
+            srows, sr_asc["houses"] if sr_asc else None, asc["longitude"] if asc else None, "SR")
         readings["solar_return_hits"] = [
             f"SR {x['b']} {x['type']} natal {x['a']} ({x['orb']}°)" for x in sasp[:10]] or ["none 無"]
         chain.append(f"Solar Return 太陽回歸 {yr}（{sr_ut.date().isoformat()}）：{len(sasp)} aspect(s) to natal.")
+
+    if lunar_return:                                              # 月亮回歸：the month's chart
+        target = date.fromisoformat(transit_date) if transit_date else date.today()
+        natal_moon = next(p["ecliptic_lon"] for p in chart_rows if p["body"] == "Moon")
+        lr_ut = _find_lunar_return(target, natal_moon)
+        lrows = AX.planets_at(lr_ut)
+        lr_local = lr_ut + timedelta(hours=birth.tz_offset_hours)
+        bsyn = BirthInput(birth_date=lr_local.date(), birth_time=lr_local.time().replace(microsecond=0),
+                          latitude=birth.latitude, longitude=birth.longitude, tz_offset_hours=birth.tz_offset_hours)
+        lr_asc = AX.ascendant_block(bsyn, house_system=house_system)
+        lasp = _cross_aspects(chart_rows, lrows)
+        chart_payload["lunar_return"] = lrows
+        chart_payload["lunar_return_aspects"] = lasp
+        chart_payload["lunar_return_houses"] = lr_asc["houses"] if lr_asc else None
+        readings["lunar_return_moment"] = lr_ut.isoformat(timespec="minutes") + " UT"
+        if lr_asc:
+            readings["lunar_return_asc"] = f"{lr_asc['sign']} {lr_asc['sign_zh']}"
+        readings["lunar_return_highlights"] = _return_highlights(
+            lrows, lr_asc["houses"] if lr_asc else None, asc["longitude"] if asc else None, "LR")
+        readings["lunar_return_hits"] = [
+            f"LR {x['b']} {x['type']} natal {x['a']} ({x['orb']}°)" for x in lasp[:10]] or ["none 無"]
+        chain.append(f"Lunar Return 月亮回歸（{lr_ut.date().isoformat()}）：{len(lasp)} aspect(s) to natal.")
 
     summary = (
         f"太陽 {sun['sign_zh'] if sun else ''}座{asc_str}"
@@ -426,6 +499,7 @@ def cast(birth: BirthInput, *, house_system: str = "whole_sign",
         + (f"・行運 {len(chart_payload['transit_aspects'])} 相位" if transits else "")
         + (f"・推運 {len(chart_payload['progression_aspects'])} 相位" if progress else "")
         + (f"・太陽回歸 {readings.get('solar_return_year', '')}" if solar_return else "")
+        + ("・月亮回歸" if lunar_return else "")
     )
     return Chart(
         system=KEY, system_en=EN, system_zh=ZH, subject=birth.label(), cast_at=birth.dt,

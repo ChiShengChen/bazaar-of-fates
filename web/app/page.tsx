@@ -21,7 +21,7 @@ export default function Page() {
   const [sys, setSys] = useState("bazi");
   const [mode, setMode] = useState<"single" | "synastry" | "group">("single");
   const [houseSystem, setHouseSystem] = useState("whole_sign");
-  const [overlay, setOverlay] = useState<"none" | "transits" | "progress" | "solar_return">("none");
+  const [overlay, setOverlay] = useState<"none" | "transits" | "progress" | "solar_return" | "lunar_return">("none");
   const [progMethod, setProgMethod] = useState("secondary");
   const [tightOnly, setTightOnly] = useState(false);
   const [transitOffset, setTransitOffset] = useState(0);   // days from today
@@ -59,7 +59,7 @@ export default function Page() {
       await streamReading(
         sys, b, focus || null, houseSystem,
         overlay === "transits", overlay !== "none" ? transitDate : null,
-        overlay === "progress", progMethod, overlay === "solar_return",
+        overlay === "progress", progMethod, overlay === "solar_return", overlay === "lunar_return",
         (chart) => setReading({ ...(chart as Reading), interpretation: "" }),
         (delta) => { acc += delta; setReading((r) => (r ? { ...r, interpretation: acc } : r)); },
       );
@@ -78,7 +78,7 @@ export default function Page() {
         const c = await getCast("astrology", toBirth(formA), {
           house_system: houseSystem, transit_date: td,
           transits: overlay === "transits", progress: overlay === "progress",
-          progress_method: progMethod, solar_return: overlay === "solar_return",
+          progress_method: progMethod, solar_return: overlay === "solar_return", lunar_return: overlay === "lunar_return",
         });
         setReading((r) => (r ? { ...r, chart: {
           ...r.chart,
@@ -86,6 +86,7 @@ export default function Page() {
           progressions: c.chart.progressions, progression_aspects: c.chart.progression_aspects,
           progression_houses: c.chart.progression_houses, major_progressions: c.chart.major_progressions,
           solar_return: c.chart.solar_return, solar_return_aspects: c.chart.solar_return_aspects, solar_return_houses: c.chart.solar_return_houses,
+          lunar_return: c.chart.lunar_return, lunar_return_aspects: c.chart.lunar_return_aspects, lunar_return_houses: c.chart.lunar_return_houses,
         }, readings: { ...r.readings, ...c.readings } } : r));
       } catch { /* ignore scrub errors */ }
     }, 120);
@@ -201,6 +202,7 @@ export default function Page() {
                 <option value="transits">transits 行運</option>
                 <option value="progress">progressions 推運</option>
                 <option value="solar_return">solar return 太陽回歸</option>
+                <option value="lunar_return">lunar return 月亮回歸</option>
               </select>
             </div>
           )}
@@ -228,7 +230,7 @@ export default function Page() {
         </div>
         {mode === "single" && sys === "astrology" && overlay !== "none" && (
           <div style={{ marginTop: 12 }}>
-            <label>{overlay === "progress" ? "Progress-to date 推運至" : overlay === "solar_return" ? "Return year 回歸年份" : "Transit date 行運日期"} — drag to scrub 拖曳 · <b>{overlay === "solar_return" ? transitDate.slice(0, 4) : transitDate}</b>{transitOffset === 0 ? " (today 今天)" : ` (${transitOffset > 0 ? "+" : ""}${transitOffset}d)`}</label>
+            <label>{overlay === "progress" ? "Progress-to date 推運至" : overlay === "solar_return" ? "Return year 回歸年份" : overlay === "lunar_return" ? "Return month 回歸月份" : "Transit date 行運日期"} — drag to scrub 拖曳 · <b>{overlay === "solar_return" ? transitDate.slice(0, 4) : transitDate}</b>{transitOffset === 0 ? " (today 今天)" : ` (${transitOffset > 0 ? "+" : ""}${transitOffset}d)`}</label>
             <input type="range" min={-1825} max={1825} value={transitOffset}
                    onChange={(e) => scrubTransit(Number(e.target.value))} style={{ width: "100%" }} />
           </div>

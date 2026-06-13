@@ -27,13 +27,22 @@ with sync_playwright() as p:
     pg.wait_for_timeout(800)
     shot(pg.locator("#chart-area svg"), "natal-wheel.png")
 
-    # --- transits overlay (outer ring + major-transit highlight, date 2005-07 when Saturn hits MC) ---
-    pg.locator("select:has(option[value='transits'])").select_option("transits")   # Overlay select
-    pg.wait_for_timeout(200)
-    pg.get_by_role("button", name="Cast + Read 排盤＋解讀").click()
-    pg.wait_for_selector("#chart-area svg", timeout=20000)
-    pg.wait_for_timeout(800)
-    shot(pg.locator("#chart-area svg"), "transits-wheel.png")
+    # --- overlay wheels: transits / progressions / solar-arc / solar-return / lunar-return ---
+    def overlay_shot(value, name, method=None):
+        pg.locator("select:has(option[value='transits'])").select_option(value)
+        if method:
+            pg.locator("select:has(option[value='solar_arc'])").select_option(method)
+        pg.wait_for_timeout(200)
+        pg.get_by_role("button", name="Cast + Read 排盤＋解讀").click()
+        pg.wait_for_selector("#chart-area svg", timeout=20000)
+        pg.wait_for_timeout(900)
+        shot(pg.locator("#chart-area svg"), name)
+
+    overlay_shot("transits", "transits-wheel.png")
+    overlay_shot("progress", "progressions-wheel.png")
+    overlay_shot("progress", "solar-arc-wheel.png", method="solar_arc")
+    overlay_shot("solar_return", "solar-return-wheel.png")
+    overlay_shot("lunar_return", "lunar-return-wheel.png")
 
     # --- synastry bi-wheel ---
     pg.get_by_text("Synastry 合盤", exact=False).first.click()

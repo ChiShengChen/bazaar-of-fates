@@ -20,6 +20,9 @@ export function ChartView({ r, tightOnly = false }: { r: Chart; tightOnly?: bool
     } else if ((c.solar_return || []).length) {
       outer = c.solar_return; outerCusps = c.solar_return_houses || []; crossA = c.solar_return_aspects;
       label = `solar return 太陽回歸 ${r.readings?.solar_return_year ?? ""}`; majorT = [];
+    } else if ((c.lunar_return || []).length) {
+      outer = c.lunar_return; outerCusps = c.lunar_return_houses || []; crossA = c.lunar_return_aspects;
+      label = `lunar return 月亮回歸 ${(r.readings?.lunar_return_moment ?? "").slice(0, 10)}`; majorT = [];
     } else if ((c.transits || []).length) {
       outer = c.transits; crossA = c.transit_aspects; label = `transits 行運 ${r.readings?.transit_date || ""}`;
     }

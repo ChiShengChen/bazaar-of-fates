@@ -117,6 +117,24 @@ Pick *transits*: a blue outer ring shows today's (or any day's) planets over you
 
 > 外圈也會畫**推運盤自己的宮位刻度**（藍色），加一圈**細刻度尺**，方便讀外圈位置。
 
+| secondary 二次推運 | solar arc 太陽弧 |
+|---|---|
+| ![progressions wheel 二次推運](img/progressions-wheel.png) | ![solar-arc wheel 太陽弧](img/solar-arc-wheel.png) |
+
+---
+
+## 6.5 回歸盤 / Return charts 回歸 — 「今年／這個月的天空」
+
+回歸盤是把**某顆星走回出生位置那一刻的天空**單獨排成一張盤，看那一段時間的主題。**Overlay 選**：
+
+- **solar return 太陽回歸**：太陽每年回到出生黃經的那一刻（你生日前後）→ **今年的盤**（流年）。
+- **lunar return 月亮回歸**：月亮每約 27 天回到出生黃經的那一刻 → **這個月的盤**（流月）。滑桿選月份。
+
+每張回歸盤都附**重點 highlights**：回歸**上升星座**（這段時間的基調）、回歸**太陽/月亮落第幾宮**（焦點領域）、**四正宮行星**（被強烈啟動的星）、以及**回歸上升落在你本命第幾宮**。
+
+![solar return 太陽回歸](img/solar-return-wheel.png)
+> 太陽回歸盤：外圈藍＝回歸當下的行星（外圈藍色☉與內圈綠色☉幾乎重疊＝太陽回到本命位置），有自己的上升與宮位。
+
 ---
 
 ## 7. 合盤 / Synastry 合盤 — 兩個人的盤怎麼互動

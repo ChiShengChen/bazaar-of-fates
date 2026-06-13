@@ -316,6 +316,18 @@ def test_solar_return_chart():
     nat = next(p["ecliptic_lon"] for p in c.chart["planets"] if p["body"] == "Sun")
     sr = next(p["ecliptic_lon"] for p in c.chart["solar_return"] if p["body"] == "Sun")
     assert abs((sr - nat + 180) % 360 - 180) < 0.05
+    hl = " ".join(c.readings["solar_return_highlights"])
+    assert "SR ascendant" in hl and "SR Sun in house" in hl
+
+
+def test_lunar_return_chart():
+    c = casting.cast("astrology", BIRTH, lunar_return=True, transit_date="2025-03-10")
+    assert len(c.chart["lunar_return"]) == 7 and len(c.chart["lunar_return_houses"]) == 12
+    # at the Lunar Return moment, the Moon is back on its natal longitude (NOT the opposition)
+    nat = next(p["ecliptic_lon"] for p in c.chart["planets"] if p["body"] == "Moon")
+    lr = next(p["ecliptic_lon"] for p in c.chart["lunar_return"] if p["body"] == "Moon")
+    assert abs((lr - nat + 180) % 360 - 180) < 0.05
+    assert any("LR ascendant" in h for h in c.readings["lunar_return_highlights"])
 
 
 def test_solar_arc_directions_to_angles():
