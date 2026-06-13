@@ -81,5 +81,15 @@ with sync_playwright() as p:
     shot(pg.locator(".card").filter(has_text="Group dynamics").first, "group-matrix.png")
     shot(pg.locator(".card").filter(has_text="Group composite").first.locator("svg"), "group-composite-wheel.png")
 
+    # --- annual multi-year overview heatmap ---
+    pg.get_by_text("Annual 年度報告", exact=False).first.click()
+    nums = pg.locator("input[type='number']")
+    nums.nth(0).fill("2018")   # year
+    nums.nth(1).fill("12")     # span
+    pg.get_by_role("button", name="Multi-year 多年").click()
+    pg.wait_for_selector("text=Multi-year outlook", timeout=20000)
+    pg.wait_for_timeout(1000)
+    shot(pg.locator(".card").filter(has_text="Multi-year outlook").first, "annual-overview.png")
+
     b.close()
 print("done")

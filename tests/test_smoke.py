@@ -129,8 +129,21 @@ def test_annual_overview_arc():
     assert len(ov["years"]) == 5
     assert [y["year"] for y in ov["years"]] == [2024, 2025, 2026, 2027, 2028]
     assert all(y["sr_ascendant"] and y["bazi_element"] and y["jyotish_lord"] for y in ov["years"])
+    assert all(-2 <= y["score"] <= 2 and "turning" in y for y in ov["years"])
     # light mode omits the heavy chart payload
     assert "chart" not in annual.compute(BIRTH, 2026, light=True)["sections"]["solar_return"]
+
+
+def test_overview_turning_points_detected():
+    from fortune import annual
+    ov = annual.overview(BIRTH, 2018, 12)   # spans a 八字 flip and a 大運 change
+    assert ov["turning_points"]
+    events = " ".join(e for t in ov["turning_points"] for e in t["events"])
+    assert "大運" in events or "八字" in events or "daśā" in events
+    # the year of a turning point carries its events on the row too
+    tp = ov["turning_points"][0]
+    row = next(y for y in ov["years"] if y["year"] == tp["year"])
+    assert row["turning"] == tp["events"]
 
 
 def test_solar_return_year_timeline():

@@ -192,7 +192,8 @@ def interpret_overview(ov: dict, *, focus: str | None = None) -> str:
     head = f"Multi-year outlook 多年運勢 · {ov.get('subject')} · {ov.get('start_year')}–{ov.get('start_year', 0) + ov.get('count', 1) - 1}\n"
     if focus:
         head += f"★ They ask about / 想問: {focus}\n"
-    user = head + f"\nPer-year facts (JSON):\n{json.dumps(ov.get('years', []), ensure_ascii=False, indent=2)}\n\nSketch the arc bilingually."
+    facts = {"years": ov.get("years", []), "turning_points": ov.get("turning_points", [])}
+    user = head + f"\nFacts (JSON):\n{json.dumps(facts, ensure_ascii=False, indent=2)}\n\nSketch the arc bilingually; call out the turning-point years."
     return complete(_OVERVIEW_SYSTEM, user)
 
 

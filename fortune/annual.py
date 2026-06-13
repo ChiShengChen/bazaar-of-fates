@@ -72,12 +72,19 @@ def compute(birth: BirthInput, year: int, *, light: bool = False) -> dict:
     return report
 
 
+def _year_score(row: dict) -> int:
+    """A small favourability score (-2..+2): 八字 喜用/忌 + Jyotiṣa benefic/malefic daśā."""
+    s = 1 if row["bazi_verdict"].startswith("favourable") else -1
+    s += 1 if row["jyotish_nature"] == "benefic" else -1
+    return s
+
+
 def overview(birth: BirthInput, start_year: int, count: int = 6) -> dict:
-    """A compact one-row-per-year arc across `count` years (no full per-year LLM)."""
+    """A compact one-row-per-year arc across `count` years (no full per-year LLM),
+    with a favourability score and auto-detected turning points."""
     rows = []
     for y in range(start_year, start_year + count):
-        r = compute(birth, y, light=True)
-        s = r["sections"]
+        s = compute(birth, y, light=True)["sections"]
         rows.append({
             "year": y, "age": y - birth.as_date.year,
             "sr_ascendant": s["solar_return"]["ascendant"],
@@ -86,5 +93,25 @@ def overview(birth: BirthInput, start_year: int, count: int = 6) -> dict:
             "ziwei_stem": s["ziwei"]["year_stem"],
             "jyotish_lord": s["jyotish"]["mahadasha_lord"], "jyotish_nature": s["jyotish"]["nature"],
         })
+
+    prev = None
+    for r in rows:
+        r["score"] = _year_score(r)
+        t: list[str] = []
+        if prev is not None:
+            if r["dayun"] != prev["dayun"]:
+                t.append(f"new 大運 {r['dayun']}")
+            if r["jyotish_lord"] != prev["jyotish_lord"]:
+                t.append(f"daśā → {r['jyotish_lord']}")
+            pf = prev["bazi_verdict"].startswith("favourable")
+            cf = r["bazi_verdict"].startswith("favourable")
+            if pf != cf:
+                t.append("八字 → " + ("favourable 喜用" if cf else "challenging 忌耗"))
+        r["turning"] = t
+        prev = r
+
+    turning_points = [{"year": r["year"], "events": r["turning"]} for r in rows if r["turning"]]
     return {"subject": birth.label(), "start_year": start_year, "count": count, "years": rows,
-            "summary": f"{birth.label()} · {start_year}–{start_year + count - 1}：{count}-year outlook"}
+            "turning_points": turning_points,
+            "summary": f"{birth.label()} · {start_year}–{start_year + count - 1}：{count}-year outlook"
+                       + (f"・{len(turning_points)} turning point(s)" if turning_points else "")}

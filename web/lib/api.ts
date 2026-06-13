@@ -101,10 +101,15 @@ export interface AnnualReport {
 export const getAnnual = (birth: BirthInput, year: number, focus: string | null) =>
   post<AnnualReport>(`/annual-report`, { birth, year, focus });
 
+export interface OverviewYear {
+  year: number; age: number; sr_ascendant?: string; bazi_element?: string; bazi_verdict?: string;
+  dayun?: string; ziwei_stem?: string; jyotish_lord?: string; jyotish_nature?: string;
+  score: number; turning: string[];
+}
 export interface AnnualOverview {
   subject: string; start_year: number; count: number; summary: string; interpretation: string;
-  years: { year: number; age: number; sr_ascendant?: string; bazi_element?: string; bazi_verdict?: string;
-           dayun?: string; ziwei_stem?: string; jyotish_lord?: string; jyotish_nature?: string }[];
+  years: OverviewYear[];
+  turning_points: { year: number; events: string[] }[];
 }
 export const getOverview = (birth: BirthInput, start_year: number, count: number, focus: string | null) =>
   post<AnnualOverview>(`/annual-overview`, { birth, start_year, count, focus });
