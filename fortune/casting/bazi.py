@@ -6,6 +6,8 @@ noon → 午時 when unknown); the engine pins 日柱 to the verified 甲子 anc
 
 from __future__ import annotations
 
+from datetime import date
+
 from fortune.birth import BirthInput
 from fortune.engines.bazi import bazi
 from fortune.schemas import Chart
@@ -17,6 +19,7 @@ _ZH = {"year": "年柱", "month": "月柱", "day": "日柱", "hour": "時柱"}
 
 def cast(birth: BirthInput) -> Chart:
     d = birth.as_date
+    today = date.today()
     pillars = bazi.four_pillars(d, birth.hour)
     fav = bazi.strength_and_favourable(pillars)
 
@@ -39,7 +42,8 @@ def cast(birth: BirthInput) -> Chart:
         readings={
             "day_master": fav["day_master"], "dm_elem": fav["dm_elem"],
             "strength": fav["label"], "favourable": fav["favourable"],
-            "current_liunian_elem": bazi.liunian_elem(d),
+            "liunian_year": today.year,
+            "current_liunian_elem": bazi.liunian_elem(today),   # 今年的流年五行（不是出生年）
         },
         summary=summary,
     )

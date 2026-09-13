@@ -15,6 +15,9 @@ from fortune.schemas import Chart
 
 KEY, ZH, EN = "ziwei", "紫微斗數", "Zi Wei Dou Shu · Purple Star"
 
+# 引擎的流年判定是為交易訊號設計的，這裡翻成命理說法
+_REGIME_ZH = {"favourable_year": "流年祿權入命財官", "unfavourable_year": "流年忌入命財官（宜守）"}
+
 
 def cast(birth: BirthInput) -> Chart:
     today = date.today()
@@ -24,11 +27,24 @@ def cast(birth: BirthInput) -> Chart:
     readings["life_palace_branch"] = natal["life_branch"]
     readings["body_palace"] = next((p["name"] for p in natal["palaces"] if p["is_body"]), "")
     readings["hour_branch"] = natal["hour_branch"]
-    chain = ziwei.reasoning_chain(natal, today)
+    life = next((p for p in natal["palaces"] if p["name"] == "命宮"), None)
+    body = next((p for p in natal["palaces"] if p["is_body"]), None)
+    life_stars = "、".join(life["stars"]) if life and life["stars"] else "空宮"
+    body_stars = "、".join(body["stars"]) if body and body["stars"] else "空宮"
+    readings["life_palace_stars"] = life_stars          # 命宮內的星（≠ 命主星 soul_star，後者由命宮地支決定）
+    readings["body_palace_stars"] = body_stars
+    regime = _REGIME_ZH.get(readings.get("ziwei_regime", ""), readings.get("ziwei_regime", ""))
+    readings["ziwei_regime"] = regime
+    # 引擎的 reasoning_chain 帶著母專案的交易措辭（上市日／開盤／訊號）且把「命主星」寫成「命宮主星」，
+    # 這裡換成命理用語，並補上命宮／身宮實際坐的星
+    chain = [line for line in ziwei.reasoning_chain(natal, today)
+             if not line.startswith("訊號") and not line.startswith("排盤（上市日")]
+    chain.insert(0, f"排盤：命宮在 {natal['life_branch']}宮（{life_stars}）、身宮在 {readings['body_palace']}宮（{body_stars}）、"
+                    f"{readings.get('five_elements_class', '')}；命主星 {readings.get('soul_star', '?')}、身主星 {readings.get('body_star', '?')}")
     chain.insert(0, f"生時 {natal['hour_branch']}時 → 命宮在 {natal['life_branch']}宮")
     summary = (
         f"命宮 {natal['life_branch']}・命主星 {readings.get('soul_star', '?')}・"
-        f"{readings.get('five_elements_class', '')}・流年 {readings.get('ziwei_regime', '')}"
+        f"{readings.get('five_elements_class', '')}・{regime}"
     )
     return Chart(
         system=KEY, system_en=EN, system_zh=ZH, subject=birth.label(), cast_at=birth.dt,
