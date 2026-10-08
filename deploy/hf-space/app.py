@@ -14,7 +14,6 @@ os.environ.setdefault("BAZAAR_STATIC_PATH", "/web")      # the Gradio UI owns "/
 os.environ.setdefault("CORS_ORIGINS", "*")
 
 import gradio as gr
-import uvicorn
 
 from fortune import casting, focus as F, geo, zeri as Z
 from fortune.api.main import app as api
@@ -141,7 +140,10 @@ with gr.Blocks(title="Bazaar of Fates · 算命") as demo:
 
     gr.Markdown(f"<sub>{DISCLAIMER}</sub>")
 
-app = gr.mount_gradio_app(api, demo, path="/", theme=gr.themes.Soft(primary_hue="purple"))
-
+# Hugging Face's Gradio runtime pre-binds port 7860 for `demo.launch()`, so we must launch the Blocks
+# (not run uvicorn ourselves) and then graft the FastAPI routes (/cast, /synthesis, /zeri, /docs, /web …)
+# onto Gradio's own FastAPI app.
 if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=int(os.environ.get("PORT", "7860")))
+    app, _local, _share = demo.launch(server_name="0.0.0.0", prevent_thread_lock=True, theme=gr.themes.Soft(primary_hue="purple"))
+    app.include_router(api.router)
+    demo.block_thread()
