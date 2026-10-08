@@ -17,7 +17,7 @@ _ROLE = {"year": "年", "month": "月", "day": "日", "hour": "時"}
 
 
 def cast(birth: BirthInput) -> Chart:
-    p = X.exact_pillars(birth.dt, birth.tz_offset_hours)
+    p = X.exact_pillars(X.cast_dt(birth), birth.tz_offset_hours)
     day_stem, day_branch = p["day"]["stem_idx"], p["day"]["branch_idx"]
     void = suimei.tenchusatsu(day_stem, day_branch)
     tenchu = suimei.BRANCHES[void[0]] + suimei.BRANCHES[void[1]]

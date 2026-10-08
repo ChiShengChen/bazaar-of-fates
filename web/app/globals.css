@@ -103,3 +103,13 @@ th { color: var(--dim); font-weight: 500; }
 /* 六壬 天地盤 */
 .lr-plate { display: grid; grid-template-columns: repeat(12, 1fr); gap: 3px; }
 .lr-cell { border: 1px solid var(--line); border-radius: 6px; padding: 4px 0; text-align: center; font-size: 13px; display: flex; flex-direction: column; }
+
+/* full report page */
+.report h2 { font-size: 18px; margin: 0 0 6px; }
+.rp-section { page-break-before: always; }
+.rp-section:first-of-type { page-break-before: auto; }
+@media print {
+  body { background: #fff; color: #111; }
+  .card { border-color: #ccc; break-inside: avoid; }
+  .noprint { display: none !important; }
+}

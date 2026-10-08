@@ -26,13 +26,18 @@ class BirthInput(BaseModel):
     place: str | None = Field(default=None, description="Birthplace name / 出生地名（顯示用）")
     latitude: float | None = Field(default=None, ge=-90, le=90)
     longitude: float | None = Field(default=None, ge=-180, le=180)
-    tz_offset_hours: float = Field(default=8.0, description="Timezone offset / 出生地時區（東八區=+8）")
+    tz_offset_hours: float = Field(default=8.0, description="Timezone offset / 出生地時區（東八區=+8；日光節約時間請加 1）")
+    true_solar_time: bool = Field(
+        default=False,
+        description="Cast 干支 systems (八字/紫微/奇門/六壬…) on true solar time at the birthplace / 以出生地真太陽時排干支（需經度）",
+    )
 
     @field_validator("birth_date")
     @classmethod
-    def _not_absurd(cls, v: date) -> date:
-        if v.year < 1 or v.year > 9999:
-            raise ValueError("birth_date out of range")
+    def _supported_range(cls, v: date) -> date:
+        # lunardate (農曆, used by 紫微/梅花/稱骨) covers 1900–2100; ephem and the 節氣 search are fine there too.
+        if v.year < 1900 or v.year > 2099:
+            raise ValueError("birth_date must be between 1900 and 2099 / 僅支援 1900–2099 年（農曆換算範圍）")
         return v
 
     @property
@@ -55,4 +60,5 @@ class BirthInput(BaseModel):
             f" {self.birth_time.strftime('%H:%M')}" if self.birth_time else " (time unknown 時辰未知)"
         )
         where = f" · {self.place}" if self.place else ""
-        return f"{who} · {when}{where}"
+        tst = " · 真太陽時" if self.true_solar_time and self.longitude is not None else ""
+        return f"{who} · {when}{where}{tst}"

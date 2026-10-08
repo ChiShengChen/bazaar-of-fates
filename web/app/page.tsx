@@ -11,7 +11,8 @@ import { SynastryView } from "./_components/SynastryView";
 import { GroupView } from "./_components/GroupView";
 import { AnnualView, OverviewView, CompareView } from "./_components/AnnualView";
 import { BaziLuck } from "./_components/BaziBoard";
-import { BirthFields, FormState, emptyForm, toBirth } from "./_components/BirthFields";
+import { BirthFields, FormState, emptyForm, toBirth, formToQuery } from "./_components/BirthFields";
+import { ZiweiLuck } from "./_components/ZiweiLuck";
 
 const HOUSE_OPTS = [
   ["whole_sign", "whole-sign 整星座"], ["equal", "Equal 等宮"], ["placidus", "Placidus 不等宮"],
@@ -25,6 +26,7 @@ export default function Page() {
   const [houseSystem, setHouseSystem] = useState("whole_sign");
   const [overlay, setOverlay] = useState<"none" | "transits" | "progress" | "solar_return" | "lunar_return">("none");
   const [progMethod, setProgMethod] = useState("secondary");
+  const [qimenMethod, setQimenMethod] = useState("chaibu");
   const [tightOnly, setTightOnly] = useState(false);
   const [transitOffset, setTransitOffset] = useState(0);   // days from today
   const [focus, setFocus] = useState("");
@@ -70,6 +72,7 @@ export default function Page() {
         overlay === "progress", progMethod, overlay === "solar_return", overlay === "lunar_return",
         (chart) => setReading({ ...(chart as Reading), interpretation: "" }),
         (delta) => { acc += delta; setReading((r) => (r ? { ...r, interpretation: acc } : r)); },
+        { qimen_method: qimenMethod },
       );
     } catch (e: any) { setErr(String(e.message || e)); }
     finally { setBusy(false); }
@@ -265,6 +268,14 @@ export default function Page() {
               </label>
             </div>
           )}
+          {mode === "single" && sys === "qimen" && (
+            <div style={{ flex: 0, minWidth: 150 }}><label>起局法 Method</label>
+              <select value={qimenMethod} onChange={(e) => setQimenMethod(e.target.value)}>
+                <option value="chaibu">拆補法 chaibu</option>
+                <option value="zhirun">置閏法 zhirun</option>
+              </select>
+            </div>
+          )}
           {mode === "single" && sys === "astrology" && overlay === "progress" && (
             <div style={{ flex: 0, minWidth: 150 }}><label>Method 推運法</label>
               <select value={progMethod} onChange={(e) => setProgMethod(e.target.value)}>
@@ -310,6 +321,8 @@ export default function Page() {
           <span className="muted">Share 分享：</span>
           {hasSvgChart && <button onClick={exportPng}>Download chart PNG 下載星盤</button>}
           <button onClick={() => window.print()} style={{ background: "#27272a", color: "var(--ink)" }}>Print / Save PDF 列印・存 PDF</button>
+          {mode !== "group" && <a href={`/report?${formToQuery(formA)}${focus ? `&focus=${encodeURIComponent(focus)}` : ""}`} target="_blank" rel="noreferrer"
+            style={{ fontSize: 13, color: "var(--accent)" }}>Full report (all 11 systems) 完整報告 ↗</a>}
         </div>
       )}
 
@@ -339,6 +352,9 @@ export default function Page() {
 
           {reading.system === "bazi" && reading.chart?.dayun && (
             <div className="card"><BaziLuck c={reading.chart as any} /></div>
+          )}
+          {reading.system === "ziwei" && reading.chart?.luck && (
+            <div className="card"><ZiweiLuck luck={reading.chart.luck} palaces={reading.chart.palaces || []} /></div>
           )}
 
           {timeline && timeline.kind !== "none" && <div className="card"><TimelineView t={timeline} /></div>}

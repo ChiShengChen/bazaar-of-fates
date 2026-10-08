@@ -22,6 +22,15 @@ from datetime import date, timedelta
 from fortune.engines.ziwei import ziwei as ZW          # SIHUA / HUA / TARGET / B(bazi)
 from fortune.engines.ziwei import ziwei_core as ZC
 
+_JU_START = {"水": 2, "木": 3, "金": 4, "土": 5, "火": 6}           # 大限起運虛歲 = 五行局數
+_CS_START = {"水": 8, "木": 11, "金": 5, "土": 8, "火": 2}           # 十二長生 長生宮 by 五行局
+CHANGSHENG = ["長生", "沐浴", "冠帶", "臨官", "帝旺", "衰", "病", "死", "墓", "絕", "胎", "養"]
+BOSHI = ["博士", "力士", "青龍", "小耗", "將軍", "奏書", "飛廉", "喜神", "病符", "大耗", "伏兵", "官府"]
+SUIQIAN = ["太歲", "晦氣", "喪門", "貫索", "官符", "小耗", "大耗", "龍德", "白虎", "天德", "弔客", "病符"]
+JIANGQIAN = ["將星", "攀鞍", "歲驛", "息神", "華蓋", "劫煞", "災煞", "天煞", "指背", "咸池", "月煞", "亡神"]
+_JIANGXING = [0, 6, 9, 3]                                            # 將星 by 三合 group (申子辰/寅午戌/巳酉丑/亥卯未)
+_LIUCHANG = [5, 6, 8, 9, 8, 9, 11, 0, 2, 3]                          # 流年文昌 by 年干
+
 STEMS, BRANCHES = ZC.STEMS, ZC.BRANCHES
 _LUCUN = [2, 3, 5, 6, 5, 6, 8, 9, 11, 0]               # 祿存 by 年干 甲…癸
 _KUI = [1, 0, 11, 11, 1, 0, 1, 6, 3, 3]                # 天魁 by 年干
@@ -146,3 +155,62 @@ def readings(natal: dict, as_of: date) -> dict:
         "liunian_sihua": "、".join(f"{mut[i]}化{ZW.HUA[i]}" for i in range(4)),
         "sihua_landing": " ".join(f"{k}:{v}" for k, v in landing.items()),
     }
+
+
+def luck(natal: dict, male: bool, today: date, count_years: int = 10) -> dict:
+    """大限 (五行局起運, 陽男陰女順/陰男陽女逆), 十二長生, 博士十二神, and the 流年 inside each 大限
+    (太歲宮, 流年四化, 流祿/流羊/流陀/流魁/流鉞/流昌, 歲前/將前十二神)."""
+    life_b = BRANCHES.index(natal["life_branch"])
+    elem = natal["five_elements_class"][0]
+    lunar_year = natal["lunar"]["year"]
+    ys, yb = (lunar_year - 4) % 10, (lunar_year - 4) % 12
+    forward = (ys % 2 == 0 and male) or (ys % 2 == 1 and not male)
+    sign = 1 if forward else -1
+    by_branch = {BRANCHES.index(p["branch"]): p for p in natal["palaces"]}
+    start = _JU_START[elem]
+
+    # static rings: 十二長生 (by 局, same direction) and 博士十二神 (from 祿存, same direction)
+    cs0 = _CS_START[elem]
+    lucun = next(BRANCHES.index(p["branch"]) for p in natal["palaces"] if any(st.startswith("祿存") for st in p["stars"]))
+    for b, p in by_branch.items():
+        p["changsheng"] = CHANGSHENG[(sign * (b - cs0)) % 12]
+        p["boshi"] = BOSHI[(sign * (b - lucun)) % 12]
+
+    age_now = today.year - lunar_year + 1                                   # 虛歲 (農曆年)
+    daxian = []
+    for k in range(12):
+        b = (life_b + sign * k) % 12
+        pal = by_branch[b]
+        a0 = start + 10 * k
+        stem = pal["stem"]
+        y0 = lunar_year + a0 - 1
+        liunian = []
+        for a in range(a0, a0 + 10):
+            yr = lunar_year + a - 1
+            lys, lyb = (yr - 4) % 10, (yr - 4) % 12
+            lstem = STEMS[lys]
+            mut = ZW.SIHUA[lstem]
+            lu = _LUCUN[lys]
+            jg = _SANHE[lyb]
+            suiqian = {BRANCHES[(lyb + i) % 12]: SUIQIAN[i] for i in range(12)}
+            jiangqian = {BRANCHES[(_JIANGXING[jg] + i) % 12]: JIANGQIAN[i] for i in range(12)}
+            liunian.append({
+                "year": yr, "age": a, "gz": lstem + BRANCHES[lyb], "taisui_palace": by_branch[lyb]["name"], "branch": BRANCHES[lyb],
+                "sihua": [f"{mut[i]}化{ZW.HUA[i]}" for i in range(4)],
+                "sihua_landing": {ZW.HUA[i]: natal["star_palace"].get(mut[i], "?") for i in range(4)},
+                "flow_stars": {"流祿": BRANCHES[lu], "流羊": BRANCHES[(lu + 1) % 12], "流陀": BRANCHES[(lu - 1) % 12],
+                               "流魁": BRANCHES[_KUI[lys]], "流鉞": BRANCHES[_YUE[lys]], "流昌": BRANCHES[_LIUCHANG[lys]],
+                               "流馬": BRANCHES[_TIANMA[jg]]},
+                "suiqian": suiqian, "jiangqian": jiangqian,
+                "current": yr == today.year,
+            })
+        dmut = ZW.SIHUA[stem]
+        daxian.append({
+            "index": k, "palace": pal["name"], "branch": pal["branch"], "stem": stem, "gz": stem + pal["branch"],
+            "ages": [a0, a0 + 9], "years": [y0, y0 + 9], "changsheng": pal["changsheng"],
+            "sihua": [f"{dmut[i]}化{ZW.HUA[i]}" for i in range(4)],
+            "sihua_landing": {ZW.HUA[i]: natal["star_palace"].get(dmut[i], "?") for i in range(4)},
+            "current": a0 <= age_now <= a0 + 9,
+            "liunian": liunian,
+        })
+    return {"start_age": start, "forward": forward, "age_now": age_now, "daxian": daxian}

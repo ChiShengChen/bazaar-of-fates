@@ -20,8 +20,8 @@ KEY, ZH, EN = "iching", "梅花易數", "Plum-Blossom I Ching"
 
 
 def divine(birth: BirthInput) -> dict:
-    hb = X.exact_pillars(birth.dt, birth.tz_offset_hours)["hour"]["branch_idx"]
-    lunar = X.lunar_info(birth.as_date, hb)
+    hb = X.exact_pillars(X.cast_dt(birth), birth.tz_offset_hours)["hour"]["branch_idx"]
+    lunar = X.lunar_info(X.cast_dt(birth).date(), hb)
     yz = (lunar["year"] - 4) % 12 + 1                     # 年支數 子=1 … 亥=12
     m, d, h = lunar["month"], lunar["day"], hb + 1
     s_upper, s_all = yz + m + d, yz + m + d + h

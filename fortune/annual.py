@@ -10,6 +10,7 @@ from __future__ import annotations
 from datetime import date
 
 from fortune import astro_ext as AX
+from fortune import bazi_ext as X
 from fortune import casting, jyotish_ext as JX, timeline as tl
 from fortune.birth import BirthInput
 from fortune.engines.bazi import bazi as BZ
@@ -41,7 +42,7 @@ def compute(birth: BirthInput, year: int, *, light: bool = False) -> dict:
     report["sections"]["solar_return"] = sr_section
 
     # — BaZi 流年 + 大運 —
-    fav = BZ.strength_and_favourable(BZ.four_pillars(birth.as_date, birth.hour))["favourable"]
+    fav = X.strength_analysis(X.exact_pillars(X.cast_dt(birth), birth.tz_offset_hours))["favourable"]
     liunian = BZ.liunian_elem(mid)
     dayun = tl.bazi_dayun(birth)
     age = year - birth.as_date.year

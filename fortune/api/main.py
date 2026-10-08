@@ -15,7 +15,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
-from fortune import annual as annual_mod, casting, group as grp_mod, synastry as syn_mod, timeline as tl
+from fortune import annual as annual_mod, casting, geo, group as grp_mod, synastry as syn_mod, timeline as tl
 from fortune.birth import BirthInput
 from fortune.interpret import (
     interpret, interpret_annual, interpret_composite, interpret_davison, interpret_group,
@@ -48,6 +48,7 @@ class ReadingRequest(BaseModel):
     progress_method: str = "secondary"  # "secondary" | "solar_arc"
     solar_return: bool = False         # overlay the Solar Return chart 太陽回歸
     lunar_return: bool = False         # overlay the Lunar Return chart 月亮回歸
+    qimen_method: str = "chaibu"       # 奇門 起局: "chaibu" 拆補法 | "zhirun" 置閏法
 
 
 class SynastryRequest(BaseModel):
@@ -86,14 +87,27 @@ def list_systems() -> list[dict[str, object]]:
     return casting.systems()
 
 
+@app.get("/geo")
+def geo_lookup(q: str, on: str | None = None) -> dict:
+    """Birthplace → lat/lon/tz (offline city table; Taiwan historical DST applied when `on` = birth date)."""
+    from datetime import date as _date
+    hit = geo.lookup(q, _date.fromisoformat(on) if on else None)
+    return hit or {"name": None, "note": "unknown place / 查無此地，請手動填經緯度"}
+
+
+@app.get("/cities")
+def list_cities() -> list[dict]:
+    return geo.cities()
+
+
 @app.post("/cast/{system}", response_model=Chart)
 def cast(system: str, birth: BirthInput, house_system: str = "whole_sign",
          transits: bool = False, transit_date: str | None = None,
          progress: bool = False, progress_method: str = "secondary",
-         solar_return: bool = False, lunar_return: bool = False) -> Chart:
+         solar_return: bool = False, lunar_return: bool = False, qimen_method: str = "chaibu") -> Chart:
     try:
         return casting.cast(system, birth, house_system=house_system,
-                            transits=transits, transit_date=transit_date, progress=progress, progress_method=progress_method, solar_return=solar_return, lunar_return=lunar_return)
+                            transits=transits, transit_date=transit_date, progress=progress, progress_method=progress_method, solar_return=solar_return, lunar_return=lunar_return, qimen_method=qimen_method)
     except KeyError as e:
         raise HTTPException(404, str(e)) from e
     except Exception as e:  # noqa: BLE001
@@ -114,7 +128,7 @@ def life_timeline(system: str, birth: BirthInput) -> Timeline:
 @app.post("/reading/{system}", response_model=Reading)
 def reading(system: str, req: ReadingRequest) -> Reading:
     try:
-        chart = casting.cast(system, req.birth, house_system=req.house_system, transits=req.transits, transit_date=req.transit_date, progress=req.progress, progress_method=req.progress_method, solar_return=req.solar_return, lunar_return=req.lunar_return)
+        chart = casting.cast(system, req.birth, house_system=req.house_system, transits=req.transits, transit_date=req.transit_date, progress=req.progress, progress_method=req.progress_method, solar_return=req.solar_return, lunar_return=req.lunar_return, qimen_method=req.qimen_method)
     except KeyError as e:
         raise HTTPException(404, str(e)) from e
     except Exception as e:  # noqa: BLE001
@@ -192,7 +206,7 @@ def reading_stream(system: str, req: ReadingRequest) -> StreamingResponse:
     """Server-Sent Events: a `chart` event (the deterministic 命盤) followed by `delta`
     text events (the streamed 解讀), then `done`. Casts once up front."""
     try:
-        chart = casting.cast(system, req.birth, house_system=req.house_system, transits=req.transits, transit_date=req.transit_date, progress=req.progress, progress_method=req.progress_method, solar_return=req.solar_return, lunar_return=req.lunar_return)
+        chart = casting.cast(system, req.birth, house_system=req.house_system, transits=req.transits, transit_date=req.transit_date, progress=req.progress, progress_method=req.progress_method, solar_return=req.solar_return, lunar_return=req.lunar_return, qimen_method=req.qimen_method)
     except KeyError as e:
         raise HTTPException(404, str(e)) from e
     except Exception as e:  # noqa: BLE001

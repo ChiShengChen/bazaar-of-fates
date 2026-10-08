@@ -438,6 +438,142 @@ def cheng_gu(lunar: dict, hb: int) -> dict:
     return {"weight": round(w, 1), "label": label, "verdict": _BONE_TEXT[key]}
 
 
+# --- 真太陽時 ---------------------------------------------------------------------------
+
+def true_solar_dt(dt_local: datetime, tz: float, lon: float) -> datetime:
+    """Local clock time → true solar time at longitude `lon`: 12:00 + (UT − nearest solar transit).
+    Covers both the longitude offset from the zone meridian and the equation of time."""
+    utc = dt_local - timedelta(hours=tz)
+    obs = ephem.Observer()
+    obs.lon, obs.lat, obs.pressure = str(lon), "0", 0
+    obs.date = ephem.Date(utc)
+    sun = ephem.Sun()
+    nxt, prv = obs.next_transit(sun).datetime(), obs.previous_transit(sun).datetime()
+    transit = nxt if abs((nxt - utc).total_seconds()) <= abs((utc - prv).total_seconds()) else prv
+    tst_tod = timedelta(hours=12) + (utc - transit)
+    clock_tod = dt_local - datetime.combine(dt_local.date(), time(0))
+    return (dt_local + (tst_tod - clock_tod)).replace(microsecond=0)
+
+
+def cast_dt(birth: BirthInput) -> datetime:
+    """The local datetime the 干支 systems should be cast on: true solar time when requested
+    (and the longitude + time-of-day are known), else the clock time (noon if unknown)."""
+    if birth.true_solar_time and birth.longitude is not None and birth.birth_time is not None:
+        return true_solar_dt(birth.dt, birth.tz_offset_hours, birth.longitude)
+    return birth.dt
+
+
+# --- 旺衰 / 喜用神 ------------------------------------------------------------------------
+
+_GEN_OF = {v: k for k, v in SHENG.items()}
+_CTRL_OF = {v: k for k, v in KE.items()}
+_ROLE_W = {"year": 1.0, "month": 1.5, "day": 1.2, "hour": 1.0}
+_POS_W = [1.0, 0.5, 0.3]
+_ROLE_ZH = {"year": "年", "month": "月", "day": "日", "hour": "時"}
+
+
+def _category(dm_elem: str, elem: str) -> str:
+    if elem == dm_elem:
+        return "比劫"
+    if SHENG[elem] == dm_elem:
+        return "印"
+    if SHENG[dm_elem] == elem:
+        return "食傷"
+    if KE[dm_elem] == elem:
+        return "財"
+    return "官殺"
+
+
+def strength_analysis(p: dict) -> dict:
+    """旺衰 by 月令 (旺相休囚死) + 通根 (藏干 本/中/餘氣, 月令・自坐加權) + 透干, then 扶抑用神,
+    調候 (冬火夏水) and the 月令格局. Every contribution is listed so the verdict is auditable."""
+    dm = p["day"]["stem_idx"]
+    de = STEM_ELEM[dm]
+    cat_support: dict[str, float] = {"比劫": 0.0, "印": 0.0}
+    cat_drain: dict[str, float] = {"食傷": 0.0, "財": 0.0, "官殺": 0.0}
+    lines: list[str] = []
+
+    mb = p["month"]["branch_idx"]
+    me = BRANCH_ELEM[mb]
+    state, w = (("旺", 3.0) if me == de else ("相", 2.0) if SHENG[me] == de else ("休", -1.0) if SHENG[de] == me
+                else ("囚", -2.0) if KE[de] == me else ("死", -3.0))
+    lines.append(f"月令 {BRANCHES[mb]}（{me}）：日主 {STEMS[dm]}{de} 得令為「{state}」（{w:+.0f}）")
+    if w > 0:
+        cat_support["比劫" if me == de else "印"] += w
+    else:
+        cat_drain[_category(de, me)] += -w
+
+    has_root = False
+    for role in ("year", "month", "day", "hour"):
+        b = p[role]["branch_idx"]
+        for i, h in enumerate(HIDDEN[b]):
+            he = STEM_ELEM[STEMS.index(h)]
+            wt = round(_ROLE_W[role] * _POS_W[i], 2)
+            cat = _category(de, he)
+            if cat in cat_support:
+                cat_support[cat] += wt
+                has_root = has_root or cat == "比劫" or (cat == "印" and i == 0)
+                lines.append(f"{_ROLE_ZH[role]}支 {BRANCHES[b]} 藏 {h}（{cat}根 +{wt}）")
+            else:
+                cat_drain[cat] += round(wt * 0.8, 2)
+                lines.append(f"{_ROLE_ZH[role]}支 {BRANCHES[b]} 藏 {h}（{cat} −{round(wt * 0.8, 2)}）")
+    for role in ("year", "month", "hour"):
+        si = p[role]["stem_idx"]
+        se = STEM_ELEM[si]
+        cat = _category(de, se)
+        if cat in cat_support:
+            cat_support[cat] += 1.0
+            lines.append(f"{_ROLE_ZH[role]}干 {STEMS[si]} 透（{cat} +1.0）")
+        else:
+            cat_drain[cat] += 1.0
+            lines.append(f"{_ROLE_ZH[role]}干 {STEMS[si]} 透（{cat} −1.0）")
+
+    support, drain = sum(cat_support.values()), sum(cat_drain.values())
+    ratio = support / (support + drain) if support + drain else 0.5
+    cong = (not has_root) and ratio < 0.22
+    if cong:
+        strong, label = False, "身極弱無根・疑從格（從勢）"
+    elif ratio >= 0.58:
+        strong, label = True, "身強（喜洩剋耗）"
+    elif ratio <= 0.42:
+        strong, label = False, "身弱（喜生扶）"
+    else:
+        strong, label = ratio >= 0.5, ("中和偏強（喜洩剋耗）" if ratio >= 0.5 else "中和偏弱（喜生扶）")
+
+    shi_shang, cai, guan_sha = SHENG[de], KE[de], _CTRL_OF[de]
+    yin, bi = _GEN_OF[de], de
+    if cong:
+        top = max(cat_drain, key=cat_drain.get)
+        fav = {"食傷": [shi_shang, cai], "財": [cai, shi_shang], "官殺": [guan_sha, cai]}[top]
+        avoid = [bi, yin]
+        primary = fav[0]
+        why = f"從{top}：順其勢，喜 {'、'.join(fav)}，忌 比劫印綬生扶"
+    elif strong:
+        fav, avoid = [shi_shang, cai, guan_sha], [bi, yin]
+        primary = guan_sha if cat_support["比劫"] >= cat_support["印"] else cai
+        why = ("比劫旺 → 以官殺制身為先" if primary == guan_sha else "印旺身強 → 以財制印為先") + "，食傷洩秀、財星耗身皆宜"
+    else:
+        fav, avoid = [yin, bi], [guan_sha, cai, shi_shang]
+        top = max(cat_drain, key=cat_drain.get)
+        primary = bi if top == "財" else yin
+        why = {"財": "財多身弱 → 以比劫幫身奪財為先", "官殺": "官殺旺 → 以印化殺生身為先", "食傷": "食傷洩氣 → 以印制食傷生身為先"}[top]
+    tiaohou = "火" if mb in (11, 0, 1) else "水" if mb in (5, 6, 7) else None
+    tiaohou_note = ({"火": "生於冬月（亥子丑）寒凍，調候喜火暖局", "水": "生於夏月（巳午未）炎燥，調候喜水潤局"}[tiaohou]
+                    if tiaohou else "生於春秋，調候不急")
+
+    ben = HIDDEN[mb][0]
+    god = ten_god(dm, STEMS.index(ben))
+    pattern = ("建祿格" if god == "比肩" else ("羊刃格" if dm % 2 == 0 else "月劫格") if god == "劫財" else f"{god}格")
+    return {
+        "day_master": STEMS[dm], "dm_elem": de, "strong": strong, "label": label, "cong": cong,
+        "ratio": round(ratio, 2), "support": round(support, 2), "drain": round(drain, 2),
+        "support_by": {k: round(v, 2) for k, v in cat_support.items()}, "drain_by": {k: round(v, 2) for k, v in cat_drain.items()},
+        "favourable": sorted(set(fav)), "avoid": sorted(set(avoid)), "yongshen": primary, "yongshen_why": why,
+        "tiaohou": tiaohou, "tiaohou_note": tiaohou_note, "pattern": pattern, "pattern_note": f"月令 {BRANCHES[mb]} 本氣 {ben} 為日主之{god} → {pattern}",
+        "lines": lines,
+    }
+
+
 # --- 起運 / 大運 / 流年 / 流月 ---------------------------------------------------------
 
 def _is_male(birth: BirthInput) -> bool | None:
@@ -488,7 +624,7 @@ def full_chart(birth: BirthInput, *, dayun_count: int = 9, today: date | None = 
     """Everything the 排盤 sheet needs, as one JSON-able dict."""
     today = today or date.today()
     tz = birth.tz_offset_hours
-    dt = birth.dt
+    dt = cast_dt(birth)
     p = exact_pillars(dt, tz)
     ys, yb = p["year"]["stem_idx"], p["year"]["branch_idx"]
     ms, mb = p["month"]["stem_idx"], p["month"]["branch_idx"]
@@ -510,7 +646,8 @@ def full_chart(birth: BirthInput, *, dayun_count: int = 9, today: date | None = 
     forward = (year_yang and male) or (not year_yang and not male)
     qy = qi_yun(dt, tz, forward)
     lunar = lunar_info(dt.date(), hb)
-    fav = set(BZ.strength_and_favourable({k: {"stem_elem": p[k]["stem_elem"], "branch_elem": p[k]["branch_elem"], "stem": p[k]["stem"]} for k in p})["favourable"])
+    strength = strength_analysis(p)
+    fav = set(strength["favourable"])
     birth_year_gz = (dt.year if dt >= next(t for t in jie_terms(dt.year, tz) if t[1] == "立春")[0] else dt.year - 1)
 
     dayun: list[dict] = []
@@ -560,6 +697,8 @@ def full_chart(birth: BirthInput, *, dayun_count: int = 9, today: date | None = 
         "jie_prev": {"name": prev[1], "at": prev[0].isoformat(timespec="minutes")},
         "jie_next": {"name": nxt[1], "at": nxt[0].isoformat(timespec="minutes")},
         "solar": dt.isoformat(timespec="minutes"), "time_known": birth.birth_time is not None,
+        "true_solar_time": dt != birth.dt, "clock": birth.dt.isoformat(timespec="minutes"),
+        "strength": strength,
         "lunar": lunar,
         "qi_yun": qy,
         "stem_notes": stem_relations(natal_stems), "branch_notes": branch_relations(natal_branches),

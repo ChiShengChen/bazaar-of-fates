@@ -540,7 +540,7 @@ def test_liuren_yuejiang_and_courses():
     c = casting.cast("liuren", BIRTH)
     assert c.chart["yue_jiang"] == "申" and c.chart["occupy"] == "未"
     assert [k["upper"] for k in c.chart["courses"]] == ["亥", "子", "子", "丑"]
-    assert c.chart["transmissions"] == ["丑", "寅", "卯"] and "上克下" in c.readings["method"]
+    assert c.chart["transmissions"] == ["丑", "寅", "卯"] and "上克下" in c.readings["course_type"]
     march = casting.cast("liuren", BirthInput(birth_date=date(2026, 4, 1), birth_time=time(9, 0)))
     assert march.chart["yue_jiang"] == "戌"       # Sun in Aries → 戌將（河魁）
 
@@ -598,3 +598,102 @@ def test_qimen_chaibu_chart():
     assert late["day_gz"] == "甲辰" and late["late_zi"]                                  # 晚子時 → next day
     c = casting.cast("qimen", BIRTH)
     assert c.summary.startswith("陽遁6局")
+
+
+# --- second audit batch: 旺衰, 真太陽時, geo/DST, 紫微 大限, 六壬 九宗門, 奇門 置閏, reference 節氣 ----
+
+def test_bazi_strength_analysis_is_auditable():
+    from fortune import bazi_ext as X
+    p = X.exact_pillars(BIRTH.dt, BIRTH.tz_offset_hours)
+    s = X.strength_analysis(p)
+    assert s["day_master"] == "辛" and s["pattern"] == "七殺格"           # 午月 本氣 丁 = 辛之七殺
+    assert s["label"].startswith("身弱") and s["ratio"] < 0.42
+    assert s["yongshen"] == "土" and set(s["favourable"]) == {"土", "金"} and set(s["avoid"]) == {"木", "水", "火"}
+    assert s["tiaohou"] == "水" and any("月令 午" in ln for ln in s["lines"]) and any("透" in ln for ln in s["lines"])
+    # a 比劫-heavy chart reads strong and wants 官殺: 甲 day in 寅月 with 甲/乙 stems
+    from datetime import datetime
+    strong = X.strength_analysis(X.exact_pillars(datetime(1984, 2, 20, 4, 0), 8))   # 甲子年 丙寅月
+    assert strong["ratio"] > 0.5
+    c = casting.cast("bazi", BIRTH)
+    assert c.readings["pattern"] == "七殺格" and c.readings["yongshen"].startswith("土")
+
+
+def test_true_solar_time_shifts_cast_time_only_for_ganzhi_systems():
+    from fortune import bazi_ext as X
+    b = BirthInput(birth_date=date(1990, 6, 15), birth_time=time(14, 30), latitude=25.04, longitude=121.56, true_solar_time=True)
+    tst = X.cast_dt(b)
+    delta_min = (tst - b.dt).total_seconds() / 60
+    assert 5.0 < delta_min < 7.5                       # +6.2 min longitude (121.56−120) + EoT ≈ −0.3
+    assert X.cast_dt(BIRTH) == BIRTH.dt                # off by default
+    # an hour-branch boundary: 00:55 clock at 121.56°E → ≈01:01 TST → 丑時, not 子時
+    edge = BirthInput(birth_date=date(1990, 6, 15), birth_time=time(0, 55), latitude=25.04, longitude=121.56, true_solar_time=True)
+    assert X.exact_pillars(X.cast_dt(edge), 8)["hour"]["branch"] == "丑"
+    assert X.exact_pillars(edge.dt, 8)["hour"]["branch"] == "子"
+    # astrology ignores the flag (it works in UT)
+    a1 = casting.cast("astrology", b); a2 = casting.cast("astrology", b.model_copy(update={"true_solar_time": False}))
+    assert a1.chart["planets"] == a2.chart["planets"]
+
+
+def test_geo_lookup_and_taiwan_dst():
+    from fortune import geo
+    assert geo.lookup("Tokyo")["tz_offset_hours"] == 9 and geo.lookup("紐約")["longitude"] == -74.01
+    assert geo.lookup("台北", date(1975, 6, 1))["tz_offset_hours"] == 9 and geo.lookup("台北", date(1975, 6, 1))["dst"]
+    assert geo.lookup("台北", date(1975, 10, 1))["tz_offset_hours"] == 8
+    assert geo.lookup("Taipei, Taiwan", date(1990, 6, 15))["name"] == "Taipei"
+    assert geo.lookup("Atlantis") is None
+    with pytest.raises(ValueError):
+        BirthInput(birth_date=date(1850, 1, 1))
+
+
+def test_ziwei_luck_periods():
+    c = casting.cast("ziwei", BIRTH)
+    L = c.chart["luck"]
+    assert L["start_age"] == 5 and L["forward"] is False                 # 土五局, 庚(陽)年 女 → 逆行
+    assert [d["palace"] for d in L["daxian"][:4]] == ["命宮", "兄弟", "夫妻", "子女"]
+    assert L["daxian"][0]["ages"] == [5, 14] and L["daxian"][3]["years"][0] == 1990 + 35 - 1
+    ln = next(l for d in L["daxian"] for l in d["liunian"] if l["year"] == 2026)
+    assert ln["gz"] == "丙午" and ln["age"] == 37 and ln["flow_stars"]["流祿"] == "巳" and ln["suiqian"]["午"] == "太歲"
+    pal = {p["name"]: p for p in c.chart["palaces"]}
+    assert all("changsheng" in p and "boshi" in p for p in pal.values())
+    assert sum(1 for p in pal.values() if p["boshi"] == "博士") == 1
+
+
+def test_liuren_nine_course_types():
+    from fortune import liuren_ext as LX
+    B = LX.BRANCHES
+    # 伏吟 (月將 = 占時) and 返吟 (opposite) are recognised
+    assert LX.cast(0, 0, 5, 5)["kind"].startswith("伏吟")
+    assert LX.cast(0, 0, 5, 11)["kind"].startswith("返吟")
+    # 八專: 甲寅日 (干支同位) with no 賊克
+    k = LX.cast(0, 2, 2, 2)
+    assert k["kind"].startswith(("八專", "伏吟"))
+    # Mei: 元首課 上克下, 三傳 丑寅卯 (regression from the first audit)
+    c = casting.cast("liuren", BIRTH)
+    assert c.chart["kind"].startswith("元首課") and c.chart["transmissions"] == ["丑", "寅", "卯"]
+    # every date casts without error and only known course types appear
+    kinds = set()
+    for i in range(0, 400, 13):
+        d = date(2000, 1, 1) + __import__("datetime").timedelta(days=i)
+        kinds.add(casting.cast("liuren", BirthInput(birth_date=d, birth_time=time(7, 0))).chart["kind"].split("（")[0])
+    assert kinds <= {"重審課", "元首課", "知一課", "涉害課", "遙克課", "昴星課", "別責課", "八專課", "伏吟課", "返吟課"}
+
+
+def test_qimen_zhirun_method():
+    from datetime import datetime
+    from fortune import qimen_ext as Q
+    g = Q.cast_hour(datetime(1990, 6, 15, 14, 30), 8, method="zhirun")
+    assert g["method"] == "置閏法" and g["term"] == "夏至" and g["yuan"] == "上元" and g["ju"] == 9   # 己酉 head 06-13 超神 → 夏至上元
+    assert Q.cast_hour(datetime(1990, 6, 15, 14, 30), 8)["term"] == "芒種"                          # 拆補 keeps the term in force
+    c = casting.cast("qimen", BIRTH, qimen_method="zhirun")
+    assert "置閏法" in c.summary
+
+
+def test_solar_terms_match_published_values():
+    """Reference instants: USNO equinox/solstice tables (UT) and the 台北市政府 2026 曆象表 (UTC+8)."""
+    from fortune import bazi_ext as X
+    ref = {(2024, 270): "2024-12-21 09:20", (2025, 0): "2025-03-20 09:01", (2025, 90): "2025-06-21 02:42", (2026, 0): "2026-03-20 14:46"}
+    from datetime import datetime
+    for (y, lon), want in ref.items():
+        assert abs((X._term_utc(y, lon) - datetime.strptime(want, "%Y-%m-%d %H:%M")).total_seconds()) <= 60
+    local = {n: t for t, n, _l in X.all_terms(2026, 8)}
+    assert local["寒露"].strftime("%m-%d %H:%M") == "10-08 14:29" and local["冬至"].strftime("%m-%d %H:%M") == "12-22 04:49"

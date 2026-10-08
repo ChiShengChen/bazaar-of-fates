@@ -33,7 +33,7 @@ export interface Timeline {
 
 export interface BirthInput {
   name?: string; birth_date: string; birth_time?: string; gender?: string;
-  place?: string; latitude?: number; longitude?: number; tz_offset_hours?: number;
+  place?: string; latitude?: number; longitude?: number; tz_offset_hours?: number; true_solar_time?: boolean;
 }
 
 export interface MidpointChart {
@@ -119,9 +119,10 @@ export const getOverview = (birth: BirthInput, start_year: number, count: number
 // lightweight chart-only cast (no LLM) — used by the transit slider for live scrubbing
 export async function getCast(
   system: string, birth: BirthInput,
-  opts: { house_system?: string; transits?: boolean; transit_date?: string; progress?: boolean; progress_method?: string; solar_return?: boolean; lunar_return?: boolean } = {},
+  opts: { house_system?: string; transits?: boolean; transit_date?: string; progress?: boolean; progress_method?: string; solar_return?: boolean; lunar_return?: boolean; qimen_method?: string } = {},
 ): Promise<Chart> {
   const q = new URLSearchParams();
+  if (opts.qimen_method) q.set("qimen_method", opts.qimen_method);
   if (opts.house_system) q.set("house_system", opts.house_system);
   if (opts.transits) q.set("transits", "true");
   if (opts.progress) q.set("progress", "true");
@@ -140,11 +141,11 @@ export async function streamReading(
   system: string, birth: BirthInput, focus: string | null,
   house_system: string, transits: boolean, transit_date: string | null,
   progress: boolean, progress_method: string, solar_return: boolean, lunar_return: boolean,
-  onChart: (c: Chart) => void, onDelta: (t: string) => void,
+  onChart: (c: Chart) => void, onDelta: (t: string) => void, extra: Record<string, unknown> = {},
 ): Promise<void> {
   const res = await fetch(`${BASE}/reading/${system}/stream`, {
     method: "POST", headers: { "content-type": "application/json" },
-    body: JSON.stringify({ birth, focus, house_system, transits, transit_date, progress, progress_method, solar_return, lunar_return }),
+    body: JSON.stringify({ birth, focus, house_system, transits, transit_date, progress, progress_method, solar_return, lunar_return, ...extra }),
   });
   if (!res.ok || !res.body) throw new Error((await res.json().catch(() => ({}))).detail || res.statusText);
   const reader = res.body.getReader();

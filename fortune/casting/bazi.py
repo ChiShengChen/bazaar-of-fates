@@ -12,7 +12,7 @@ from datetime import date
 
 from fortune import bazi_ext as X
 from fortune.birth import BirthInput
-from fortune.engines.bazi import bazi
+from fortune.engines.bazi import bazi   # liunian_elem
 from fortune.schemas import Chart
 
 KEY, ZH, EN = "bazi", "八字（四柱）", "BaZi · Four Pillars"
@@ -27,10 +27,7 @@ def cast(birth: BirthInput) -> Chart:
     today = date.today()
     full = X.full_chart(birth, today=today)
     rows = full["pillars"]
-    by_role = {p["role"]: p for p in rows}
-    pillars = {k: {"stem_elem": by_role[k]["stem_elem"], "branch_elem": by_role[k]["branch_elem"], "stem": by_role[k]["stem"]} for k in _ORDER}
-    fav = bazi.strength_and_favourable(pillars)
-    dm = full["day_master"]
+    fav = full["strength"]                      # 月令 + 通根 + 透干 analysis (bazi_ext.strength_analysis)
 
     cur_dy = next((d for d in full["dayun"] if d["current"]), None)
     cur_ln = next((l for d in full["dayun"] for l in d["liunian"] if l["current"]), None)
@@ -40,9 +37,14 @@ def cast(birth: BirthInput) -> Chart:
         f"{p['pillar']}：{p['gz']}（{p['stem_elem']}{p['branch_elem']}・{p['zodiac']}）十神 {p['stem_god']}・藏干 {_hidden_text(p)}・納音 {p['nayin']}・空亡 {p['kong_wang']}"
         for p in rows
     ]
+    if full["true_solar_time"]:
+        chain.insert(0, f"真太陽時：時鐘 {full['clock'].replace('T', ' ')} → 真太陽時 {full['solar'].replace('T', ' ')}（經度 {birth.longitude}°）")
     chain.insert(0, f"節氣：{full['jie_prev']['name']} {full['jie_prev']['at'][:16].replace('T', ' ')} ～ "
                     f"{full['jie_next']['name']} {full['jie_next']['at'][:16].replace('T', ' ')}（公曆 {full['solar'].replace('T', ' ')}・農曆 {full['lunar']['text']}）")
-    chain.append(f"日主 {fav['day_master']}（{fav['dm_elem']}）→ {fav['label']}，喜用神：{'、'.join(fav['favourable'])}")
+    chain.append(f"旺衰：{'；'.join(fav['lines'])}")
+    chain.append(f"日主 {fav['day_master']}（{fav['dm_elem']}）生扶 {fav['support']} ／ 剋洩耗 {fav['drain']}（得力比 {fav['ratio']:.0%}）→ {fav['label']}；"
+                 f"{fav['pattern_note']}")
+    chain.append(f"用神：{fav['yongshen']}（{fav['yongshen_why']}）；喜 {'、'.join(fav['favourable'])}、忌 {'、'.join(fav['avoid'])}；{fav['tiaohou_note']}")
     chain.append(f"胎元 {full['tai_yuan']}［{full['tai_yuan_nayin']}］・命宮 {full['ming_gong']}［{full['ming_gong_nayin']}］")
     if full["stem_notes"] or full["branch_notes"]:
         chain.append("留意：" + "；".join(full["stem_notes"] + full["branch_notes"]))
@@ -59,7 +61,9 @@ def cast(birth: BirthInput) -> Chart:
     )
     readings = {
         "day_master": fav["day_master"], "dm_elem": fav["dm_elem"],
-        "strength": fav["label"], "favourable": fav["favourable"],
+        "strength": fav["label"], "strength_ratio": f"{fav['ratio']:.0%}（生扶 {fav['support']} / 剋洩耗 {fav['drain']}）",
+        "favourable": fav["favourable"], "avoid": fav["avoid"], "yongshen": f"{fav['yongshen']}：{fav['yongshen_why']}",
+        "tiaohou": fav["tiaohou_note"], "pattern": fav["pattern"],
         "pillars": "　".join(f"{p['pillar']}{p['gz']}" for p in rows),
         "ten_gods": "　".join(f"{p['pillar']}{p['stem_god']}" for p in rows),
         "hidden_stems": "　".join(f"{p['branch']}:{_hidden_text(p)}" for p in rows),

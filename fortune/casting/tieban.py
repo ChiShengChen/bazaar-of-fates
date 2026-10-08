@@ -19,7 +19,7 @@ KEY, ZH, EN = "tieban", "鐵板神數", "Tie Ban Shen Shu · Iron Plate"
 
 def cast(birth: BirthInput) -> Chart:
     today = date.today()
-    p = X.exact_pillars(birth.dt, birth.tz_offset_hours)
+    p = X.exact_pillars(X.cast_dt(birth), birth.tz_offset_hours)
     nums = {k: tieban._gz_number(p[k]["stem_idx"], p[k]["branch_idx"]) for k in ("year", "month", "day", "hour")}
     ming = sum(nums.values())
     ly = X.exact_pillars(datetime(today.year, today.month, today.day, 12), birth.tz_offset_hours)["year"]

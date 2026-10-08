@@ -31,6 +31,9 @@ export interface BaziChart {
   qi_yun: { forward: boolean; text: string; jiao_yun: string; huan_yun_digit: number; years: number };
   stem_notes: string[]; branch_notes: string[];
   cheng_gu: { weight: number; label: string; verdict: string };
+  true_solar_time?: boolean; clock?: string;
+  strength?: { label: string; ratio: number; support: number; drain: number; favourable: string[]; avoid: string[];
+               yongshen: string; yongshen_why: string; tiaohou_note: string; pattern: string; pattern_note: string; lines: string[] };
   dayun: DaYun[]; xiaoyun: { age: number; year: number; gz: string; stem_god: string }[]; favourable: string[];
 }
 
@@ -39,7 +42,7 @@ const STEM_ELEM: Record<string, string> = { 甲: "木", 乙: "木", 丙: "火", 
 const BRANCH_ELEM: Record<string, string> = { 子: "水", 丑: "土", 寅: "木", 卯: "木", 辰: "土", 巳: "火", 午: "火", 未: "土", 申: "金", 酉: "金", 戌: "土", 亥: "水" };
 const fmt = (iso: string) => iso.replace("T", " ");
 const Char = ({ c, big }: { c: string; big?: boolean }) =>
-  <span className={`bz-char ${ELEM_CLASS[STEM_ELEM[c] || BRANCH_ELEM[c] || ""] || ""}`} style={{ fontSize: big ? 26 : 16 }}>{c}</span>;
+  <span className={`bz-char ${ELEM_CLASS[STEM_ELEM[c] || BRANCH_ELEM[c] || c] || ""}`} style={{ fontSize: big ? 26 : 16 }}>{c}</span>;
 const Notes = ({ label, xs }: { label: string; xs: string[] }) =>
   <div className="bz-note"><span className="muted">{label}：</span>{xs.length ? xs.join("；") : <span className="muted">—</span>}</div>;
 
@@ -54,7 +57,13 @@ export function BaziBoard({ c, name }: { c: BaziChart; name?: string }) {
         <div><span className="muted">節氣：</span>{fmt(c.jie_prev.at)} {c.jie_prev.name}　{fmt(c.jie_next.at)} {c.jie_next.name}</div>
         <div><span className="muted">起運：</span>{c.qi_yun.text}（{c.qi_yun.forward ? "順行" : "逆行"}）{!c.time_known && <span className="muted">・時辰未知，以正午估算</span>}</div>
         <div><span className="muted">交運：</span>{fmt(c.qi_yun.jiao_yun)}　<span className="muted">換運：</span>以後每逢尾數 {c.qi_yun.huan_yun_digit} 的年份換運</div>
-        <div><span className="muted">公曆：</span>{fmt(c.solar)}　<span className="muted">農曆：</span>{c.lunar.text}</div>
+        <div><span className="muted">公曆：</span>{fmt(c.solar)}{c.true_solar_time && c.clock ? <span className="muted">（真太陽時；時鐘 {fmt(c.clock)}）</span> : null}　<span className="muted">農曆：</span>{c.lunar.text}</div>
+        {c.strength && (
+          <div><span className="muted">旺衰：</span>{c.strength.label}（得力 {Math.round(c.strength.ratio * 100)}%）　<span className="muted">格局：</span>{c.strength.pattern}　
+            <span className="muted">用神：</span><Char c={c.strength.yongshen} />　<span className="muted">喜：</span>{c.strength.favourable.map((e) => <Char key={e} c={e} />)}　<span className="muted">忌：</span>{c.strength.avoid.map((e) => <Char key={e} c={e} />)}
+            <div className="muted" style={{ fontSize: 12 }}>{c.strength.yongshen_why}；{c.strength.tiaohou_note}</div>
+          </div>
+        )}
       </div>
 
       <table className="bz-table">

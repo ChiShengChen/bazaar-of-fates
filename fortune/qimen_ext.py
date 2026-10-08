@@ -46,19 +46,53 @@ def _step(palace: int, n: int) -> int:
     return (palace - 1 + n) % 9 + 1
 
 
-def cast_hour(dt_local: datetime, tz: float) -> dict:
-    term = X.current_term(dt_local, tz)
-    yang = term[1] in _YANG_TERMS
+_TERM_ORDER = ["冬至", "小寒", "大寒", "立春", "雨水", "驚蟄", "春分", "清明", "穀雨", "立夏", "小滿", "芒種",
+               "夏至", "小暑", "大暑", "立秋", "處暑", "白露", "秋分", "寒露", "霜降", "立冬", "小雪", "大雪"]
 
+
+def _zhirun(d_eff: datetime, tz: float) -> tuple[str, int, str]:
+    """置閏法: the 15-day block starts at the 上元 符頭 (甲子/己卯/甲午/己酉 day, 60-cycle idx % 15 == 0).
+    A block belongs to the latest 節氣 that begins no later than 9 days after its head (超神 ≤ 9 days,
+    otherwise 接氣). When that would repeat a term, the repeat is allowed only at 芒種 / 大雪 (the 閏);
+    elsewhere the block is handed to the following term. Returns (term, yuan, note)."""
+    ds, db = BZ.day_pillar(d_eff.date())
+    idx = X.gz_index(ds, db)
+    head_day = d_eff.date() - timedelta(days=idx % 15)
+    elapsed = idx % 15
+    yuan = elapsed // 5
+    head_dt = datetime(head_day.year, head_day.month, head_day.day, 0, 0)
+    terms = X.all_terms(head_day.year - 1, tz) + X.all_terms(head_day.year, tz) + X.all_terms(head_day.year + 1, tz)
+    terms = [t for t in terms if t[1] in _JU]
+    term = max(t for t in terms if t[0] <= head_dt + timedelta(days=9))
+    prev_head = head_dt - timedelta(days=15)
+    prev_term = max(t for t in terms if t[0] <= prev_head + timedelta(days=9))
+    note = ""
+    if prev_term[1] == term[1] and term[1] not in ("芒種", "大雪"):
+        later = [t for t in terms if t[0] > term[0]]
+        term = min(later, key=lambda t: t[0])
+        note = f"超神逾九日，非芒種/大雪不置閏，改用次節 {term[1]}"
+    elif prev_term[1] == term[1]:
+        note = f"置閏：{term[1]} 重複一局（閏奇）"
+    return term[1], yuan, note
+
+
+def cast_hour(dt_local: datetime, tz: float, method: str = "chaibu") -> dict:
+    """`method`: "chaibu" 拆補法 (default) or "zhirun" 置閏法."""
     # day & hour pillars (23:00+ → next day's 子時)
     d_eff = dt_local + timedelta(hours=1) if dt_local.hour >= 23 else dt_local
     ds, db = BZ.day_pillar(d_eff.date())
     hs, hb = BZ.hour_pillar(ds, dt_local.hour)
     day_idx = X.gz_index(ds, db)
-    futou_idx = max(k for k in _YUAN_OF_FUTOU if k <= day_idx) if any(k <= day_idx for k in _YUAN_OF_FUTOU) else 55
-    if day_idx < min(_YUAN_OF_FUTOU):
-        futou_idx = 55
-    yuan = _YUAN_OF_FUTOU[futou_idx]
+    method_note = ""
+    if method == "zhirun":
+        term_name, yuan, method_note = _zhirun(d_eff, tz)
+        term = next(t for t in (X.all_terms(d_eff.year - 1, tz) + X.all_terms(d_eff.year, tz) + X.all_terms(d_eff.year + 1, tz))
+                    if t[1] == term_name and abs((t[0] - d_eff).days) < 60)
+    else:
+        term = X.current_term(dt_local, tz)
+        futou_idx = max(k for k in _YUAN_OF_FUTOU if k <= day_idx) if any(k <= day_idx for k in _YUAN_OF_FUTOU) else 55
+        yuan = _YUAN_OF_FUTOU[futou_idx]
+    yang = term[1] in _YANG_TERMS
     ju = _JU[term[1]][yuan]
 
     # 地盤
@@ -114,6 +148,7 @@ def cast_hour(dt_local: datetime, tz: float) -> dict:
     active_gate_palace = next(p for p in palaces if p["gate"] == zhishi_gate)
     return {
         "term": term[1], "term_at": term[0].isoformat(timespec="minutes"), "dun": "陽遁" if yang else "陰遁",
+        "method": "置閏法" if method == "zhirun" else "拆補法", "method_note": method_note,
         "yuan": "上中下"[yuan] + "元", "ju": ju, "ju_label": f"{'陽' if yang else '陰'}遁{ju}局",
         "day_gz": STEMS[ds] + BRANCHES[db], "hour_gz": STEMS[hs] + BRANCHES[hb], "late_zi": dt_local.hour >= 23,
         "xun_head": STEMS[xun_head % 10] + BRANCHES[xun_branch], "xun_yi": xun_yi, "kong_wang": kong,

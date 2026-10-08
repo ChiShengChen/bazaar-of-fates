@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from datetime import date
 
+from fortune import bazi_ext as X
 from fortune import ziwei_ext
 from fortune.birth import BirthInput
 from fortune.engines.ziwei import ziwei
@@ -22,9 +23,24 @@ _REGIME_ZH = {"favourable_year": "流年祿權入命財官", "unfavourable_year"
 
 def cast(birth: BirthInput) -> Chart:
     today = date.today()
-    hb = ziwei_ext.hour_branch_of(birth.hour)               # 子0…亥11 from 生時
-    natal = ziwei_ext.build_natal(birth.as_date, hb, clock_hour=birth.hour)
+    cdt = X.cast_dt(birth)                                   # true solar time if requested
+    hb = ziwei_ext.hour_branch_of(cdt.hour)                 # 子0…亥11 from 生時
+    natal = ziwei_ext.build_natal(cdt.date(), hb, clock_hour=cdt.hour)
     readings = ziwei_ext.readings(natal, today)
+    male = X._is_male(birth)
+    gender_assumed = male is None
+    luck = ziwei_ext.luck(natal, True if male is None else male, today)
+    cur = next((d for d in luck["daxian"] if d["current"]), None)
+    cur_ln = next((l for d in luck["daxian"] for l in d["liunian"] if l["current"]), None)
+    if cur:
+        readings["current_daxian"] = (f"第{cur['index'] + 1}大限 {cur['palace']}（{cur['gz']}，{cur['ages'][0]}–{cur['ages'][1]} 虛歲，{cur['years'][0]}–{cur['years'][1]}）"
+                                      f"大限四化 {'、'.join(cur['sihua'])}")
+    if cur_ln:
+        readings["current_liunian"] = (f"{cur_ln['year']} {cur_ln['gz']}（虛歲 {cur_ln['age']}）太歲在{cur_ln['taisui_palace']}宮；"
+                                       f"流年四化 {'、'.join(cur_ln['sihua'])}；" + "、".join(f"{k}{v}" for k, v in cur_ln["flow_stars"].items()))
+    readings["daxian_sequence"] = "　".join(f"{d['ages'][0]}–{d['ages'][1]}歲 {d['palace']}({d['gz']})" for d in luck["daxian"])
+    if gender_assumed:
+        readings["note"] = "性別未填，大限方向以男命推算 / gender unset → assumed male"
     readings["life_palace_branch"] = natal["life_branch"]
     readings["body_palace"] = next((p["name"] for p in natal["palaces"] if p["is_body"]), "")
     readings["hour_branch"] = natal["hour_branch"]
@@ -55,12 +71,17 @@ def cast(birth: BirthInput) -> Chart:
         f"流年天干＝{readings['liunian_stem']}（農曆年），四化：{readings['liunian_sihua']}。",
         f"四化飛星落宮：{readings['sihua_landing']}。",
     ]
+    if cur:
+        chain.append(f"大限：{natal['five_elements_class']}起 {luck['start_age']} 虛歲，{'陽男陰女順行' if luck['forward'] else '陰男陽女逆行'}；"
+                     f"現行{readings['current_daxian']}。")
+    if cur_ln:
+        chain.append(f"流年：{readings['current_liunian']}。")
     summary = (
         f"命宮 {natal['life_branch']}・命主星 {readings.get('soul_star', '?')}・"
         f"{readings.get('five_elements_class', '')}・{regime}"
     )
     return Chart(
         system=KEY, system_en=EN, system_zh=ZH, subject=birth.label(), cast_at=birth.dt,
-        chart={"palaces": natal.get("palaces", []), "star_palace": natal.get("star_palace", {}), "lunar": natal["lunar"]},
+        chart={"palaces": natal.get("palaces", []), "star_palace": natal.get("star_palace", {}), "lunar": natal["lunar"], "luck": luck},
         reasoning_chain=chain, readings=readings, summary=summary,
     )

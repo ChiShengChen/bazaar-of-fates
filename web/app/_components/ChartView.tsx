@@ -97,7 +97,7 @@ function ZiweiBoard({ palaces, readings, subject }: { palaces: any[]; readings: 
                 return <span key={s} className={major ? "zw-major" : "zw-minor"}>{s} </span>;
               })}
             </div>
-            <div className="zw-name"><b>{p.name}</b> <span className="muted">{p.stem}{p.branch}</span></div>
+            <div className="zw-name"><b>{p.name}</b> <span className="muted">{p.stem}{p.branch}</span>{p.changsheng ? <span className="muted" style={{ float: "right" }}>{p.changsheng}·{p.boshi}</span> : null}</div>
           </div>
         );
       })}
@@ -164,7 +164,7 @@ function LiurenView({ c }: { c: any }) {
           <tr>{(c.courses || []).map((k: any) => <td key={k.name} className="muted">{k.lower}</td>)}</tr>
         </tbody>
       </table>
-      <p style={{ marginTop: 8 }}>三傳：{(c.transmissions || []).map((t: string, i: number) => <b key={i} style={{ marginRight: 10 }}>{["初", "中", "末"][i]} {t}</b>)}</p>
+      <p style={{ marginTop: 8 }}>{c.kind ? <span className="muted">{c.kind} · </span> : null}三傳：{(c.transmissions || []).map((t: string, i: number) => <b key={i} style={{ marginRight: 10 }}>{["初", "中", "末"][i]} {t}</b>)}</p>
     </div>
   );
 }

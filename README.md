@@ -6,11 +6,11 @@
 
 *西洋占星 · 八字 · 紫微斗數 · 梅花易數 · 四柱推命 · 七政四餘 · 鐵板神數 · 奇門遁甲 · 大六壬 · 太乙神數 · Jyotiṣa*
 
-![Python](https://img.shields.io/badge/Python-3.10+-3776AB?logo=python&logoColor=white)
+![Python](https://img.shields.io/badge/Python-3.10–3.13-3776AB?logo=python&logoColor=white)
 ![FastAPI](https://img.shields.io/badge/FastAPI-009688?logo=fastapi&logoColor=white)
 ![Next.js](https://img.shields.io/badge/Next.js-14-000000?logo=nextdotjs)
 ![systems](https://img.shields.io/badge/divination%20systems-11-a78bfa)
-![tests](https://img.shields.io/badge/tests-76%20passing-3fb950)
+![tests](https://img.shields.io/badge/tests-83%20passing-3fb950)
 ![bilingual](https://img.shields.io/badge/readings-EN%20%2B%20中文-ec4899)
 ![use](https://img.shields.io/badge/use-cultural%20%C2%B7%20educational%20%C2%B7%20fun-blue)
 
@@ -36,13 +36,13 @@
 
 | | |
 |---|---|
-| 🌏 **11 systems, 1 input** | Western astrology, BaZi, 紫微, I Ching, Jyotiṣa & more — all from a single **birth moment**. |
+| 🌏 **11 systems, 1 input** | Western astrology, BaZi, 紫微, I Ching, Jyotiṣa & more — all from a single **birth moment**. Type a city and the lat/lon/time zone fill in (Taiwan historical DST applied); optional **true solar time** for the 干支 systems. |
 | 🎯 **Deterministic + real astronomy** | Same birth → same chart, every time; planets at the **exact birth instant, true equinox of date** via `ephem`, house systems **validated against Swiss Ephemeris to <0.006°**, 24 節氣 to the minute. |
 | 🗣️ **Bilingual AI readings** | English-then-中文 interpretations that stream in token-by-token; runs fully offline (mock) with no API key. |
 | 🪐 **A full Western stack** | 6 house systems · transits · secondary & solar-arc progressions · Solar & Lunar Returns · life timelines. |
 | 💞 **Relationships & groups** | Synastry bi-wheel · composite · Davison · 2–8-person compatibility matrix. |
 | 📅 **Forecasts** | Cross-tradition **annual report**, a multi-year **heatmap** with turning points, and **two-person arc** comparison. |
-| 🖨️ **Share** | Export any chart to PNG; print any reading to PDF. |
+| 🖨️ **Share** | Export any chart to PNG; print any reading to PDF; a one-page **full report** (`/report`) with all 11 systems + this year's outlook. |
 | 📖 **A guide per system** | Plain-language, illustrated, bilingual — for non-astrologers. |
 
 ## 📸 Gallery — not just star charts
@@ -68,10 +68,12 @@
 > 📖 **One visual guide per system** (how to read each chart, with screenshots): **[docs/](docs/README.md)** —
 > [astrology](docs/astrology.md) · [bazi](docs/bazi.md) · [ziwei](docs/ziwei.md) · [iching](docs/iching.md) · [suimei](docs/suimei.md) · [qizheng](docs/qizheng.md) · [tieban](docs/tieban.md) · [qimen](docs/qimen.md) · [liuren](docs/liuren.md) · [taiyi](docs/taiyi.md) · [jyotish](docs/jyotish.md)
 
+> 🧾 **Full report** — every system on one printable page: [`/report`](docs/img/full-report.png)
+
 ## ⚡ Quickstart
 
 ```bash
-python -m venv .venv && source .venv/bin/activate
+python3.11 -m venv .venv && source .venv/bin/activate   # 3.10–3.13 (ephem wheels); 3.14 untested
 pip install -e ".[dev,llm]"          # drop "llm" to stay on the mock reader / 省略 llm 即用 mock
 cp .env.example .env
 
@@ -114,7 +116,8 @@ curl -s localhost:8000/cast/bazi -H 'content-type: application/json' -d '{
 
 ### Charts & houses 命盤與宮位
 - Each system renders its own visual: the circular **星盤** (astrology), 南印度 **rāśi chart** (Jyotiṣa), **七政星盤**, the **4×4 紫微 命盤**, **四柱** pillars, **hexagram** lines.
-- **八字** is a full almanac sheet: exact-節氣 pillars, **十神 · 藏干 · 納音 · 空亡 · 神煞 · 十二長生**, 胎元 / 命宮, 農曆, **起運 / 交運** to the hour, 天干地支 **刑沖合會** notes, 袁天罡 **稱骨**, and a clickable **大運 → 流年 → 流月** drill-down (with per-year 神煞 + relations).
+- **八字** is a full almanac sheet: exact-節氣 pillars, **十神 · 藏干 · 納音 · 空亡 · 神煞 · 十二長生**, 胎元 / 命宮, 農曆, **起運 / 交運** to the hour, 天干地支 **刑沖合會** notes, 袁天罡 **稱骨**, an auditable **旺衰 / 用神 / 調候 / 格局** analysis, and a clickable **大運 → 流年 → 流月** drill-down (with per-year 神煞 + relations).
+- **紫微** has 36 stars with 十二長生 / 博士十二神 per palace and a **大限 → 流年** drill-down (大限四化, 流年四化 + landing, 流曜, 歲前/將前十二神). **大六壬** judges all nine course types; **奇門** offers 拆補 / 置閏.
 - Astrology supports six **house systems**: `whole_sign` (default) · `equal` · `placidus` · `koch` · `regiomontanus` · `campanus` — the four quadrant systems **validated against Swiss Ephemeris to <0.006°** (swisseph is a dev-only oracle, not a runtime dep).
 - The wheel draws house cusps as spokes (ASC/MC emphasised), planets on an inner ring, and **aspect lines graded by orb** (tight = thick & bright).
 
@@ -142,13 +145,14 @@ An **Overlay** selector adds a second ring; a **time slider** scrubs ±5 years, 
 | method | path | |
 |---|---|---|
 | `GET` | `/systems` | the 11 systems + which cast cleanly |
+| `GET` | `/geo?q=&on=` · `/cities` | birthplace → lat/lon/tz (offline table, Taiwan DST by date) |
 | `POST` | `/cast/{system}` | deterministic chart, no LLM → `Chart` |
 | `POST` | `/reading/{system}` `[/stream]` | chart + bilingual reading (`/stream` = SSE) → `Reading` |
 | `POST` | `/timeline/{system}` | 大運 / Mahādaśā / 流年 / planet returns → `Timeline` |
 | `POST` | `/synastry` · `/group` | relationship / group charts + readings |
 | `POST` | `/annual-report` · `/annual-overview` | one-year report / multi-year arc |
 
-Astrology overlay params (on `/cast` query & `/reading` body): `house_system` · `transits` · `transit_date` · `progress` · `progress_method` · `solar_return` · `lunar_return`.
+Astrology overlay params (on `/cast` query & `/reading` body): `house_system` · `transits` · `transit_date` · `progress` · `progress_method` · `solar_return` · `lunar_return`; 奇門: `qimen_method` (`chaibu` | `zhirun`). `BirthInput.true_solar_time` casts the 干支 systems on true solar time. Supported birth years: 1900–2099 (農曆 table range).
 
 ## 🏗️ Architecture
 
@@ -160,7 +164,9 @@ fortune/
   ziwei_ext.py        native: 紫微 with the real birth 時辰, 閏月/晚子時 conventions, 輔星/煞星
   bazi_ext.py         native: full 八字 sheet — exact 24 節氣, 十神/藏干/納音/空亡/神煞, 起運, 大運/流年/流月, 稱骨
   jyotish_ext.py      native: grahas / nakṣatra / Vimśottarī daśā at the exact birth instant
-  qimen_ext.py        native: 時家奇門 轉盤・拆補法 起局 (遁/元/局, 地盤, 值符值使, 天盤 九星八門八神)
+  qimen_ext.py        native: 時家奇門 轉盤 起局, 拆補法 / 置閏法 (遁/元/局, 地盤, 值符值使, 天盤 九星八門八神)
+  liuren_ext.py       native: 大六壬 九宗門 (賊克/比用/涉害/遙克/昴星/別責/八專/伏吟/返吟)
+  geo.py              native: offline city → lat/lon/tz, Taiwan historical DST
   timeline.py         native: 大運 / Mahādaśā / 流年 / planet-return sequences
   casting/<system>.py per-system adapter: birth → engine fns → Chart
   synastry.py · group.py · annual.py   native: relationships / group / forecasts
@@ -176,7 +182,7 @@ The 排盤 math is synced from the parent quant monorepo (single source of truth
 ## ✅ Tests
 
 ```bash
-pytest -q     # 76 tests
+pytest -q     # 83 tests
 ```
 
 Every system casts · 6 house systems vs Swiss Ephemeris · transits (applying/separating, exact dates, major-transit highlights) · progressions (secondary & solar-arc, major progressions, directed-to-angles) · Solar & Lunar Returns · aspect ranking · planet-return & SR-year timelines · synastry / composite / Davison · group matrix & composite · annual report & multi-year overview.
