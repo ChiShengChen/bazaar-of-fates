@@ -7,6 +7,8 @@
   bazaar synthesis 1990-06-15 14:30 --ask "明年事業"
   bazaar zeri 1990-06-15 14:30 --purpose wedding --from 2026-11-01 --to 2026-12-31
   bazaar today 1990-06-15 14:30
+  bazaar love 1990-06-15 14:30 --gender female --ask "何時有正緣" --years 8          # 感情專科：命・桃花年・合婚
+  bazaar love 1990-06-15 14:30 --gender female --partner-date 1988-11-03 --partner-time 08:15 --partner-gender male
   add --read for the reading (mock digest unless LLM_BACKEND/ANTHROPIC_API_KEY are set), --json for raw JSON.
 """
 
@@ -80,7 +82,7 @@ def _print_ziwei(c: dict) -> None:
 
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(prog="bazaar", description="Bazaar of Fates · 算命 — 13 divination systems in your terminal")
-    ap.add_argument("system", help="bazi | ziwei | astrology | jyotish | iching | liuyao | xiaoliuren | suimei | qizheng | tieban | qimen | liuren | taiyi | all | synthesis | zeri | today | systems")
+    ap.add_argument("system", help="bazi | ziwei | astrology | jyotish | iching | liuyao | xiaoliuren | suimei | qizheng | tieban | qimen | liuren | taiyi | all | synthesis | zeri | today | love | systems")
     ap.add_argument("date", nargs="?", help="birth date YYYY-MM-DD")
     ap.add_argument("time", nargs="?", help="birth time HH:MM (default noon)")
     ap.add_argument("--name"); ap.add_argument("--gender", choices=["male", "female"]); ap.add_argument("--place")
@@ -90,6 +92,10 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--ask", help="question for the reading / synthesis"); ap.add_argument("--json", action="store_true")
     ap.add_argument("--purpose", default="wedding"); ap.add_argument("--from", dest="start"); ap.add_argument("--to", dest="end")
     ap.add_argument("--house-system", default="whole_sign"); ap.add_argument("--qimen-method", default="chaibu")
+    ap.add_argument("--years", type=int, default=8, help="love: how many years of 桃花年 to scan (default 8)")
+    ap.add_argument("--from-year", type=int, help="love: first year of the scan (default this year)")
+    ap.add_argument("--partner-date"); ap.add_argument("--partner-time"); ap.add_argument("--partner-gender", choices=["male", "female"])
+    ap.add_argument("--partner-place"); ap.add_argument("--partner-name")
     a = ap.parse_args(argv)
 
     if a.system == "systems":
@@ -113,6 +119,36 @@ def main(argv: list[str] | None = None) -> int:
             print(f"  {r['verdict_zh']:>2}  {r['system_zh']:10s} {r['reason']}")
         if a.read:
             print("\n" + interpret_synthesis(syn, focus=a.ask, lang=a.lang))
+        return 0
+    if a.system == "love":
+        from argparse import Namespace
+        from fortune import love
+        partner = None
+        if a.partner_date:
+            partner = _birth(Namespace(name=a.partner_name, date=a.partner_date, time=a.partner_time, gender=a.partner_gender, place=a.partner_place,
+                                       lat=None, lon=None, tz=None, tst=a.tst))
+        out = love.consult(b, a.ask, partner=partner, start_year=a.from_year, years=a.years, read=a.read, lang=a.lang, house_system=a.house_system)
+        if a.json:
+            print(json.dumps(out, ensure_ascii=False, indent=1, default=str)); return 0
+        print(f"感情專科 · {out['subject']}\n問：{a.ask or '—'}（{out['intent_label']}）\n")
+        print("【命】" + out["natal"]["summary"])
+        for r in out["natal"]["systems"]:
+            print(f"  {r['system_zh']:8s} {r['score']:+.1f}  " + "；".join(r["reasons"][:3]))
+        print("\n【今年】" + out["this_year"]["summary"])
+        for r in out["this_year"]["systems"]:
+            print(f"  {r['verdict_zh']:>2}  {r['system_zh']:10s} {r['reason']}")
+        print("\n【運】" + out["timing"]["summary"])
+        for y in out["timing"]["years"]:
+            flag = " ♥婚緣" if y["marriage_sign"] else ""
+            print(f"  {y['year']} {y['age']}歲 {'★' * y['grade']}{'☆' * (5 - y['grade'])} {y['score']:+}{flag}")
+            for r in y["reasons"][:3]:
+                print(f"       {r['src']}{r['delta']:+} {r['text']}")
+        if out["match"]:
+            print("\n【合婚】" + out["match"]["summary"])
+            for r in out["match"]["reasons"][:8]:
+                print(f"  {r['src']}{r['delta']:+} {r['text']}")
+        if a.read:
+            print("\n" + out["interpretation"])
         return 0
     if a.system == "zeri":
         from fortune import zeri

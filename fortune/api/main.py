@@ -110,6 +110,17 @@ class OverviewRequest(BaseModel):
     lang: str = "both"
 
 
+class LoveRequest(BaseModel):
+    birth: BirthInput
+    question: str | None = None         # 何時有緣 / 合不合 / 復合 / 該不該分開 / 婚姻 / 第三者 / 現況
+    partner: BirthInput | None = None   # 合婚 when given
+    start_year: int | None = None       # first year of the 桃花年 scan (default this year)
+    years: int = 8                      # 1–20
+    read: bool = True                   # add the 感情命理師 reading
+    lang: str = "zh"
+    house_system: str = "whole_sign"
+
+
 @app.get("/health")
 def health() -> dict[str, str]:
     return {"status": "ok"}
@@ -193,6 +204,22 @@ def synthesis(req: SynthesisRequest) -> dict:
     syn["errors"] = errors
     syn["interpretation"] = interpret_synthesis(syn, focus=req.focus, lang=req.lang)
     return syn
+
+
+@app.post("/love")
+def love_consult(req: LoveRequest) -> dict:
+    """感情專科 / Love-specialist sitting: natal love disposition (八字 配偶星・夫妻宮, 紫微 夫妻宮, 西洋 金星・七宮, Jyotiṣa 七宮),
+    this year's lean across all 13 systems, a 桃花年／婚緣年 scan with every +/− listed, 合婚 when a partner is given, and
+    one reading that answers the sub-question first. The tables need no LLM."""
+    from fortune import love as love_mod
+    if not 1 <= req.years <= 20:
+        raise HTTPException(400, "years must be 1–20 / 年數需 1–20")
+    try:
+        return love_mod.consult(req.birth, req.question, partner=req.partner, start_year=req.start_year, years=req.years,
+                                read=req.read, lang=req.lang, house_system=req.house_system)
+    except Exception as e:  # noqa: BLE001
+        log.exception("love_failed")
+        raise HTTPException(500, f"love consult failed / 感情排盤失敗：{e}") from e
 
 
 @app.post("/zeri")

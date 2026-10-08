@@ -1,6 +1,6 @@
 """`bazaar-mcp` — Bazaar of Fates as a Model Context Protocol server (stdio by default).
 
-Tools: list_systems · cast · reading · synthesis · zeri · day · synastry · geo
+Tools: list_systems · cast · reading · synthesis · zeri · day · synastry · love · geo
 Every tool is deterministic except `reading` / `synthesis` prose (mock digest unless LLM_BACKEND is set).
 
 Claude Desktop / Claude Code:  {"mcpServers": {"bazaar-of-fates": {"command": "bazaar-mcp"}}}
@@ -26,7 +26,8 @@ INSTRUCTIONS = (
     "Bazaar of Fates casts 13 traditional divination charts (西洋占星, 八字, 紫微斗數, 梅花易數, 六爻, 小六壬, 四柱推命, "
     "七政四餘, 鐵板神數, 奇門遁甲, 大六壬, 太乙神數, Jyotiṣa) from one birth moment with real astronomy. Start with "
     "`cast` for the deterministic chart facts (reasoning_chain + readings are the audit trail), use `synthesis` to put "
-    "all systems on one question, `zeri` to pick dates, `day` for today's outlook. Never present a chart as a basis "
+    "all systems on one question, `zeri` to pick dates, `day` for today's outlook, and `love` for any romance / marriage "
+    "question (natal love disposition, 桃花年／婚緣年 timeline, 合婚 with a partner). Never present a chart as a basis "
     "for medical, financial or legal decisions."
 )
 server = _Server(name="bazaar-of-fates", instructions=INSTRUCTIONS)
@@ -136,6 +137,27 @@ def synastry(a_birth_date: str, b_birth_date: str, a_birth_time: str | None = No
     a = _birth(a_birth_date, a_birth_time, a_gender, a_place, None, None, None, False)
     b = _birth(b_birth_date, b_birth_time, b_gender, b_place, None, None, None, False)
     return S.compute(a, b, house_system=house_system).model_dump(mode="json")
+
+
+@server.tool()
+def love(birth_date: str, question: str | None = None, birth_time: str | None = None, gender: str | None = None, place: str | None = None,
+         partner_birth_date: str | None = None, partner_birth_time: str | None = None, partner_gender: str | None = None,
+         partner_place: str | None = None, partner_name: str | None = None, start_year: int | None = None, years: int = 8,
+         with_reading: bool = False, lang: str = "zh", name: str | None = None) -> dict[str, Any]:
+    """感情專科 — the love-specialist sitting. Classifies the question (何時有緣 / 合不合 / 復合 / 該不該分開 / 婚姻 / 第三者 / 現況),
+    then returns: `natal` (命 — 八字 配偶星・夫妻宮・桃花神煞, 紫微 夫妻宮三方四正・桃花曜, 西洋 金星・火星・七宮, Jyotiṣa 七宮, each
+    scored with listed reasons), `this_year` (all 13 systems' rule verdicts on love), `timing` (every year from `start_year`
+    scored as 桃花年／婚緣年 from 八字 流年 配偶星・紅鸞天喜・合沖夫妻宮, 紫微 流年四化入夫妻宮, 西洋 木土行運對金星／七宮, Jyotiṣa daśā;
+    `best` and `caution` years), and `match` (合婚: 八字 日柱干合支合／沖刑害・生肖・喜用互補・夫妻星 + 西洋 synastry) when a partner
+    is given. Present the years as a ranked list with reasons; present 合婚 as the biggest + and − terms. Gender matters
+    (男命財星為妻、女命官殺為夫) — pass it when known."""
+    from fortune import love as L
+    b = _birth(birth_date, birth_time, gender, place, None, None, None, False, name)
+    p = _birth(partner_birth_date, partner_birth_time, partner_gender, partner_place, None, None, None, False, partner_name) if partner_birth_date else None
+    out = L.consult(b, question, partner=p, start_year=start_year, years=max(1, min(years, 20)), read=with_reading, lang=lang)
+    for y in out["timing"]["years"]:                     # keep the payload small: the context dicts are in the reasons already
+        y.pop("context", None)
+    return out
 
 
 def main(argv: list[str] | None = None) -> int:
