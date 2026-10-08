@@ -15,6 +15,14 @@ os.environ.setdefault("CORS_ORIGINS", "*")
 
 import gradio as gr
 
+try:                                                     # ZeroGPU Spaces require at least one @spaces.GPU function at
+    import spaces                                        # startup; nothing here needs a GPU, so this is a no-op stub
+    @spaces.GPU(duration=1)
+    def _zero_gpu_stub() -> str:
+        return "ok"
+except Exception:  # noqa: BLE001
+    _zero_gpu_stub = None
+
 from fortune import casting, focus as F, geo, zeri as Z
 from fortune.api.main import app as api
 from fortune.birth import BirthInput
@@ -147,5 +155,8 @@ if __name__ == "__main__":
     import threading
     app, _local, _share = demo.launch(server_name="0.0.0.0", prevent_thread_lock=True, ssr_mode=False,
                                       theme=gr.themes.Soft(primary_hue="purple"))
-    app.include_router(api.router)          # /cast, /synthesis, /zeri, /docs, /web … on the same port
+    app.include_router(api.router)          # /cast, /synthesis, /zeri, /docs … on the same port
+    if os.path.exists("web/index.html"):     # the no-build static page, shipped alongside app.py in the Space
+        from fastapi.staticfiles import StaticFiles
+        app.mount("/web", StaticFiles(directory="web", html=True), name="web")
     threading.Event().wait()                # keep the process alive (block_thread() returns at once under HF's runtime)

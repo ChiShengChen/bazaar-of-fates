@@ -34,7 +34,9 @@ awesome-mcp-servers line:
 
 `skills/bazaar-of-fates/SKILL.md` — copy into `~/.claude/skills/` or a project's `.claude/skills/`. Submit the same folder to the skills directories (skills.sh, skillselion) with the one-liner above.
 
-## Hugging Face Space (free, no API key)
+## Hugging Face Space — live at https://ms57rd-bazaar-of-fates.hf.space
+
+Note: on free accounts only Static and **ZeroGPU** Gradio Spaces can be created (CPU Gradio/Docker need PRO); the app therefore runs on `zero-a10g` with a no-op `@spaces.GPU` stub (nothing uses the GPU).
 
 1. New Space → Docker → name `bazaar-of-fates`.
 2. Push this repo (or `git remote add hf …`): the `Dockerfile` serves the API and the static page on port 7860. Replace the Space's `README.md` with `deploy/hf-space-README.md`.

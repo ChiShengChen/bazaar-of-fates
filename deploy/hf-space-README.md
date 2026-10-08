@@ -12,6 +12,8 @@ short_description: 13 divination systems, one birth moment — charts + readings
 
 # Bazaar of Fates · 算命
 
+Live: https://ms57rd-bazaar-of-fates.hf.space
+
 Thirteen traditional divination systems (西洋占星 · 八字 · 紫微斗數 · 梅花易數 · 六爻 · 小六壬 · 四柱推命 · 七政四餘 · 鐵板神數 · 奇門遁甲 · 大六壬 · 太乙神數 · Jyotiṣa) cast from one birth moment, with real astronomy and a rule-based facts digest. This Space runs the **mock reader** (no API key): every chart is exact; the prose reading is the deterministic facts digest.
 
 Source & docs: https://github.com/ChiShengChen/bazaar-of-fates

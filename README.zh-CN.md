@@ -8,6 +8,8 @@
 
 [English](README.md) · [繁體中文](README.zh-TW.md) · **简体中文**
 
+### 👉 [線上試玩 / Try it online](https://ms57rd-bazaar-of-fates.hf.space) — 免安裝、免金鑰 · `pip install bazaar-of-fates`
+
 ![Python](https://img.shields.io/badge/Python-3.10–3.13-3776AB?logo=python&logoColor=white)
 ![systems](https://img.shields.io/badge/命理系统-13-a78bfa)
 ![tests](https://img.shields.io/badge/tests-99%20passing-3fb950)

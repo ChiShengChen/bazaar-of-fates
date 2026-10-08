@@ -17,6 +17,8 @@
 
 **English** · [繁體中文](README.zh-TW.md) · [简体中文](README.zh-CN.md)
 
+### 👉 [Try it online / 線上試玩](https://ms57rd-bazaar-of-fates.hf.space) — no install, no API key · `pip install bazaar-of-fates`
+
 <img src="docs/img/demo.gif" width="860" alt="demo: birth → charts → synthesis"/>
 
 <table>
@@ -176,7 +178,7 @@ Tools: `list_systems` · `geo_lookup` · `cast` · `reading` · `synthesis` · `
 docker build -t bazaar . && docker run -p 7860:7860 bazaar     # API + static page at http://localhost:7860, mock reader, no key
 ```
 
-The `Dockerfile` is what a free **Docker Space** needs; see [deploy/hf-space-README.md](deploy/hf-space-README.md). Set `LLM_BACKEND=anthropic` + `ANTHROPIC_API_KEY` for real readings.
+Live demo: **[https://ms57rd-bazaar-of-fates.hf.space](https://ms57rd-bazaar-of-fates.hf.space)** (Gradio Space; files in [deploy/hf-space/](deploy/hf-space/)). The `Dockerfile` runs the same API + static page anywhere; see [deploy/hf-space-README.md](deploy/hf-space-README.md). Set `LLM_BACKEND=anthropic` + `ANTHROPIC_API_KEY` for real readings.
 
 ## 🔌 API
 
