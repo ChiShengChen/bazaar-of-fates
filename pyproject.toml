@@ -1,6 +1,6 @@
 [project]
 name = "bazaar-of-fates"
-version = "0.3.0"
+version = "0.3.1"
 description = "算命 — 13 traditional divination systems (西洋占星 · 八字 · 紫微 · 梅花 · 六爻 · 小六壬 · 四柱推命 · 七政四餘 · 鐵板 · 奇門 · 六壬 · 太乙 · Jyotiṣa) as deterministic Python engines + readings, from one birth moment."
 readme = "README.md"
 license = "MIT"
