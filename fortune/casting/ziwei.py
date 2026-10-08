@@ -21,7 +21,7 @@ KEY, ZH, EN = "ziwei", "紫微斗數", "Zi Wei Dou Shu · Purple Star"
 _REGIME_ZH = {"favourable_year": "流年祿權入命財官", "unfavourable_year": "流年忌入命財官（宜守）"}
 
 
-def cast(birth: BirthInput) -> Chart:
+def cast(birth: BirthInput, *, brightness_school: str = "quanshu") -> Chart:
     today = date.today()
     cdt = X.cast_dt(birth)                                   # true solar time if requested
     hb = ziwei_ext.hour_branch_of(cdt.hour)                 # 子0…亥11 from 生時
@@ -38,12 +38,14 @@ def cast(birth: BirthInput) -> Chart:
     if cur_ln:
         readings["current_liunian"] = (f"{cur_ln['year']} {cur_ln['gz']}（虛歲 {cur_ln['age']}）太歲在{cur_ln['taisui_palace']}宮；"
                                        f"流年四化 {'、'.join(cur_ln['sihua'])}；" + "、".join(f"{k}{v}" for k, v in cur_ln["flow_stars"].items()))
-    extra = ziwei_ext.iztro_enrich(cdt.date() if cdt.hour < 23 else cdt.date() + __import__("datetime").timedelta(days=1), hb, True if male is None else male, today)
+    extra = ziwei_ext.iztro_enrich(cdt.date() if cdt.hour < 23 else cdt.date() + __import__("datetime").timedelta(days=1), hb, True if male is None else male, today,
+                                    brightness_school=brightness_school)
     if extra:
         for p in natal["palaces"]:
             e = extra["palaces"].get(p["branch"], {})
             p["brightness"] = e.get("brightness", {})
             p["adjective_stars"] = e.get("adjective_stars", [])
+        readings["brightness_school"] = f"{extra.get('brightness_school_zh', '')}（{extra.get('brightness_note', '')}）"
         readings["brightness"] = "　".join(f"{p['name']}:" + "、".join(f"{st}{b}" for st, b in (p.get("brightness") or {}).items() if b) for p in natal["palaces"])
         readings["patterns"] = "、".join(f"{x['name']}（{x['palace']}{'，破' if x['broken'] else ''}）" for x in extra["patterns"]) or "—"
         if extra["monthly"]:

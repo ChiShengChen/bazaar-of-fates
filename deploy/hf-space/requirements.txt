@@ -1,4 +1,4 @@
-bazaar-of-fates>=0.3.1
+bazaar-of-fates>=0.3.2
 gradio>=5.0
 x-iztro>=0.6
 lunar_python>=1.4

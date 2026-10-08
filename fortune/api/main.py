@@ -161,10 +161,13 @@ def list_cities() -> list[dict]:
 def cast(system: str, birth: BirthInput, house_system: str = "whole_sign",
          transits: bool = False, transit_date: str | None = None,
          progress: bool = False, progress_method: str = "secondary",
-         solar_return: bool = False, lunar_return: bool = False, qimen_method: str = "chaibu") -> Chart:
+         solar_return: bool = False, lunar_return: bool = False, qimen_method: str = "chaibu",
+         brightness_school: str = "quanshu", taiyi_method: str = "tongzong") -> Chart:
+    """`brightness_school` (紫微 亮度流派): quanshu 全書七級 · zhongzhou 中州派四級 · simple 三級. `taiyi_method` (太乙 積年): tongzong · jinjing · taojinge."""
     try:
         return casting.cast(system, birth, house_system=house_system,
-                            transits=transits, transit_date=transit_date, progress=progress, progress_method=progress_method, solar_return=solar_return, lunar_return=lunar_return, qimen_method=qimen_method)
+                            transits=transits, transit_date=transit_date, progress=progress, progress_method=progress_method, solar_return=solar_return, lunar_return=lunar_return, qimen_method=qimen_method,
+                            brightness_school=brightness_school, taiyi_method=taiyi_method)
     except KeyError as e:
         raise HTTPException(404, str(e)) from e
     except Exception as e:  # noqa: BLE001

@@ -10,7 +10,7 @@
 ![Python](https://img.shields.io/badge/Python-3.10–3.13-3776AB?logo=python&logoColor=white)
 ![systems](https://img.shields.io/badge/divination%20systems-13-a78bfa)
 ![CI](https://github.com/ChiShengChen/bazaar-of-fates/actions/workflows/ci.yml/badge.svg)
-![tests](https://img.shields.io/badge/tests-194%20passing-3fb950)
+![tests](https://img.shields.io/badge/tests-208%20passing-3fb950)
 ![readings](https://img.shields.io/badge/readings-中文%20%C2%B7%20EN%20%C2%B7%20both-ec4899)
 ![MCP](https://img.shields.io/badge/MCP-server-8b5cf6)
 ![license](https://img.shields.io/badge/license-MIT-green)
@@ -121,7 +121,7 @@ curl -s localhost:8000/cast/bazi -H 'content-type: application/json' \
 |---|---|---|---|:--:|:--:|
 | `astrology` | Western Astrology | 西洋占星 | `ephem`, equinox of date; 6 house systems; transits, progressions, returns | ✅ | ✅ |
 | `bazi` | BaZi · Four Pillars | 八字（四柱）| exact-節氣 干支; full almanac sheet; 旺衰/用神; 大運流年流月流日 | ✅ | — |
-| `ziwei` | Zi Wei Dou Shu | 紫微斗數 | native 安星 (36 stars) + x-iztro; 大限/流年 | ✅ | — |
+| `ziwei` | Zi Wei Dou Shu | 紫微斗數 | native 安星 (36 stars) + x-iztro; 大限/流年; brightness schools 全書／中州／三級 | ✅ | — |
 | `iching` | Plum-Blossom I Ching | 梅花易數 | 年月日時起卦 (農曆), 體用生剋 | ✅ | — |
 | `liuyao` | Liu Yao | 六爻（納甲）| 京房納甲 · 八宮世應 · 六親六神 · 伏神 · 旺衰 | ✅ | — |
 | `xiaoliuren` | Xiao Liu Ren | 小六壬 | 月日時 六宮 | ✅ | — |
@@ -129,8 +129,8 @@ curl -s localhost:8000/cast/bazi -H 'content-type: application/json' \
 | `qizheng` | Seven Luminaries | 七政四餘 | real longitudes + 四餘 mean elements; 命度起宮 | ✅ | ✅ |
 | `tieban` | Iron Plate | 鐵板神數 | 太玄數 起命數 (honest stand-in) | ✅ | — |
 | `qimen` | Qi Men Dun Jia | 奇門遁甲 | 時家轉盤, 拆補法 / 置閏法 | ✅ | — |
-| `liuren` | Da Liu Ren | 大六壬 | 月將加時 · 四課三傳 · 九宗門 · 十二天將 | ✅ | — |
-| `taiyi` | Tai Yi Shen Shu | 太乙神數 | 太乙八宮 (simplified) | — | — |
+| `liuren` | Da Liu Ren | 大六壬 | 月將加時 · 四課三傳 · 九宗門 (8,640-course check vs kinliuren) · 十二天將 | ✅ | — |
+| `taiyi` | Tai Yi Shen Shu | 太乙神數 | 年計 board: 統宗 積年 · 七十二局 · 太乙／文昌／始擊／計神 · 主客算與大將參將 · 十六神 · 八門 · 斷例 (cross-checked with kintaiyi) | — | — |
 | `jyotish` | Jyotiṣa (Vedic) | 吠陀占星 | sidereal (Lahiri) at the birth instant; Vimśottarī daśā | ✅ | ✅ |
 
 > Missing birth time or place → ascendant-based systems fall back to date-only and say so. / 缺時辰或出生地時自動退回並標註。
@@ -225,7 +225,7 @@ skills/               Claude Code skill
 ## ✅ Tests
 
 ```bash
-pytest -q     # 194 tests
+pytest -q     # 208 tests
 ```
 
 Every system casts · reference 節氣 instants (USNO, 台北市曆象表) · planets and six house systems vs Swiss Ephemeris · the 八字 sheet vs a published 排盤 · 旺衰/起運/真太陽時/geo-DST · 紫微 placement, 長生/博士, 大限 vs x-iztro · 六壬 四課/天將/課體 vs kinliuren · 奇門 局/值符值使/盤 vs kinqimen · 四柱/節氣/大運 vs lunar-python · transits, progressions, returns, synastry, group, annual · focus extraction, synthesis, 擇日, CLI, MCP. Cross-validation tests skip when the optional packages are absent.
@@ -242,6 +242,7 @@ Each row is a complete deterministic chart (紫微: palaces with brightness/雜�
 
 ## 📰 Changelog
 
+- **2026-10-10** — **0.3.2** accuracy round: 大六壬 九宗門 aligned against an 8,640-course full-space check (duplicate courses no longer fake a 涉害, 綴瑕 tie rule, 伏吟 mutual-刑 末傳, 遙克 before 別責／八專; `scripts/liuren_fullspace_check.py`); 八字 神煞 full table (福星／天官／天福／金輿／流霞／血刃／詞館／災煞／太歲十二神／元辰勾絞／天羅地網／日柱格 十惡大敗 陰差陽錯 孤鸞 日德 日貴 十靈 六秀 八專 九醜／三奇 拱祿); 紫微 brightness schools (`brightness_school`: 全書七級 · 中州派四級 · 三級, 祿存 廟); 太乙 rewritten as the classical 年計 board (太乙統宗 積年, 七十二局, 太乙／文昌／始擊／計神／合神／定目, 主客定算與大將參將, 十六神, 八門, 三門五將與主客斷例; cross-checked with kintaiyi; `taiyi_method`).
 - **2026-10-10** — **0.3.1**: 問事 — `bazaar ask` / `POST /ask/{system}` / MCP `ask` / Space tab: 奇門 時盤 and 六壬 時課 for the moment of a question (用神・類神 by topic, 門迫／空亡／三奇, 課體, 應期), 梅花 數字起卦 and 字占, 六爻 金錢卦, 小六壬.
 - **2026-10-10** — **0.3.0**: specialist readers — 感情專科 love (natal disposition, 桃花年／婚緣年 scan, 合婚) and five more on the same skeleton: career 事業, wealth 財運, health 健康, study 學業, family 家庭 (natal, this year, yearly scan with every +/− listed, the topic's own sheet, sub-question-first readings); `bazaar love|career|wealth|health|study|family`, `POST /love`, `POST /consult/{topic}`, MCP `love` / `consult`; Space tabs; prompts now ship inside the wheel; phone layouts, share links and PNG download in the Space.
 - **2026-10-09** — PyPI package + `bazaar` CLI, `bazaar-mcp` MCP server + Claude Code skill, live Hugging Face Space, Dockerfile, MIT licence, 繁中/简中 READMEs, hero GIF; full-space check against iztro (which exposed three wrong month lengths in `lunardate` — the 農曆 layer now prefers lunar-python / 壽星萬年曆); dataset builder.

@@ -30,3 +30,5 @@ All engine code lives in this repo.
 《淵海子平》《三命通會》《窮通寶鑑》（八字）· 《紫微斗數全書》（紫微）· 《梅花易數》（梅花）·
 《增刪卜易》《卜筮正宗》（六爻）· 《六壬大全》《壬歸》（大六壬）· 《神奇之門》《奇門遁甲統宗》（奇門）·
 袁天罡《稱骨歌》.
+
+- **kintaiyi** (PyPI; 太乙神數 年計／月計／日計／時計 reference implementation, 太乙統宗 積年 10153917 and the 七十二局 tables) — used only as a test oracle for the native 年計 board in `fortune/taiyi_ext.py`; not a runtime dependency.

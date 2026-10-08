@@ -98,6 +98,8 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--ask", help="question for the reading / synthesis"); ap.add_argument("--json", action="store_true")
     ap.add_argument("--purpose", default="wedding"); ap.add_argument("--from", dest="start"); ap.add_argument("--to", dest="end")
     ap.add_argument("--house-system", default="whole_sign"); ap.add_argument("--qimen-method", default="chaibu")
+    ap.add_argument("--brightness", default="quanshu", choices=["quanshu", "zhongzhou", "simple"], help="紫微 亮度流派: 全書七級 | 中州派四級 | 三級")
+    ap.add_argument("--taiyi-method", default="tongzong", choices=["tongzong", "jinjing", "taojinge"], help="太乙 積年: 統宗 | 金鏡式經 | 淘金歌")
     ap.add_argument("--years", type=int, default=8, help="love/專科: how many years to scan (default 8)")
     ap.add_argument("--from-year", type=int, help="love/專科: first year of the scan (default this year)")
     ap.add_argument("--partner-date"); ap.add_argument("--partner-time"); ap.add_argument("--partner-gender", choices=["male", "female"])
@@ -241,7 +243,7 @@ def main(argv: list[str] | None = None) -> int:
     for k in keys:
         if k not in casting.REGISTRY:
             ap.error(f"unknown system {k}")
-        chart = casting.cast(k, b, house_system=a.house_system, qimen_method=a.qimen_method, transits=False)
+        chart = casting.cast(k, b, house_system=a.house_system, qimen_method=a.qimen_method, brightness_school=a.brightness, taiyi_method=a.taiyi_method, transits=False)
         if a.json:
             print(chart.model_dump_json(indent=1) if len(keys) == 1 else json.dumps({k: chart.model_dump(mode="json")}, ensure_ascii=False)); continue
         print(f"\n== {chart.system_en} · {chart.system_zh} · {chart.subject}\n{chart.summary}\n")

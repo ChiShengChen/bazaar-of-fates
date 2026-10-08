@@ -806,16 +806,18 @@ def test_oracle_kinliuren_courses_and_generals():
             assert t_gen[br] == LX.GENERAL_SHORT[LX.GENERALS.index(g)], (b.dt, br)
         t3 = [theirs["三傳"][k][0] for k in ("初傳", "中傳", "末傳")]
         kind = ours["kind"].split("（")[0]
-        if kind in strict:
+        their_kind = {"元首": "元首課", "重審": "重審課", "遙尅": "遙克課"}.get(theirs["格局"][0], "")
+        if kind in strict and their_kind == kind:          # same course family on both sides → the 三傳 must agree exactly
             assert t3 == ours["transmissions"], (b.dt, theirs["格局"], ours["kind"])
         agree += t3 == ours["transmissions"]
         agree1 += t3[0] == ours["transmissions"][0]
-    assert n >= 150 and agree / n >= 0.72 and agree1 / n >= 0.75, (n, agree, agree1)
+    assert n >= 150 and agree / n >= 0.75 and agree1 / n >= 0.78, (n, agree, agree1)
 
 
 def test_oracle_kinqimen_hour_chart():
     pytest.importorskip("kinqimen")
     import os, sys, kinqimen as _kq
+    sys.modules.pop("config", None)                                  # kintaiyi (another oracle) ships a top-level `config` too
     sys.path.insert(0, os.path.dirname(_kq.__file__))
     from kinqimen import kinqimen as KQ
     from fortune import qimen_ext as Q

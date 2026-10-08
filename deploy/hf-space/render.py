@@ -30,7 +30,7 @@ LABELS = {
     "qizheng_regime": "狀態", "ming_zhu_sign": "命主太陽", "jupiter_sign": "歲星", "mars_sign": "火星", "rahu_sign": "羅睺", "jupiter_blesses": "歲星拱照",
     "malefic_afflicts": "火羅沖剋", "seven": "七政", "four_remainders": "四餘", "ming_gong_sign": "命宮",
     "tieban_regime": "狀態", "ming_number": "命數", "liunian_verse_no": "流年條文", "liunian_verdict": "流年斷", "liunian_gua": "流年卦",
-    "taiyi_regime": "狀態", "natal_accumulated_years": "命局積年", "natal_palace": "命局太乙宮", "natal_host_guest": "命局主客", "liunian_palace": "流年太乙宮",
+    "taiyi_regime": "狀態", "method": "積年法", "natal_accumulated_years": "命局積年", "natal_ju": "命局局數", "natal_palace": "命局太乙宮", "natal_wenchang_shiji": "命局文昌始擊", "natal_host_guest": "命局主客", "liunian_ju": "流年局數", "liunian_palace": "流年太乙宮", "liunian_wenchang_shiji": "流年文昌始擊", "liunian_judgements": "流年斷例", "brightness_school": "亮度流派",
     "liunian_host_guest": "流年主客", "verdict": "斷", "day_master_elem": "日主五行", "twelve_fortune": "十二運星", "tenchusatsu": "天中殺",
 }
 _CSS = ""

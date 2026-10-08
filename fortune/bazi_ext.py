@@ -222,10 +222,34 @@ _GUASU = {11: 10, 0: 10, 1: 10, 2: 1, 3: 1, 4: 1, 5: 4, 6: 4, 7: 4, 8: 7, 9: 7, 
 _SIFEI = {2: ("庚申", "辛酉"), 3: ("庚申", "辛酉"), 4: ("庚申", "辛酉"), 5: ("壬子", "癸亥"), 6: ("壬子", "癸亥"), 7: ("壬子", "癸亥"),
           8: ("甲寅", "乙卯"), 9: ("甲寅", "乙卯"), 10: ("甲寅", "乙卯"), 11: ("丙午", "丁巳"), 0: ("丙午", "丁巳"), 1: ("丙午", "丁巳")}
 _TIANSHE = {2: "戊寅", 3: "戊寅", 4: "戊寅", 5: "甲午", 6: "甲午", 7: "甲午", 8: "戊申", 9: "戊申", 10: "戊申", 11: "甲子", 0: "甲子", 1: "甲子"}
+# --- the fuller table (三命通會 / 協紀辨方書 conventions; by 日干 unless noted) ---
+_FUXING = ["寅子", "卯丑", "寅子", "亥", "申", "未", "午", "巳", "辰", "卯丑"]            # 福星貴人 by 年干/日干
+_TIANGUAN = "未辰巳酉戌卯丑申寅午"                                                     # 天官貴人 by 日干
+_TIANFU = "酉申子亥卯寅午巳丑戌"                                                        # 天福貴人 by 日干 (甲酉 乙申 丙子 丁亥 戊卯 己寅 庚午 辛巳 壬丑 癸戌)
+_JINYU = "辰巳未申未申戌亥丑寅"                                                         # 金輿 by 日干 (祿前二位)
+_LIUXIA = "酉戌未申巳午辰卯亥寅"                                                        # 流霞 by 日干
+_XUEREN = "申酉亥子亥子寅卯巳午"                                                        # 血刃 by 日干 (祿神對沖)
+_CIGUAN = ["庚寅", "辛卯", "乙巳", "戊午", "丁巳", "庚午", "壬申", "癸酉", "癸亥", "壬戌"]  # 詞館 by 年干/日干 → 干支
+_SHIE = {"甲辰", "乙巳", "壬申", "丙申", "丁亥", "庚辰", "戊戌", "癸亥", "辛巳", "己丑"}      # 十惡大敗 日柱
+_YINCHA = {"丙子", "丁丑", "戊寅", "辛卯", "壬辰", "癸巳", "丙午", "丁未", "戊申", "辛酉", "壬戌", "癸亥"}   # 陰差陽錯 日柱
+_GULUAN = {"乙巳", "丁巳", "辛亥", "戊申", "壬寅", "戊午", "壬子", "丙午"}                 # 孤鸞煞 日柱／時柱
+_RIDE = {"甲寅", "丙辰", "戊辰", "庚辰", "壬戌"}                                        # 日德 日柱
+_RIGUI = {"丁酉", "丁亥", "癸卯", "癸巳"}                                               # 日貴 日柱（天乙貴人坐日支）
+_SHILING = {"甲申", "乙酉", "丙子", "丁丑", "戊午", "己丑", "庚寅", "辛卯", "壬午", "癸未"}   # 十靈日 日柱
+_LIUXIU = {"丙午", "丁未", "戊子", "戊午", "己丑", "己未"}                               # 六秀日 日柱
+_BAZHUAN = {"甲寅", "乙卯", "丁未", "戊戌", "己未", "庚申", "辛酉", "癸丑"}                # 八專 日柱（干支同氣）
+_JIUCHOU = {"壬子", "壬午", "戊子", "戊午", "己卯", "己酉", "乙卯", "乙酉", "辛卯", "辛酉"}   # 九醜 日柱
+_GONGLU = {("癸亥", "癸丑"), ("癸丑", "癸亥"), ("丁巳", "丁未"), ("己未", "己巳"), ("戊辰", "戊午")}   # 拱祿 (日柱, 時柱)
+_ZAISHA = [6, 0, 3, 9]                                                               # 災煞 by 三合 group (申子辰→午 寅午戌→子 巳酒丑→卯 亥卯未→酉)
+_TAISUI_12 = ["太歲", "太陽", "喪門", "太陰", "官符", "死符", "歲破", "龍德", "白虎", "福德", "吊客", "病符"]   # 太歲十二神 from 年支
+_SANQI = ("甲戊庚", "乙丙丁", "壬癸辛")                                                 # 三奇貴人 (天上 / 地下 / 人中), 順序排列於年月日或月日時
 
 
-def shensha_for(stem: int | None, branch: int, *, ys: int, ds: int, yb: int, db: int, mb: int, is_pillar: bool = False, gz: str = "") -> list[str]:
-    """神煞 landing on (stem, branch): looked up from 年干/日干 (stem rules) and 年支/日支 (三合 rules)."""
+def shensha_for(stem: int | None, branch: int, *, ys: int, ds: int, yb: int, db: int, mb: int, is_pillar: bool = False, gz: str = "",
+                role: str = "", male: bool | None = None, full: bool = True) -> list[str]:
+    """神煞 landing on (stem, branch): looked up from 年干/日干 (stem rules), 年支/日支 (三合 rules), 月支 (德／醫), the 年支 (太歲十二神,
+    紅鸞天喜, 孤寡, 元辰／勾絞 by 陰陽男女) and the pillar's own 干支 (日柱格 — 魁罡 十惡大敗 陰差陽錯 孤鸞 日德 日貴 十靈 六秀 八專 九醜).
+    `full=False` keeps the core set only (the 29 the earlier sheets used)."""
     b = BRANCHES[branch]
     out: list[str] = []
     for s in {ys, ds}:
@@ -237,6 +261,10 @@ def shensha_for(stem: int | None, branch: int, *, ys: int, ds: int, yb: int, db:
             out.append("文昌貴人")
         if b == _GUOYIN[s]:
             out.append("國印貴人")
+        if full and b in _FUXING[s]:
+            out.append("福星貴人")
+        if full and is_pillar and gz == _CIGUAN[s]:
+            out.append("詞館")
     if b == _TIANCHU[ds]:
         out.append("天廚貴人")
     if b == _LUSHEN[ds]:
@@ -245,10 +273,27 @@ def shensha_for(stem: int | None, branch: int, *, ys: int, ds: int, yb: int, db:
         out.append("羊刃")
     if branch == _CS_START[ds]:
         out.append("學堂")
+    if full:
+        if b == _TIANGUAN[ds]:
+            out.append("天官貴人")
+        if b == _TIANFU[ds]:
+            out.append("天福貴人")
+        if b == _JINYU[ds]:
+            out.append("金輿")
+        if b == _LIUXIA[ds]:
+            out.append("流霞")
+        if b == _XUEREN[ds]:
+            out.append("血刃")
     if stem is not None and STEMS[stem] == _TIANDE[mb] or b == _TIANDE[mb]:
         out.append("天德貴人")
     if stem is not None and STEMS[stem] == _YUEDE[mb]:
         out.append("月德貴人")
+    if full and stem is not None:
+        td, yd = _TIANDE[mb], _YUEDE[mb]
+        if td in STEMS and STEMS[stem] == STEMS[(STEMS.index(td) + 5) % 10]:
+            out.append("天德合")
+        if STEMS[stem] == STEMS[(STEMS.index(yd) + 5) % 10]:
+            out.append("月德合")
     if branch == (mb - 1) % 12:
         out.append("天醫")
     for ref in {yb, db}:
@@ -265,6 +310,8 @@ def shensha_for(stem: int | None, branch: int, *, ys: int, ds: int, yb: int, db:
             out.append("劫煞")
         if branch == _WANGSHEN[g]:
             out.append("亡神")
+        if full and branch == _ZAISHA[g]:
+            out.append("災煞")
     if branch == _GUCHEN[yb]:
         out.append("孤辰")
     if branch == _GUASU[yb]:
@@ -277,6 +324,23 @@ def shensha_for(stem: int | None, branch: int, *, ys: int, ds: int, yb: int, db:
         out.append("喪門")
     if branch == (yb - 2) % 12:
         out.append("吊客")
+    if full:
+        rel = (branch - yb) % 12
+        if role != "year" and rel in (4, 8, 7, 11, 6, 9, 5):             # 太歲十二神 on the other branches (喪門／吊客 already named)
+            name = _TAISUI_12[rel]
+            if name not in ("喪門", "吊客"):
+                out.append(name)
+        if male is not None:                                             # 元辰 / 勾絞 need 陰陽男女: 陽男陰女 forward, 陰男陽女 backward
+            yang_year = ys % 2 == 0
+            fwd = (yang_year and male) or (not yang_year and not male)
+            if branch == (yb + (7 if fwd else 5)) % 12:
+                out.append("元辰")
+            if branch == (yb + (3 if fwd else 9)) % 12:
+                out.append("勾煞")
+            if branch == (yb + (9 if fwd else 3)) % 12:
+                out.append("絞煞")
+        if branch in (4, 5) and db in (10, 11) or branch in (10, 11) and db in (4, 5):   # 辰巳 ↔ 戌亥 互見
+            out.append("天羅" if branch in (10, 11) else "地網")
     if is_pillar and gz:
         if gz in _SIFEI[mb]:
             out.append("四廢")
@@ -286,7 +350,44 @@ def shensha_for(stem: int | None, branch: int, *, ys: int, ds: int, yb: int, db:
             out.append("魁罡")
         if gz in ("乙丑", "己巳", "癸酉"):
             out.append("金神")
+        if full and role in ("day", ""):
+            if gz in _SHIE:
+                out.append("十惡大敗")
+            if gz in _YINCHA:
+                out.append("陰差陽錯")
+            if gz in _RIDE:
+                out.append("日德")
+            if gz in _RIGUI:
+                out.append("日貴")
+            if gz in _SHILING:
+                out.append("十靈")
+            if gz in _LIUXIU:
+                out.append("六秀")
+            if gz in _BAZHUAN:
+                out.append("八專")
+            if gz in _JIUCHOU:
+                out.append("九醜")
+        if full and role in ("day", "hour", "") and gz in _GULUAN:
+            out.append("孤鸞")
     return list(dict.fromkeys(out))
+
+
+def pillar_shensha(p: dict, male: bool | None = None) -> dict:
+    """神煞 that need the whole 四柱: 三奇貴人 (甲戊庚 / 乙丙丁 / 壬癸辛 in order across three stems), 拱祿 (日時同干夾祿),
+    天羅地網 from 年柱納音 (火命 戌亥 / 水土命 辰巳 on the 日支)."""
+    stems = "".join(p[k]["stem"] for k in ("year", "month", "day", "hour"))
+    out: list[str] = []
+    for trio in _SANQI:
+        if trio in stems or trio in stems[1:]:
+            out.append(f"三奇貴人（{trio}）")
+    if (p["day"]["gz"], p["hour"]["gz"]) in _GONGLU:
+        out.append("拱祿")
+    ny = p["year"].get("nayin", "")
+    if ny.endswith("火") and p["day"]["branch"] in "戌亥":
+        out.append("天羅（火命見戌亥）")
+    if (ny.endswith("水") or ny.endswith("土")) and p["day"]["branch"] in "辰巳":
+        out.append("地網（水土命見辰巳）")
+    return {"chart": out}
 
 
 # --- 刑沖合會 relations -------------------------------------------------------------
@@ -630,17 +731,18 @@ def full_chart(birth: BirthInput, *, dayun_count: int = 9, today: date | None = 
     ms, mb = p["month"]["stem_idx"], p["month"]["branch_idx"]
     ds, db = p["day"]["stem_idx"], p["day"]["branch_idx"]
     hs, hb = p["hour"]["stem_idx"], p["hour"]["branch_idx"]
-    ss_kw = dict(ys=ys, ds=ds, yb=yb, db=db, mb=mb)
-    for k in ("year", "month", "day", "hour"):
-        p[k]["shensha"] = shensha_for(p[k]["stem_idx"], p[k]["branch_idx"], is_pillar=True, gz=p[k]["gz"], **ss_kw)
-
-    natal_stems = [ys, ms, ds, hs]
-    natal_branches = [yb, mb, db, hb]
-    prev, nxt = surrounding_jie(dt, tz)
     male = _is_male(birth)
     assumed = male is None
     if male is None:
         male = True
+    ss_kw = dict(ys=ys, ds=ds, yb=yb, db=db, mb=mb)
+    for k in ("year", "month", "day", "hour"):
+        p[k]["shensha"] = shensha_for(p[k]["stem_idx"], p[k]["branch_idx"], is_pillar=True, gz=p[k]["gz"], role=k, male=None if assumed else male, **ss_kw)
+    chart_shensha = pillar_shensha(p, None if assumed else male)["chart"]
+
+    natal_stems = [ys, ms, ds, hs]
+    natal_branches = [yb, mb, db, hb]
+    prev, nxt = surrounding_jie(dt, tz)
     p["day"]["stem_god"] = "元男" if male else "元女"
     year_yang = ys % 2 == 0
     forward = (year_yang and male) or (not year_yang and not male)
@@ -698,7 +800,7 @@ def full_chart(birth: BirthInput, *, dayun_count: int = 9, today: date | None = 
         "jie_next": {"name": nxt[1], "at": nxt[0].isoformat(timespec="minutes")},
         "solar": dt.isoformat(timespec="minutes"), "time_known": birth.birth_time is not None,
         "true_solar_time": dt != birth.dt, "clock": birth.dt.isoformat(timespec="minutes"),
-        "strength": strength,
+        "strength": strength, "shensha_chart": chart_shensha,
         "lunar": lunar,
         "qi_yun": qy,
         "stem_notes": stem_relations(natal_stems), "branch_notes": branch_relations(natal_branches),

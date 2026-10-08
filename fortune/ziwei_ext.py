@@ -223,23 +223,46 @@ def luck(natal: dict, male: bool, today: date, count_years: int = 10) -> dict:
     return {"start_age": start, "forward": forward, "age_now": age_now, "daxian": daxian}
 
 
-def iztro_enrich(d: date, hour_branch: int, male: bool, today: date) -> dict | None:
+BRIGHTNESS_SCHOOLS = {
+    "quanshu": {"zh": "全書七級", "note": "紫微斗數全書 廟旺得地利益平和不得地陷（iztro 表，單字 廟旺得利平不陷；祿存所到皆廟）", "map": {}},
+    "zhongzhou": {"zh": "中州派四級", "note": "王亭之中州派只分 廟旺利陷：得地／利益／平和 → 利、不得地 → 陷",
+                  "map": {"得": "利", "利": "利", "平": "利", "不": "陷", "得地": "利", "利益": "利", "平和": "利", "不得地": "陷"}},
+    "simple": {"zh": "三級", "note": "常用簡化：廟旺 → 廟、得地利益平和 → 平、不得地陷 → 陷",
+               "map": {"旺": "廟", "得": "平", "利": "平", "平": "平", "不": "陷", "得地": "平", "利益": "平", "平和": "平", "不得地": "陷"}},
+}
+
+
+def iztro_enrich(d: date, hour_branch: int, male: bool, today: date, *, brightness_school: str = "quanshu",
+                 brightness_table: dict[str, list[str]] | None = None) -> dict | None:
     """Optional richer layer from x-iztro (MIT, a Rust port of iztro): star brightness (廟旺利陷),
     the 雜曜 (adjective stars), 格局 pattern hits and the current 流月. Returns None when the
     package is not installed. Positions of the 14 主星 / 輔星 are cross-checked against our
-    native placement in tests, so this only ADDS fields."""
+    native placement in tests, so this only ADDS fields.
+    `brightness_school`: quanshu (全書七級, default) · zhongzhou (中州派四級 廟旺利陷) · simple (三級 廟平陷);
+    `brightness_table` overrides iztro's table per star (star key → 12 levels from 寅, iztro config format)."""
     try:
         from x_iztro import Astro
     except Exception:  # noqa: BLE001
         return None
+    school = BRIGHTNESS_SCHOOLS.get(brightness_school, BRIGHTNESS_SCHOOLS["quanshu"])
+    cfg = None
     try:
-        chart = Astro().by_solar(f"{d.year}-{d.month}-{d.day}", hour_branch, "male" if male else "female", language="zh-TW")
+        from x_iztro.config import ChartConfig
+        table = {"lucunMin": ["miao"] * 12}                          # 全書：祿存所到皆廟 (iztro leaves it blank)
+        if brightness_table:
+            table.update(brightness_table)
+        cfg = ChartConfig(brightness=table)
+    except Exception:  # noqa: BLE001
+        cfg = None
+    try:
+        chart = Astro().by_solar(f"{d.year}-{d.month}-{d.day}", hour_branch, "male" if male else "female", language="zh-TW", config=cfg)
     except TypeError:
         chart = Astro().by_solar(f"{d.year}-{d.month}-{d.day}", hour_branch, "male" if male else "female")
+    remap = school["map"]
     palaces = {}
     for pal in chart.palaces:
         palaces[pal.earthly_branch] = {
-            "name": pal.name, "brightness": {st.name: (st.brightness or "") for st in pal.major_stars + pal.minor_stars},
+            "name": pal.name, "brightness": {st.name: remap.get(st.brightness or "", st.brightness or "") for st in pal.major_stars + pal.minor_stars},
             "adjective_stars": [st.name for st in pal.adjective_stars],
         }
     patterns = []
@@ -256,4 +279,5 @@ def iztro_enrich(d: date, hour_branch: int, male: bool, today: date) -> dict | N
                    "mutagen": list(getattr(hs.monthly, "mutagen", []) or [])}
     except Exception:  # noqa: BLE001
         pass
-    return {"palaces": palaces, "patterns": patterns, "monthly": monthly, "source": "x-iztro (MIT) — iztro port"}
+    return {"palaces": palaces, "patterns": patterns, "monthly": monthly, "source": "x-iztro (MIT) — iztro port",
+            "brightness_school": brightness_school if brightness_school in BRIGHTNESS_SCHOOLS else "quanshu", "brightness_school_zh": school["zh"], "brightness_note": school["note"]}

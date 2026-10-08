@@ -13,7 +13,7 @@
 ![Python](https://img.shields.io/badge/Python-3.10–3.13-3776AB?logo=python&logoColor=white)
 ![systems](https://img.shields.io/badge/命理系统-13-a78bfa)
 ![CI](https://github.com/ChiShengChen/bazaar-of-fates/actions/workflows/ci.yml/badge.svg)
-![tests](https://img.shields.io/badge/tests-194%20passing-3fb950)
+![tests](https://img.shields.io/badge/tests-208%20passing-3fb950)
 ![license](https://img.shields.io/badge/license-MIT-green)
 
 <table>
@@ -75,7 +75,7 @@ cd web && npm install && npm run dev             # 完整 UI → :3000
 |---|---|---|:--:|:--:|
 | `astrology` | 西洋占星 | ephem 当日黄道、六种宫位制、行运推运回归 | ✅ | ✅ |
 | `bazi` | 八字（四柱） | 精确节气干支、完整排盘表 | ✅ | — |
-| `ziwei` | 紫微斗数 | 原生安星＋x-iztro | ✅ | — |
+| `ziwei` | 紫微斗数 | 原生安星＋x-iztro；亮度流派 全书／中州／三级 | ✅ | — |
 | `iching` | 梅花易数 | 年月日时起卦（农历） | ✅ | — |
 | `liuyao` | 六爻（纳甲） | 京房纳甲、八宫世应、六亲六神、伏神、旺衰 | ✅ | — |
 | `xiaoliuren` | 小六壬 | 月日时六宫 | ✅ | — |
@@ -83,8 +83,8 @@ cd web && npm install && npm run dev             # 完整 UI → :3000
 | `qizheng` | 七政四余 | 真实黄经、命度起宫 | ✅ | ✅ |
 | `tieban` | 铁板神数 | 太玄数起命数（替代模型） | ✅ | — |
 | `qimen` | 奇门遁甲 | 时家转盘，拆补／置闰 | ✅ | — |
-| `liuren` | 大六壬 | 月将加时、四课三传、九宗门、十二天将 | ✅ | — |
-| `taiyi` | 太乙神数 | 太乙八宫（简化） | — | — |
+| `liuren` | 大六壬 | 月将加时、四课三传、九宗门（8,640 课与 kinliuren 比对）、十二天将 | ✅ | — |
+| `taiyi` | 太乙神数 | 年计：统宗积年、七十二局、太乙／文昌／始击／计神、主客算与大将参将、十六神、八门、断例（与 kintaiyi 对照） | — | — |
 | `jyotish` | Jyotiṣa 吠陀占星 | 恒星黄道、Vimśottarī daśā | ✅ | ✅ |
 
 > 时辰或出生地缺漏时，依赖上升的系统会自动退回只看日期并标注。
@@ -126,7 +126,7 @@ pip install "bazaar-of-fates[mcp]"
 ## ✅ 测试
 
 ```bash
-pytest -q     # 194 tests，其中多个对外部引擎交叉验证（安装 oracles extra 时激活）
+pytest -q     # 208 tests，其中多个对外部引擎交叉验证（安装 oracles extra 时激活）
 ```
 
 ## 📜 授权
