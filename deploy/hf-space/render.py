@@ -36,9 +36,12 @@ LABELS = {
 _CSS = ""
 
 
+_ELEM_CLASS = {"木": "e-wood", "火": "e-fire", "土": "e-earth", "金": "e-metal", "水": "e-water"}
+
+
 def _c(ch: str, big: bool = False) -> str:
-    col = ELEM_COLOR.get(STEM_ELEM.get(ch) or BRANCH_ELEM.get(ch) or ch, "#111")
-    return f'<span style="color:{col};font-weight:600;{"font-size:24px" if big else ""}">{html.escape(ch)}</span>'
+    cls = _ELEM_CLASS.get(STEM_ELEM.get(ch) or BRANCH_ELEM.get(ch) or ch, "")
+    return f'<span class="ch {cls}{" big" if big else ""}">{html.escape(ch)}</span>'
 
 
 def _e(x) -> str:

@@ -36,6 +36,16 @@ body, .gradio-container{background:
 .gradio-container tbody td{background:rgba(21,18,42,.5) !important; color:#efe4c8 !important; border-color:rgba(212,175,55,.2) !important}
 .gradio-container .accordion, .gradio-container .label-wrap{color:var(--gold2) !important}
 .gradio-container input[type=checkbox]{accent-color:var(--cinnabar); width:18px; height:18px; background:#0f0d1d; border:1px solid var(--gold) !important; border-radius:4px}
+/* the sheet is paper: force ink on everything, then re-apply the accent classes (beats Gradio's .prose / dark-mode !important rules) */
+.gradio-container .paper, .gradio-container .paper *{color:#1f1a12 !important}
+.gradio-container .paper .muted, .gradio-container .paper td:first-child, .gradio-container .paper th, .gradio-container .paper .min, .gradio-container .paper .kv .k{color:#7a6a4e !important}
+.gradio-container .paper .title, .gradio-container .paper .nm, .gradio-container .paper .t, .gradio-container .paper .g{color:#5b1f1b !important}
+.gradio-container .paper .seal{color:#b4302b !important}
+.gradio-container .paper .ch{font-weight:700} .gradio-container .paper .ch.big{font-size:26px; font-weight:900}
+.gradio-container .paper .e-wood{color:#2f6b2f !important} .gradio-container .paper .e-fire{color:#b4302b !important} .gradio-container .paper .e-earth{color:#8a5a1b !important}
+.gradio-container .paper .e-metal{color:#4a4238 !important} .gradio-container .paper .e-water{color:#1f4e8c !important}
+.gradio-container .paper .star{color:#b8892b !important}
+.gradio-container .paper .v-fav{color:#2f6b2f !important; font-weight:900} .gradio-container .paper .v-neu{color:#7a6a4e !important; font-weight:700} .gradio-container .paper .v-unf{color:#b4302b !important; font-weight:900}
 .paper .v-fav{color:#2f6b2f; font-weight:900} .paper .v-neu{color:#7a6a4e; font-weight:700} .paper .v-unf{color:#b4302b; font-weight:900}
 .paper tr.conflict td{background:rgba(180,48,43,.07) !important}
 .paper .star{color:#b8892b; letter-spacing:-1px; white-space:nowrap}
