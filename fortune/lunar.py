@@ -1,8 +1,9 @@
 """農曆 conversion with the most reliable backend available.
 
 lunardate (our original dependency) has three wrong month lengths — 1933 閏五月, 1954 and 1978 — that
-shift every 紫微/梅花/六爻/稱骨 cast in those 30-day windows by one day. 壽星萬年曆 (sxtwl) and
-lunar-python agree with each other and with the published almanacs, so: sxtwl → lunar-python → lunardate.
+shift every 紫微/梅花/六爻/稱骨 cast in those 30-day windows by one day. 壽星萬年曆 (sxtwl, C++, optional)
+and lunar-python (pure Python, a core dependency) agree with each other and with the published
+almanacs, so: sxtwl → lunar-python → lunardate.
 """
 
 from __future__ import annotations

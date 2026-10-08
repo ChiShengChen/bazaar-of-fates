@@ -7,14 +7,14 @@ consulted, no code was copied. Licences are those declared by each project at th
 
 | Project | Licence | How we use it |
 |---|---|---|
-| [6tail/lunar-python](https://github.com/6tail/lunar-python) (and lunar-javascript / lunar-java) | MIT | **Imported (optional)** — the 黃曆 almanac block on the 八字 sheet (二十八宿, 建除, 彭祖百忌, 吉神凶煞, 宜忌, 喜財福神方位, 身宮, 胎息). **Test oracle** for our native 四柱, 節氣 instants, 胎元/命宮 and 大運 sequence. |
+| [6tail/lunar-python](https://github.com/6tail/lunar-python) (and lunar-javascript / lunar-java) | MIT | **Runtime** — the default 公曆↔農曆 conversion (pure Python); the 黃曆 almanac block on the 八字 sheet (二十八宿, 建除, 彭祖百忌, 吉神凶煞, 宜忌, 喜財福神方位, 身宮, 胎息). **Test oracle** for our native 四柱, 節氣 instants, 胎元/命宮 and 大運 sequence. |
 | [SylarLong/iztro](https://github.com/SylarLong/iztro) via [x-haose/x-iztro](https://pypi.org/project/x-iztro/) (Rust port, Python bindings) | MIT | **Imported (optional)** — star brightness 廟旺利陷, the 雜曜 (adjective stars), 格局 pattern hits and 流月 for 紫微. **Test oracle** for our native placement of the 14 主星 and 22 輔煞星, 十二長生, 博士十二神 and 大限 ranges. The engine core's 命宮/五行局/安星 algorithm was originally verified cell-by-cell against py-iztro. |
 | [kentang2017/kinliuren](https://github.com/kentang2017/kinliuren) | MIT | **Test oracle** for 大六壬 四課, 三傳, 課體 and 十二天將 (our `liuren_ext` is a native implementation of the same classical rules). |
 | [kentang2017/kinqimen](https://github.com/kentang2017/kinqimen) | MIT | **Test oracle** for 時家奇門 (拆補 / 置閏): 局數, 值符值使, 天盤 九星八門八神. |
 | [pyswisseph](https://pypi.org/project/pyswisseph/) / Swiss Ephemeris | AGPL-3.0 (dual) | **Dev-only test oracle** (never a runtime dependency): planet longitudes at the birth instant (ours agree to < 20″ with Moshier) and the six house systems (< 0.006°). |
 | [OpenCC](https://github.com/BYVoid/OpenCC) (opencc-python-reimplemented) | Apache-2.0 | **Imported (optional)** — 簡體 → 正體 conversion of the lunar-python almanac text. |
 | [ephem (PyEphem)](https://rhodesmill.org/pyephem/) | MIT | **Runtime** — all planetary positions, solar terms, transits and ascendant geometry. |
-| [sxtwl 壽星萬年曆](https://github.com/yuangu/sxtwl_cpp) | MIT | **Runtime** — 公曆↔農曆 conversion (the authoritative table). |
+| [sxtwl 壽星萬年曆](https://github.com/yuangu/sxtwl_cpp) | MIT | **Optional** — preferred 公曆↔農曆 backend when its wheel is available (CPython ≤3.12). |
 | [lunardate](https://pypi.org/project/lunardate/) | GPL-3.0 (library) | **Runtime fallback** — 公曆↔農曆 when sxtwl / lunar-python are absent (note: three wrong month lengths in 1933, 1954, 1978). |
 | [ChesterRa/mingpan](https://github.com/ChesterRa/mingpan) | Apache-2.0 | **Rules consulted** for the 六爻 納甲 layer (六親, 六神, 伏神) and the 奇門 轉盤 conventions. No code copied. |
 | [chxb/jishiyu](https://github.com/chxb/jishiyu) | AGPL-3.0 | **Rules consulted** (小六壬 起課, 六爻 旺衰 labels, 奇門 置閏 conventions). No code copied — AGPL code is not included in this repository. |

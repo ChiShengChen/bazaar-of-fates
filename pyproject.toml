@@ -1,6 +1,6 @@
 [project]
 name = "bazaar-of-fates"
-version = "0.2.0"
+version = "0.2.1"
 description = "算命 — 13 traditional divination systems (西洋占星 · 八字 · 紫微 · 梅花 · 六爻 · 小六壬 · 四柱推命 · 七政四餘 · 鐵板 · 奇門 · 六壬 · 太乙 · Jyotiṣa) as deterministic Python engines + readings, from one birth moment."
 readme = "README.md"
 license = "MIT"
@@ -13,8 +13,8 @@ dependencies = [
     "pydantic-settings>=2.1",
     "structlog>=24.1",
     "ephem>=4.1",          # 占星 / 七政 / Jyotiṣa — real ecliptic longitudes
+    "lunar_python>=1.4",   # 農曆 (pure Python, MIT; lunardate has 3 wrong months: 1933/1954/1978)
     "lunardate>=0.2",      # solar↔lunar fallback
-    "sxtwl>=2.0",          # 壽星萬年曆 — the authoritative 農曆 (lunardate has 3 wrong months: 1933/1954/1978)
     "fastapi>=0.110",
     "uvicorn[standard]>=0.27",
 ]
@@ -24,7 +24,7 @@ llm = ["anthropic>=0.39"]   # 解讀 backend; the service runs fully without it 
 # Optional sibling engines (all MIT) — richer 紫微 (x-iztro: 100+ stars, brightness, patterns),
 # 黃曆 almanac (lunar-python), and reference implementations we cross-check against in tests.
 # The service runs without them; see docs/CREDITS.md.
-oracles = ["lunar_python>=1.4", "opencc-python-reimplemented>=0.1.7", "x-iztro>=0.6", "kinliuren>=0.1.2", "kinqimen>=0.0.6"]
+oracles = ["sxtwl>=2.0", "opencc-python-reimplemented>=0.1.7", "x-iztro>=0.6", "kinliuren>=0.1.2", "kinqimen>=0.0.6"]   # sxtwl is C++: wheels for CPython ≤3.12 only
 mcp = ["mcp>=1.2"]          # `bazaar-mcp` — the Model Context Protocol server for Claude / Cursor / any MCP client
 dev = ["pytest>=8.0", "httpx>=0.27", "pyswisseph>=2.10"]   # pyswisseph is AGPL: test oracle only, never a runtime dep
 
