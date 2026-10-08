@@ -9,6 +9,7 @@ systems, a deterministic chart (命盤) plus an optional bilingual LLM reading (
 from __future__ import annotations
 
 import json
+from datetime import datetime
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -134,7 +135,7 @@ def list_systems() -> list[dict[str, object]]:
 @app.get("/geo")
 def geo_lookup(q: str, on: str | None = None) -> dict:
     """Birthplace → lat/lon/tz (offline city table; Taiwan historical DST applied when `on` = birth date)."""
-    from datetime import date as _date
+    from datetime import datetime, date as _date
     hit = geo.lookup(q, _date.fromisoformat(on) if on else None)
     return hit or {"name": None, "note": "unknown place / 查無此地，請手動填經緯度"}
 
@@ -248,6 +249,36 @@ def consult(topic: str, req: ConsultRequest) -> dict:
     except Exception as e:  # noqa: BLE001
         log.exception("consult_failed")
         raise HTTPException(500, f"consult failed / 專科排盤失敗：{e}") from e
+
+
+class AskRequest(BaseModel):
+    question: str | None = None
+    at: datetime | None = None          # moment of the question (local), default now
+    tz_offset_hours: float = 8.0
+    place: str | None = None
+    numbers: list[int] | None = None    # iching 數字起卦 (1–3 numbers)
+    text: str | None = None             # iching 字占
+    coins: list[int] | None = None      # liuyao 金錢卦 (six of 6/7/8/9, bottom→top)
+    qimen_method: str = "chaibu"
+    read: bool = True
+    lang: str = "zh"
+
+
+@app.post("/ask/{system}")
+def ask(system: str, req: AskRequest) -> dict:
+    """問事 — cast 奇門 / 六壬 / 梅花 / 六爻 / 小六壬 for the moment of the question (or from numbers / text / coins),
+    with a question-oriented verdict (用神・類神・體用・世應 scored, every term listed, 應期 hint) and the system's reading."""
+    from fortune import ask as ask_mod
+    if system not in ask_mod.SYSTEMS:
+        raise HTTPException(404, f"ask: system must be one of {', '.join(ask_mod.SYSTEMS)}")
+    try:
+        return ask_mod.ask(system, req.question, at=req.at, tz=req.tz_offset_hours, place=req.place, numbers=req.numbers, text=req.text,
+                           coins=req.coins, qimen_method=req.qimen_method, read=req.read, lang=req.lang)
+    except ValueError as e:
+        raise HTTPException(400, str(e)) from e
+    except Exception as e:  # noqa: BLE001
+        log.exception("ask_failed")
+        raise HTTPException(500, f"ask failed / 問事失敗：{e}") from e
 
 
 @app.post("/love")

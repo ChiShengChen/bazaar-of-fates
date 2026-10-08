@@ -36,6 +36,7 @@ bazaar zeri 1990-06-15 14:30 --purpose wedding --from 2026-11-01 --to 2026-12-31
 bazaar today 1990-06-15 14:30                                    # 今日运势
 bazaar love 1990-06-15 14:30 --gender female --ask "何时有正缘"      # 感情专科（加 --partner-date 合婚）
 bazaar career 1990-06-15 14:30 --gender female --ask "该不该转职"    # 专科：career | wealth | health | study | family
+bazaar ask qimen "明天面试会顺利吗"                              # 问事：qimen | liuren | iching（--numbers／--text）| liuyao（--coins）| xiaoliuren
 ```
 
 完整网页版（Next.js）：
@@ -63,6 +64,7 @@ cd web && npm install && npm run dev             # 完整 UI → :3000
 | 💞 **合盘与预测** | 西占合盘双轮、组合盘、Davison、团体矩阵；跨系统年度报告与多年热力图。 |
 | 💘 **感情专科** | 专看感情的命理师：命（八字配偶星与夫妻宫、紫微夫妻宫、西洋金星七宫、Jyotiṣa 七宫）、运（逐年**桃花年／婚缘年**评分，每一分列依据）、合（填对方生辰即**合婚**：八字日柱干支关系＋西占合盘），解读先回答子题（何时有缘／合不合／复合／该不该分开／婚姻／第三者）。规则见 [docs/love.md](docs/love.md)。 |
 | 🩺 **五科专科** | 同一骨架再开五科：**事业**（官杀与提纲、官禄宫、十宫土星、第十 bhāva＋事业方向表）、**财运**（财星与财库、流年冲库、财帛宫、二宫木星＋财性表）、**健康**（五行分布→脏腑、疾厄宫、六宫＋体质表；明说非医疗建议）、**学业**（印星文昌学堂、父母宫昌曲、九宫水星＋学习型态与科系表）、**家庭**（年柱父母宫、时柱子女宫与子女星、田宅宫、四宫月亮＋六亲表）。每科：命、今年、逐年评分（每一分列依据）、先答子题。规则：[docs/specialists.md](docs/specialists.md)。 |
+| 🎲 **问事** | 不用生辰：奇门／六壬／梅花／六爻／小六壬以问事的那一刻起局——奇门时盘看日干宫（人）、时干宫（事）、依题用神、门迫空亡三奇、吉方；六壬时课看类神入传、末传与日干、课体；梅花**数字起卦**（1–3 数）与**字占**；六爻**金钱卦**（六次掷钱）；每一分列依据，附应期。规则：[docs/ask.md](docs/ask.md)。 |
 | 🤖 **CLI・API・MCP** | `bazaar` 指令列、FastAPI、`bazaar-mcp` 让 Claude／Cursor 直接排盘，附 Claude Code skill。 |
 | 🗃️ **数据集** | 一行指令穷举紫微全部 518,400 张命盘（含七个主题的规则判断），八字依日期区间产出。 |
 
@@ -97,6 +99,7 @@ cd web && npm install && npm run dev             # 完整 UI → :3000
 | `POST` | `/zeri` · `/day` | 择日・今日运势 |
 | `POST` | `/love` | 感情专科：命・今年・桃花年婚缘年・合婚・解读 |
 | `POST` | `/consult/{topic}` · `GET /consult` | 五科专科（career／wealth／health／study／family，`auto` 依问题分科）：命・今年・逐年・专科表・解读 |
+| `POST` | `/ask/{system}` | 问事：奇门／六壬／梅花／六爻／小六壬以问事时刻（或数字／字句／掷钱）起局，判断与依据、应期 |
 | `POST` | `/timeline/{system}` · `/synastry` · `/group` · `/annual-report` · `/annual-overview` | 时间轴、合盘、团体、年度、多年 |
 
 ## 🤖 MCP server

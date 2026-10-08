@@ -25,9 +25,10 @@ try:                                                     # ZeroGPU Spaces requir
 except Exception:  # noqa: BLE001
     _zero_gpu_stub = None
 
-from fortune import casting, focus as F, geo, love as LV, specialist as SP, zeri as Z
+from fortune import ask as AK, casting, focus as F, geo, love as LV, specialist as SP, zeri as Z
 from fortune.api.main import app as api
 from fortune.birth import BirthInput
+from fortune.schemas import Chart
 from fortune.interpret import interpret, interpret_synthesis, interpret_zeri
 
 import render as R
@@ -48,6 +49,7 @@ PNG_JS = """() => {
 PURPOSES = [(f"{v['zh']} · {v['en']}", k) for k, v in Z.PURPOSES.items()]
 LANGS = [("中文", "zh"), ("English", "en"), ("中文 + English", "both")]
 TOPICS = [("自動分科 auto", "auto")] + [(f"{v['title']} · {v['en']}", k) for k, v in SP.SPECS.items()]
+ASK_SYSTEMS = [(f"{v} · {k}", k) for k, v in AK.SYSTEMS.items()]
 _SHEET = {"career": "事業方向", "wealth": "財性與財庫", "health": "體質與臟腑", "study": "學習型態與科系", "family": "六親宮位"}
 DISCLAIMER = "僅供文化、教育與娛樂用途；命理不應作為財務、醫療或法律決策的依據。 Cultural / educational / entertainment only."
 
@@ -220,6 +222,33 @@ def specialist_consult(name, d, t, gender, place, tst, question, lang, read, top
         return f"⚠️ {e}", "", "", "", "", ""
 
 
+def ask_now(system, question, at, place, numbers, text, coins, lang, read):
+    try:
+        from datetime import datetime as _dt
+        nums = [int(x) for x in str(numbers).replace("，", ",").split(",") if x.strip()] if numbers and str(numbers).strip() else None
+        cs = [int(x) for x in str(coins).replace("，", ",").split(",") if x.strip()] if coins and str(coins).strip() else None
+        out = AK.ask(system, question or None, at=_dt.fromisoformat(at.strip()) if at and at.strip() else None, place=place or None,
+                     numbers=nums, text=(text or None), coins=cs, read=bool(read), lang=lang)
+        v = out["verdict"]
+        head = (f"### {R._e(out['system_zh'])}問事 · {R._e(out['at'])}{(' · ' + R._e(place)) if place else ''}（{R._e(out['method'])}）\n\n"
+                f"問：{R._e(question or '—')}　分題：**{R._e(out['topic_label'])}**　→ **{R._e(v['verdict_zh'])}**（{v['score']:+}）")
+        board = R.chart_html(Chart(**out["chart"])) if system in ("qimen", "liuren", "liuyao") else ""
+        if not board:
+            ch = out["chart"]
+            diag = "<br>".join(R._e(x) for x in ch["chart"].get("diagram", []))
+            board = f"<div class='paper'><div class='title'>{R._e(ch['summary'])}</div><div style='font-family:monospace;font-size:18px;line-height:1.5'>{diag}</div></div>" if diag else ""
+        chain = "<div class='paper'><div class='title'>起局</div>" + "".join(f"<div style='font-size:12.5px;color:#1f1a12;padding:3px 0;border-bottom:1px dashed rgba(184,154,90,.4)'><b style='color:#b4302b'>{i}.</b> {R._e(x)}</div>" for i, x in enumerate(out["chart"]["reasoning_chain"], 1)) + "</div>"
+        rows = "".join(f"<tr><td style='text-align:left;font-size:12.5px'>{R._e(r)}</td></tr>" for r in v["reasons"])
+        facts = "".join(f"<tr><td style='text-align:left;white-space:nowrap'><b>{R._e(k)}</b></td><td style='text-align:left;font-size:12px'>{_fact(x)}</td></tr>" for k, x in v["facts"].items())
+        verdict = (f"<div class='paper'><div class='title'>斷 <span class='seal'>{R._e(v['verdict_zh'])} {v['score']:+}</span></div><div class='tw'><table>{rows}</table></div>"
+                   f"<div class='note'>{R._e(v.get('timing_hint', ''))}{('　吉方：' + R._e('、'.join(v['lucky_directions']))) if v.get('lucky_directions') else ''}</div>"
+                   f"<div class='tw'><table>{facts}</table></div></div>")
+        prose = out.get("interpretation", "") if read else ""
+        return head, board + chain, verdict, prose, json.dumps(out, ensure_ascii=False, indent=1, default=str)
+    except Exception as e:  # noqa: BLE001
+        return f"⚠️ {e}", "", "", "", ""
+
+
 with gr.Blocks(title="Bazaar of Fates · 算命") as demo:
     gr.HTML(HERO)
     with gr.Row():
@@ -293,6 +322,22 @@ with gr.Blocks(title="Bazaar of Fates · 算命") as demo:
         with gr.Accordion("raw JSON", open=False):
             raw5 = gr.Code(language="json")
         go5.click(specialist_consult, [name, bdate, btime, gender, place, tst, question, lang, read, topic, years5], [head5, natal5, timing5, extra5, prose5, raw5])
+
+    with gr.Tab("問事 Ask"):
+        gr.Markdown("不用生辰：以**問的這一刻**起局（奇門時盤・六壬時課・梅花・六爻・小六壬）。梅花可給 1–3 個數字或一句話起卦；六爻可輸入六次擲錢（自初爻起，6 老陰／7 少陽／8 少陰／9 老陽）。上方「想問」欄即問題。")
+        with gr.Row():
+            ask_sys = gr.Dropdown(label="System 術數", choices=ASK_SYSTEMS, value="qimen", scale=2)
+            ask_at = gr.Textbox(label="時刻 (YYYY-MM-DDTHH:MM，空白＝現在)", scale=2)
+            ask_place = gr.Textbox(label="地點（時區用，可空）", value="台北", scale=1)
+        with gr.Row():
+            ask_numbers = gr.Textbox(label="梅花 數字（如 3,7,9）", scale=1)
+            ask_text = gr.Textbox(label="梅花 字占（一句話）", scale=2)
+            ask_coins = gr.Textbox(label="六爻 擲錢（如 7,8,9,8,6,7）", scale=1)
+        go6 = gr.Button("起 局 · Ask", variant="primary")
+        head6 = gr.Markdown(); board6 = gr.HTML(); verdict6 = gr.HTML(); prose6 = gr.Markdown()
+        with gr.Accordion("raw JSON", open=False):
+            raw6 = gr.Code(language="json")
+        go6.click(ask_now, [ask_sys, question, ask_at, ask_place, ask_numbers, ask_text, ask_coins, lang, read], [head6, board6, verdict6, prose6, raw6])
 
     gr.HTML(f"<div style='text-align:center;color:#9c8c68;font-size:12px;letter-spacing:.1em;padding:14px 0 4px'>{DISCLAIMER}</div>")
 

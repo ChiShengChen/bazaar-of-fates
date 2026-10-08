@@ -17,7 +17,7 @@ from fortune.schemas import Chart
 
 TOPICS = {
     "career": {"zh": "事業", "en": "career / work", "kw": ["事業", "工作", "職", "升遷", "創業", "career", "job", "work", "promotion", "business", "boss", "老闆", "轉職", "跳槽", "考試", "面試"]},
-    "love": {"zh": "感情", "en": "love / relationships", "kw": ["感情", "愛情", "婚", "戀", "桃花", "伴侶", "對象", "love", "marriage", "relationship", "partner", "romance", "dating", "另一半", "分手", "復合"]},
+    "love": {"zh": "感情", "en": "love / relationships", "kw": ["感情", "愛情", "婚", "戀", "桃花", "伴侶", "對象", "love", "marriage", "relationship", "partner", "romance", "dating", "另一半", "分手", "復合", "正緣", "緣分", "脫單", "喜歡", "曖昧", "交往", "crush", "ex"]},
     "wealth": {"zh": "財運", "en": "wealth / money", "kw": ["財", "錢", "投資", "收入", "理財", "money", "wealth", "finance", "income", "invest", "salary", "薪", "偏財", "正財", "買房"]},
     "health": {"zh": "健康", "en": "health", "kw": ["健康", "身體", "病", "疾", "health", "illness", "body", "醫", "手術", "開刀", "養生", "壓力", "失眠", "睡眠", "焦慮", "憂鬱", "過敏", "體質", "檢查", "sleep", "stress", "anxiety", "surgery"]},
     "study": {"zh": "學業", "en": "study / learning", "kw": ["學業", "讀書", "學習", "升學", "考試", "study", "school", "exam", "learning", "academic", "留學", "研究"]},

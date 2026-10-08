@@ -11,6 +11,10 @@
   bazaar love 1990-06-15 14:30 --gender female --partner-date 1988-11-03 --partner-time 08:15 --partner-gender male
   bazaar career 1990-06-15 14:30 --gender female --ask "該不該轉職"            # 專科：career | wealth | health | study | family
   bazaar wealth 1990-06-15 14:30 --ask "適合投資嗎" --years 5 --read
+  bazaar ask qimen "明天面試會順利嗎"                                  # 問事：以此刻起時盤（--at 2026-10-10T14:30 指定時刻）
+  bazaar ask liuren "這筆投資能做嗎" --place 台北 --read
+  bazaar ask iching "他會回我嗎" --numbers 3,7,9        # 梅花數字起卦（1–3 個數）；--text 字占；不給則時間起卦
+  bazaar ask liuyao "合約能簽嗎" --coins 7,8,9,8,6,7     # 六爻金錢卦（自初爻起，6/9 動）
   add --read for the reading (mock digest unless LLM_BACKEND/ANTHROPIC_API_KEY are set), --json for raw JSON.
 """
 
@@ -84,9 +88,9 @@ def _print_ziwei(c: dict) -> None:
 
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(prog="bazaar", description="Bazaar of Fates · 算命 — 13 divination systems in your terminal")
-    ap.add_argument("system", help="bazi | ziwei | astrology | jyotish | iching | liuyao | xiaoliuren | suimei | qizheng | tieban | qimen | liuren | taiyi | all | synthesis | zeri | today | love | career | wealth | health | study | family | systems")
-    ap.add_argument("date", nargs="?", help="birth date YYYY-MM-DD")
-    ap.add_argument("time", nargs="?", help="birth time HH:MM (default noon)")
+    ap.add_argument("system", help="bazi | ziwei | astrology | jyotish | iching | liuyao | xiaoliuren | suimei | qizheng | tieban | qimen | liuren | taiyi | all | synthesis | zeri | today | love | career | wealth | health | study | family | ask | systems")
+    ap.add_argument("date", nargs="?", help="birth date YYYY-MM-DD （ask: the system qimen|liuren|iching|liuyao|xiaoliuren）")
+    ap.add_argument("time", nargs="?", help="birth time HH:MM (default noon) （ask: the question）")
     ap.add_argument("--name"); ap.add_argument("--gender", choices=["male", "female"]); ap.add_argument("--place")
     ap.add_argument("--lat", type=float); ap.add_argument("--lon", type=float); ap.add_argument("--tz", type=float)
     ap.add_argument("--tst", action="store_true", help="true solar time for the 干支 systems")
@@ -98,11 +102,40 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--from-year", type=int, help="love/專科: first year of the scan (default this year)")
     ap.add_argument("--partner-date"); ap.add_argument("--partner-time"); ap.add_argument("--partner-gender", choices=["male", "female"])
     ap.add_argument("--partner-place"); ap.add_argument("--partner-name")
+    ap.add_argument("--at", help="ask: moment of the question, ISO datetime (default now)")
+    ap.add_argument("--numbers", help="ask iching: 1–3 numbers, comma-separated（數字起卦）"); ap.add_argument("--text", help="ask iching: a phrase（字占）")
+    ap.add_argument("--coins", help="ask liuyao: six of 6/7/8/9 bottom→top（金錢卦）")
     a = ap.parse_args(argv)
 
     if a.system == "systems":
         for s in casting.systems():
             print(f"{s['key']:12s} {s['en']} · {s['zh']}")
+        return 0
+    if a.system == "ask":
+        from datetime import datetime
+        from fortune import ask as AK
+        sub, q = a.date, a.ask or a.time
+        if sub not in AK.SYSTEMS:
+            ap.error("usage: bazaar ask <qimen|liuren|iching|liuyao|xiaoliuren> \"question\" [--at ISO] [--numbers a,b,c] [--text 字句] [--coins 7,8,9,8,6,7]")
+        nums = [int(x) for x in a.numbers.split(",")] if a.numbers else None
+        coins = [int(x) for x in a.coins.split(",")] if a.coins else None
+        out = AK.ask(sub, q, at=datetime.fromisoformat(a.at) if a.at else None, tz=8.0 if a.tz is None else a.tz, place=a.place,
+                     numbers=nums, text=a.text, coins=coins, qimen_method=a.qimen_method, read=a.read, lang=a.lang)
+        if a.json:
+            print(json.dumps(out, ensure_ascii=False, indent=1, default=str)); return 0
+        v = out["verdict"]
+        print(f"{out['system_zh']}問事 · {out['at']}{(' · ' + a.place) if a.place else ''}（{out['method']}）\n問：{q or '—'}（{out['topic_label']}）\n")
+        for line in out["chart"]["reasoning_chain"]:
+            print("  " + line)
+        print(f"\n【斷】{v['verdict_zh']}（{v['score']:+}）")
+        for r in v["reasons"]:
+            print("  · " + r)
+        if v.get("timing_hint"):
+            print("  " + v["timing_hint"])
+        if v.get("lucky_directions"):
+            print("  吉方：" + "、".join(v["lucky_directions"]))
+        if a.read:
+            print("\n" + out["interpretation"])
         return 0
     if not a.date:
         ap.error("birth date required")

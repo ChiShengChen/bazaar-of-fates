@@ -1,6 +1,6 @@
 """`bazaar-mcp` — Bazaar of Fates as a Model Context Protocol server (stdio by default).
 
-Tools: list_systems · cast · reading · synthesis · zeri · day · synastry · love · consult · geo
+Tools: list_systems · cast · reading · synthesis · zeri · day · synastry · love · consult · ask · geo
 Every tool is deterministic except `reading` / `synthesis` prose (mock digest unless LLM_BACKEND is set).
 
 Claude Desktop / Claude Code:  {"mcpServers": {"bazaar-of-fates": {"command": "bazaar-mcp"}}}
@@ -28,7 +28,8 @@ INSTRUCTIONS = (
     "`cast` for the deterministic chart facts (reasoning_chain + readings are the audit trail), use `synthesis` to put "
     "all systems on one question, `zeri` to pick dates, `day` for today's outlook, and `love` for any romance / marriage "
     "question (natal love disposition, 桃花年／婚緣年 timeline, 合婚 with a partner), and `consult` for the other 專科 — career 事業, "
-    "wealth 財運, health 健康, study 學業, family 家庭 (natal disposition, yearly scan, the topic's own sheet). Never present a chart as a basis "
+    "wealth 財運, health 健康, study 學業, family 家庭 (natal disposition, yearly scan, the topic's own sheet). `ask` is 問事: no birth needed — "
+    "奇門／六壬／梅花／六爻／小六壬 cast for the moment of the question (or from numbers / a phrase / coin throws). Never present a chart as a basis "
     "for medical, financial or legal decisions."
 )
 server = _Server(name="bazaar-of-fates", instructions=INSTRUCTIONS)
@@ -182,6 +183,20 @@ def consult(topic: str, birth_date: str, question: str | None = None, birth_time
     for y in out["timing"]["years"]:
         y.pop("context", None)
     return out
+
+
+@server.tool()
+def ask(system: str, question: str | None = None, at: str | None = None, tz_offset_hours: float = 8.0, place: str | None = None,
+        numbers: list[int] | None = None, text: str | None = None, coins: list[int] | None = None, with_reading: bool = False, lang: str = "zh") -> dict[str, Any]:
+    """問事 — divination on demand, no birth data. `system`: qimen 奇門 (時盤: 日干宮＝求測人, 時干宮＝所問之事, 用神宮 by topic, 門迫／空亡／三奇／八神,
+    吉方), liuren 六壬 (時課: 類神入傳, 末傳 vs 日干, 課體, 旬空), iching 梅花 (時間起卦; or `numbers` = 1–3 numbers 數字起卦; or `text` = a phrase 字占),
+    liuyao 六爻 (時間起卦; or `coins` = six of 6/7/8/9 bottom→top 金錢卦), xiaoliuren 小六壬. `at` is the ISO moment of asking (default now,
+    local to `tz_offset_hours` / `place`). Returns the chart (reasoning_chain is the audit trail) and `verdict` {verdict_zh 吉/平/凶, score,
+    reasons, facts, timing_hint 應期, lucky_directions}. The topic (事業/財運/感情/健康/學業/家庭) is classified from the question."""
+    from datetime import datetime as _dt
+    from fortune import ask as AK
+    return AK.ask(system, question, at=_dt.fromisoformat(at) if at else None, tz=tz_offset_hours, place=place, numbers=numbers, text=text,
+                  coins=coins, read=with_reading, lang=lang)
 
 
 def main(argv: list[str] | None = None) -> int:
