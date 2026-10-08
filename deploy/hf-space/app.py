@@ -144,6 +144,8 @@ with gr.Blocks(title="Bazaar of Fates · 算命") as demo:
 # (not run uvicorn ourselves) and then graft the FastAPI routes (/cast, /synthesis, /zeri, /docs, /web …)
 # onto Gradio's own FastAPI app.
 if __name__ == "__main__":
-    app, _local, _share = demo.launch(server_name="0.0.0.0", prevent_thread_lock=True, theme=gr.themes.Soft(primary_hue="purple"))
-    app.include_router(api.router)
-    demo.block_thread()
+    import threading
+    app, _local, _share = demo.launch(server_name="0.0.0.0", prevent_thread_lock=True, ssr_mode=False,
+                                      theme=gr.themes.Soft(primary_hue="purple"))
+    app.include_router(api.router)          # /cast, /synthesis, /zeri, /docs, /web … on the same port
+    threading.Event().wait()                # keep the process alive (block_thread() returns at once under HF's runtime)
