@@ -44,13 +44,13 @@ def _find_return(natal_lon: float, body_cls, start: _date, period_years: float, 
     best = (approx, 999.0)
     for off in range(-400, 401, 5):                       # coarse, then fine
         d = approx + timedelta(days=off)
-        sep = astro._separation(astro._lon(body_cls, d), natal_lon)
+        sep = astro._separation(AX.lon_on(body_cls, d), natal_lon)
         if sep < best[1]:
             best = (d, sep)
     d0 = best[0]
     for off in range(-5, 6):
         d = d0 + timedelta(days=off)
-        sep = astro._separation(astro._lon(body_cls, d), natal_lon)
+        sep = astro._separation(AX.lon_on(body_cls, d), natal_lon)
         if sep < best[1]:
             best = (d, sep)
     return best[0]
@@ -90,14 +90,7 @@ def _davison(a: BirthInput, b: BirthInput, house_system: str) -> dict | None:
     dlon = ((b.longitude - a.longitude + 540.0) % 360.0) - 180.0
     lon = ((a.longitude + dlon / 2.0 + 180.0) % 360.0) - 180.0
 
-    planets = []
-    for name, cls in astro._BODIES.items():               # real positions at the midpoint instant
-        body = cls()
-        body.compute(ephem.Date(mid))
-        lo = math.degrees(ephem.Ecliptic(body).lon) % 360.0
-        retro = name not in ("Sun", "Moon") and astro.is_retrograde(cls, mid.date())
-        planets.append({"body": name, "ecliptic_lon": round(lo, 2),
-                        "sign": AX.sign_of(lo), "sign_zh": AX.sign_zh(lo), "retrograde": retro})
+    planets = AX.planets_at(mid)                          # real positions at the midpoint instant
 
     bsyn = BirthInput(birth_date=mid.date(), birth_time=mid.time().replace(microsecond=0),
                       latitude=lat, longitude=lon, tz_offset_hours=0.0)

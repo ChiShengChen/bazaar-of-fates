@@ -51,6 +51,8 @@ export function ChartView({ r, tightOnly = false }: { r: Chart; tightOnly?: bool
   if (r.system === "bazi" || r.system === "suimei") return <PillarsTable pillars={c.pillars || []} />;
   if (r.system === "ziwei") return <ZiweiBoard palaces={c.palaces || []} readings={r.readings || {}} subject={r.subject} />;
   if (r.system === "iching") return <HexagramView hex={c.hexagram} diagram={c.diagram || []} />;
+  if (r.system === "qimen" && c.palaces) return <QimenBoard palaces={c.palaces} ju={c.ju} zhifu={c.zhifu} zhishi={c.zhishi} />;
+  if (r.system === "liuren" && c.courses) return <LiurenView c={c} />;
 
   return <p className="muted">See the casting steps & elements below. / 詳見下方排盤步驟與命盤要素。</p>;
 }
@@ -71,6 +73,7 @@ function PillarsTable({ pillars }: { pillars: any[] }) {
 // Traditional 紫微 命盤: the 12 palaces sit on the perimeter of a 4×4 grid, keyed by
 // their 地支 (子…亥 in fixed geomantic cells); the centre 2×2 holds the natal summary.
 const BRANCHES = "子丑寅卯辰巳午未申酉戌亥";
+const MAJOR = new Set(["紫微", "天機", "太陽", "武曲", "天同", "廉貞", "天府", "太陰", "貪狼", "巨門", "天相", "天梁", "七殺", "破軍"]);
 // branch index → [row, col] (1-indexed for CSS grid) on the 4×4 board
 const CELL: Record<number, [number, number]> = {
   5: [1, 1], 6: [1, 2], 7: [1, 3], 8: [1, 4],   // 巳 午 未 申  (top)
@@ -88,8 +91,13 @@ function ZiweiBoard({ palaces, readings, subject }: { palaces: any[]; readings: 
         const [row, col] = CELL[bi] || [1, 1];
         return (
           <div key={i} className={`zw-cell${p.is_body ? " body" : ""}`} style={{ gridRow: row, gridColumn: col }}>
-            <div className="zw-stars">{(p.stars || []).join(" ")}</div>
-            <div className="zw-name"><b>{p.name}</b> <span className="muted">{p.branch}</span></div>
+            <div className="zw-stars">
+              {(p.stars || []).map((s: string) => {
+                const major = MAJOR.has(s.replace(/\(.*\)/, ""));
+                return <span key={s} className={major ? "zw-major" : "zw-minor"}>{s} </span>;
+              })}
+            </div>
+            <div className="zw-name"><b>{p.name}</b> <span className="muted">{p.stem}{p.branch}</span></div>
           </div>
         );
       })}
@@ -110,6 +118,53 @@ function HexagramView({ hex, diagram }: { hex: any; diagram: string[] }) {
       <div className="hex">{diagram.map((l, i) => <div key={i}>{l}</div>)}</div>
       <p style={{ marginTop: 8 }}>本卦 <b>{hex.ben_name}</b> · 互卦 {hex.hu_name} · 變卦 {hex.bian_name}</p>
       <p className="muted">體 {hex.ti}（{hex.ti_wuxing}）· 用 {hex.yong}（{hex.yong_wuxing}）→ {hex.relation} {hex.verdict}</p>
+    </div>
+  );
+}
+
+// 奇門 九宮 (Lo Shu layout: 巽4 離9 坤2 / 震3 中5 兌7 / 艮8 坎1 乾6), each cell: 八神 · 九星 · 八門 · 天盤干/地盤干
+const LOSHU = [[4, 9, 2], [3, 5, 7], [8, 1, 6]];
+function QimenBoard({ palaces, ju, zhifu, zhishi }: { palaces: any[]; ju: string; zhifu: string; zhishi: string }) {
+  const by: Record<number, any> = {};
+  palaces.forEach((p) => { by[p.palace] = p; });
+  return (
+    <div>
+      <div className="muted" style={{ marginBottom: 6 }}>{ju} · 值符 {zhifu} · 值使 {zhishi}</div>
+      <div className="qm-board">
+        {LOSHU.flat().map((n) => {
+          const p = by[n] || {};
+          const cls = p.gate_cls === "吉" ? "good" : p.gate_cls === "凶" ? "bad" : "";
+          return (
+            <div key={n} className={`qm-cell ${cls}${p.god === "值符" ? " fu" : ""}`}>
+              <div className="qm-top"><span>{p.god}</span><span className="muted">{p.name}</span></div>
+              <div className="qm-mid"><b>{p.star}</b><span className="qm-stem">{p.sky_stem}</span></div>
+              <div className="qm-mid"><span className={p.gate === zhishi ? "qm-shi" : ""}>{p.gate}</span><span className="qm-stem muted">{p.earth_stem}</span></div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// 大六壬: 天地盤 + 四課 + 三傳
+function LiurenView({ c }: { c: any }) {
+  return (
+    <div>
+      <div className="muted" style={{ marginBottom: 6 }}>{c.yue_jiang}將加{c.occupy}時 · 天盤／地盤</div>
+      <div className="lr-plate">
+        {(c.heaven_plate || []).map((x: any) => (
+          <div key={x.ground} className="lr-cell"><b>{x.sky}</b><span className="muted">{x.ground}</span></div>
+        ))}
+      </div>
+      <table style={{ marginTop: 10 }}>
+        <thead><tr>{(c.courses || []).map((k: any) => <th key={k.name}>{k.name}</th>)}</tr></thead>
+        <tbody>
+          <tr>{(c.courses || []).map((k: any) => <td key={k.name} style={{ fontSize: 20 }}>{k.upper}</td>)}</tr>
+          <tr>{(c.courses || []).map((k: any) => <td key={k.name} className="muted">{k.lower}</td>)}</tr>
+        </tbody>
+      </table>
+      <p style={{ marginTop: 8 }}>三傳：{(c.transmissions || []).map((t: string, i: number) => <b key={i} style={{ marginRight: 10 }}>{["初", "中", "末"][i]} {t}</b>)}</p>
     </div>
   );
 }

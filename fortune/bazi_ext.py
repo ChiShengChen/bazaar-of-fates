@@ -110,7 +110,8 @@ def _signed(a: float, target: float) -> float:
 @lru_cache(maxsize=512)
 def _term_utc(year: int, lon: int) -> datetime:
     """UTC instant when the sun reaches ecliptic longitude `lon` in (Gregorian) `year`."""
-    lo = datetime(year, 1, 1) + timedelta(days=_JIE_APPROX_DOY[lon] - 6)
+    doy = _JIE_APPROX_DOY.get(lon) or int(((lon - 280) % 360) / 0.9856) + 1   # 中氣: mean-sun estimate
+    lo = datetime(year, 1, 1) + timedelta(days=doy - 6)
     hi = lo + timedelta(days=12)
     for _ in range(26):                              # 12 days → ~0.2 s
         mid = lo + (hi - lo) / 2
@@ -119,6 +120,23 @@ def _term_utc(year: int, lon: int) -> datetime:
         else:
             hi = mid
     return lo + (hi - lo) / 2
+
+
+ZHONGQI = [(330, "雨水"), (0, "春分"), (30, "穀雨"), (60, "小滿"), (90, "夏至"), (120, "大暑"),
+           (150, "處暑"), (180, "秋分"), (210, "霜降"), (240, "小雪"), (270, "冬至"), (300, "大寒")]
+
+
+def all_terms(year: int, tz: float) -> list[tuple[datetime, str, int]]:
+    """All 24 節氣 of `year` in local time: [(local datetime, name, sun longitude)]."""
+    out = [(_term_utc(year, lon) + timedelta(hours=tz), name, lon) for lon, name, _mb in JIE]
+    out += [(_term_utc(year, lon) + timedelta(hours=tz), name, lon) for lon, name in ZHONGQI]
+    return sorted(out)
+
+
+def current_term(dt: datetime, tz: float) -> tuple[datetime, str, int]:
+    """The 節氣 (any of the 24) in force at local datetime `dt`."""
+    terms = all_terms(dt.year - 1, tz) + all_terms(dt.year, tz) + all_terms(dt.year + 1, tz)
+    return max(t for t in terms if t[0] <= dt)
 
 
 def jie_terms(year: int, tz: float) -> list[tuple[datetime, str, int]]:

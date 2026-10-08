@@ -10,7 +10,7 @@
 ![FastAPI](https://img.shields.io/badge/FastAPI-009688?logo=fastapi&logoColor=white)
 ![Next.js](https://img.shields.io/badge/Next.js-14-000000?logo=nextdotjs)
 ![systems](https://img.shields.io/badge/divination%20systems-11-a78bfa)
-![tests](https://img.shields.io/badge/tests-69%20passing-3fb950)
+![tests](https://img.shields.io/badge/tests-76%20passing-3fb950)
 ![bilingual](https://img.shields.io/badge/readings-EN%20%2B%20中文-ec4899)
 ![use](https://img.shields.io/badge/use-cultural%20%C2%B7%20educational%20%C2%B7%20fun-blue)
 
@@ -37,7 +37,7 @@
 | | |
 |---|---|
 | 🌏 **11 systems, 1 input** | Western astrology, BaZi, 紫微, I Ching, Jyotiṣa & more — all from a single **birth moment**. |
-| 🎯 **Deterministic + real astronomy** | Same birth → same chart, every time; planet positions via `ephem`, house systems **validated against Swiss Ephemeris to <0.006°**. |
+| 🎯 **Deterministic + real astronomy** | Same birth → same chart, every time; planets at the **exact birth instant, true equinox of date** via `ephem`, house systems **validated against Swiss Ephemeris to <0.006°**, 24 節氣 to the minute. |
 | 🗣️ **Bilingual AI readings** | English-then-中文 interpretations that stream in token-by-token; runs fully offline (mock) with no API key. |
 | 🪐 **A full Western stack** | 6 house systems · transits · secondary & solar-arc progressions · Solar & Lunar Returns · life timelines. |
 | 💞 **Relationships & groups** | Synastry bi-wheel · composite · Davison · 2–8-person compatibility matrix. |
@@ -99,13 +99,13 @@ curl -s localhost:8000/cast/bazi -H 'content-type: application/json' -d '{
 | `astrology` | Western Astrology | 西洋占星 | `ephem` ecliptic longitudes | ✅ asc + houses | ✅ ascendant |
 | `bazi` | BaZi · Four Pillars | 八字（四柱）| JDN-anchored 干支 | ✅ hour pillar | — |
 | `ziwei` | Zi Wei Dou Shu | 紫微斗數 | pure-Python 排盤 | ✅ 命宮/身宮/局 | — |
-| `iching` | Plum-Blossom I Ching | 梅花易數 | time-cast hexagram | — | — |
-| `suimei` | Shichū-Suimei (JP) | 四柱推命（日）| 十二運星 + 天中殺 | ✅ | — |
+| `iching` | Plum-Blossom I Ching | 梅花易數 | 年月日時起卦 (農曆) | ✅ 下卦/動爻 | — |
+| `suimei` | Shichū-Suimei (JP) | 四柱推命（日）| 十二運星 + 天中殺 | ✅ 時柱 | — |
 | `qizheng` | Seven Luminaries | 七政四餘 | real astronomical longitudes | ✅ 命宮 | ✅ 命度/命宮 |
-| `tieban` | Iron Plate | 鐵板神數 | 起命數 | — | — |
-| `qimen` | Qi Men Dun Jia | 奇門遁甲 | 八門九宮起局 | — | — |
-| `liuren` | Da Liu Ren | 大六壬 | 四課三傳 | — | — |
-| `taiyi` | Tai Yi Shen Shu | 太乙神數 | 太乙九宮 | — | — |
+| `tieban` | Iron Plate | 鐵板神數 | 太玄數 起命數 (stand-in) | ✅ 時柱 | — |
+| `qimen` | Qi Men Dun Jia | 奇門遁甲 | 時家轉盤・拆補法 | ✅ 時干支 | — |
+| `liuren` | Da Liu Ren | 大六壬 | 月將加時・四課三傳（賊克/比用）| ✅ 占時 | — |
+| `taiyi` | Tai Yi Shen Shu | 太乙神數 | 太乙八宮 (simplified) | — | — |
 | `jyotish` | Jyotiṣa (Vedic) | 吠陀占星 | sidereal + Vimśottarī daśā | ✅ Lagna + bhāva | ✅ Lagna |
 
 > Missing birth time/place → ascendant-based systems gracefully degrade to date-only and say so. / 缺時辰或出生地時自動退回只看日期並標註。
@@ -157,8 +157,10 @@ fortune/
   birth.py            BirthInput — the single input / 生辰輸入
   engines/<system>/   ← SYNCED 排盤 math from the parent monorepo (do NOT hand-edit)
   astro_ext.py        native: ascendant + 6 house systems (swisseph-validated)
-  ziwei_ext.py        native: 紫微 with the real birth 時辰
-  bazi_ext.py         native: full 八字 sheet — exact 節氣, 十神/藏干/納音/空亡/神煞, 起運, 大運/流年/流月, 稱骨
+  ziwei_ext.py        native: 紫微 with the real birth 時辰, 閏月/晚子時 conventions, 輔星/煞星
+  bazi_ext.py         native: full 八字 sheet — exact 24 節氣, 十神/藏干/納音/空亡/神煞, 起運, 大運/流年/流月, 稱骨
+  jyotish_ext.py      native: grahas / nakṣatra / Vimśottarī daśā at the exact birth instant
+  qimen_ext.py        native: 時家奇門 轉盤・拆補法 起局 (遁/元/局, 地盤, 值符值使, 天盤 九星八門八神)
   timeline.py         native: 大運 / Mahādaśā / 流年 / planet-return sequences
   casting/<system>.py per-system adapter: birth → engine fns → Chart
   synastry.py · group.py · annual.py   native: relationships / group / forecasts
@@ -169,12 +171,12 @@ docs/                 per-system visual guides + screenshots
 scripts/              sync_from_main.sh (re-sync 排盤 math) · screenshots.py
 ```
 
-The 排盤 math is synced from the parent quant monorepo (single source of truth) via `scripts/sync_from_main.sh`, which overwrites **only** `fortune/engines/*` and `prompts/*`. Everything else — ascendant/house geometry, transits, synastry/group/annual, API, readings, the web app **including the chart renderers** — is native to this repo and never touched by sync.
+The 排盤 math is synced from the parent quant monorepo (single source of truth) via `scripts/sync_from_main.sh`, which overwrites **only** `fortune/engines/*` and `prompts/*`. Everything else — ascendant/house geometry, the time-exact planet positions, transits, synastry/group/annual, the per-system adapters in `fortune/casting/` (which re-cast with the real birth hour and exact 節氣 where the engine cores approximate), API, readings, the web app **including the chart renderers** — is native to this repo and never touched by sync.
 
 ## ✅ Tests
 
 ```bash
-pytest -q     # 69 tests
+pytest -q     # 76 tests
 ```
 
 Every system casts · 6 house systems vs Swiss Ephemeris · transits (applying/separating, exact dates, major-transit highlights) · progressions (secondary & solar-arc, major progressions, directed-to-angles) · Solar & Lunar Returns · aspect ranking · planet-return & SR-year timelines · synastry / composite / Davison · group matrix & composite · annual report & multi-year overview.

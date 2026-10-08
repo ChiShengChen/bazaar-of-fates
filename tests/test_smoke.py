@@ -500,3 +500,101 @@ def test_bazi_cast_carries_full_sheet_and_timeline_agrees():
     t = tl.timeline("bazi", BIRTH)
     assert [p.label for p in t.periods] == [d["gz"] for d in c["dayun"]]
     assert t.periods[0].start_age == c["dayun"][0]["start_age"]
+
+
+# --- algorithm-correctness fixes (time-aware/of-date positions, 月將, hour pillars, 起卦…) -------
+
+def test_natal_planets_use_birth_instant_and_equinox_of_date():
+    """Mei 1990-06-15 14:30 Taipei: Moon 342.3° (midnight-UT J2000 gave 338.9°); the frame must
+    match the ascendant's. Sun 83.9° of date (J2000 would be 83.79°)."""
+    import math, ephem
+    from fortune import astro_ext as AX
+    c = casting.cast("astrology", BIRTH)
+    by = {p["body"]: p["ecliptic_lon"] for p in c.chart["planets"]}
+    assert abs(by["Moon"] - 342.31) < 0.05 and abs(by["Sun"] - 83.91) < 0.05
+    ut = AX.birth_utc(BIRTH)
+    s = ephem.Sun(ephem.Date(ut)); eq = ephem.Equatorial(s.ra, s.dec, epoch=ephem.Date(ut))
+    assert abs(by["Sun"] - math.degrees(ephem.Ecliptic(eq).lon) % 360) < 0.01
+    # a late-evening birth moves the Moon by hours' worth of motion, not zero
+    late = casting.cast("astrology", BirthInput(birth_date=date(1990, 6, 15), birth_time=time(23, 30), tz_offset_hours=8))
+    assert abs({p["body"]: p["ecliptic_lon"] for p in late.chart["planets"]}["Moon"] - by["Moon"]) > 4.0
+    # transits / returns / Davison share the frame: the Solar Return Sun equals the natal Sun
+    sr = casting.cast("astrology", BIRTH, solar_return=True, transit_date="2026-06-15")
+    assert abs({p["body"]: p["ecliptic_lon"] for p in sr.chart["solar_return"]}["Sun"] - by["Sun"]) < 0.02
+
+
+def test_jyotish_nakshatra_from_birth_instant():
+    from fortune import astro_ext as AX, jyotish_ext as JX
+    c = casting.cast("jyotish", BIRTH)
+    moon = next(g for g in c.chart["grahas"] if g["graha"] == "Moon")
+    assert c.readings["moon_nakshatra"] == "Shatabhisha" and moon["rashi"] == "Kumbha"
+    n, frac = JX.natal_nakshatra(AX.birth_utc(BIRTH))
+    assert 0.85 < frac < 0.93                      # date-only engine said 0.63
+    from fortune import timeline as tl
+    t = tl.timeline("jyotish", BIRTH)
+    assert t.periods[0].label == "Rahu" and 1.5 < float(t.periods[0].detail.split()[0]) < 2.2
+
+
+def test_liuren_yuejiang_and_courses():
+    """Sun in Gemini (June) → 申將 (傳送); 日干 辛 寄戌; 四課 and 賊克 三傳 for Mei."""
+    c = casting.cast("liuren", BIRTH)
+    assert c.chart["yue_jiang"] == "申" and c.chart["occupy"] == "未"
+    assert [k["upper"] for k in c.chart["courses"]] == ["亥", "子", "子", "丑"]
+    assert c.chart["transmissions"] == ["丑", "寅", "卯"] and "上克下" in c.readings["method"]
+    march = casting.cast("liuren", BirthInput(birth_date=date(2026, 4, 1), birth_time=time(9, 0)))
+    assert march.chart["yue_jiang"] == "戌"       # Sun in Aries → 戌將（河魁）
+
+
+def test_suimei_tieban_use_real_hour_and_exact_terms():
+    s = casting.cast("suimei", BIRTH)
+    assert [p["gz"] for p in s.chart["pillars"]] == ["庚午", "壬午", "辛亥", "乙未"]   # 時柱 乙未, not the engine's 巳時
+    assert s.readings["tenchusatsu"] == "寅卯"
+    t = casting.cast("tieban", BIRTH)
+    assert t.chart["ming_number"] == 17 + 15 + 11 + 16
+    # 2026-10-08 15:57 is past 寒露 14:29 → 戌月 for both
+    late = BirthInput(birth_date=date(2026, 10, 8), birth_time=time(15, 57))
+    assert casting.cast("suimei", late).chart["pillars"][1]["gz"] == "戊戌"
+
+
+def test_iching_traditional_time_casting():
+    """農曆 庚午年五月廿三未時: 年支午=7, 月5, 日23 → 35 → 離; +時8 → 43 → 離, 動爻 43%6=1."""
+    c = casting.cast("iching", BIRTH)
+    h = c.chart["hexagram"]
+    assert (h["upper"], h["lower"], h["moving"]) == ("離", "離", 1)
+    assert h["ben_name"] == "離為火" and h["bian_name"] == "火山旅" and h["hu_name"] == "澤風大過"
+    assert h["numbers"]["upper_sum"] == 35 and h["numbers"]["lower_sum"] == 43
+
+
+def test_ziwei_conventions_and_extra_stars():
+    from fortune import ziwei_ext as ZX
+    c = casting.cast("ziwei", BIRTH)
+    stars = {s.split("(")[0] for p in c.chart["palaces"] for s in p["stars"]}
+    assert {"祿存", "擎羊", "陀羅", "天魁", "天鉞", "火星", "鈴星", "地空", "地劫", "天馬", "紅鸞", "天喜"} <= stars
+    sp = c.chart["star_palace"]
+    pal = {p["name"]: p["branch"] for p in c.chart["palaces"]}
+    assert pal[sp["祿存"]] == "申" and pal[sp["擎羊"]] == "酉" and pal[sp["陀羅"]] == "未"   # 庚年 祿存在申
+    assert pal[sp["天魁"]] == "丑" and pal[sp["天鉞"]] == "未"                            # 庚 → 魁丑 鉞未
+    assert pal[sp["天馬"]] == "申"                                                       # 午年 → 申
+    assert c.readings["liunian_stem"] == "丙"                                            # 2026 農曆 丙午
+    # 晚子時 → next day's lunar date, 子時; 閏月下半月 → next month
+    assert ZX.lunar_for_ziwei(date(1990, 6, 15), 23) == (1990, 5, 24, False)
+    assert ZX.lunar_for_ziwei(date(2023, 4, 10), 10) == (2023, 3, 20, True)    # 2023 閏二月二十
+    assert ZX.lunar_for_ziwei(date(2023, 3, 25), 10) == (2023, 2, 4, False)    # 閏二月初四 stays 二月
+
+
+def test_qimen_chaibu_chart():
+    from datetime import datetime
+    from fortune import qimen_ext as Q
+    g = Q.cast_hour(datetime(1990, 6, 15, 14, 30), 8)
+    assert (g["term"], g["dun"], g["yuan"], g["ju"]) == ("芒種", "陽遁", "上元", 6)     # 辛亥日 符頭 己酉 → 上元
+    earth = {p["palace"]: p["earth_stem"] for p in g["palaces"]}
+    assert earth == {6: "戊", 7: "己", 8: "庚", 9: "辛", 1: "壬", 2: "癸", 3: "丁", 4: "丙", 5: "乙"}
+    assert g["hour_gz"] == "乙未" and g["xun_head"] == "甲午" and g["zhifu"] == "天英" and g["zhishi"] == "景門"
+    by = {p["palace"]: p for p in g["palaces"]}
+    assert by[2]["star"] == "天英" and by[2]["god"] == "值符" and by[2]["sky_stem"] == "辛"   # 時干乙在中宮 → 寄坤二
+    assert by[1]["gate"] == "景門"                                                       # 值使 from 離九 +1 (未−午) → 坎一
+    assert [by[p]["god"] for p in Q.RING] == ["六合", "白虎", "玄武", "九地", "九天", "值符", "騰蛇", "太陰"]
+    late = Q.cast_hour(datetime(2024, 2, 9, 23, 30), 8)
+    assert late["day_gz"] == "甲辰" and late["late_zi"]                                  # 晚子時 → next day
+    c = casting.cast("qimen", BIRTH)
+    assert c.summary.startswith("陽遁6局")

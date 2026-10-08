@@ -1,7 +1,8 @@
 """紫微斗數 — cast the natal 命盤 (命宮 from the real birth 時辰) and read 流年四化.
 
 命宮/身宮/五行局/星位 are cast from the birth hour via fortune.ziwei_ext (the synced
-core hardcodes 巳時 for stocks). With no birth_time we fall back to 午時 (noon).
+core hardcodes 巳時 for stocks); it also applies the 閏月 / 晚子時 conventions and adds the
+auxiliary and 煞 stars. With no birth_time we fall back to 午時 (noon).
 """
 
 from __future__ import annotations
@@ -22,32 +23,44 @@ _REGIME_ZH = {"favourable_year": "流年祿權入命財官", "unfavourable_year"
 def cast(birth: BirthInput) -> Chart:
     today = date.today()
     hb = ziwei_ext.hour_branch_of(birth.hour)               # 子0…亥11 from 生時
-    natal = ziwei_ext.build_natal(birth.as_date, hb)
-    readings = ziwei.ziwei_readings(natal, today)
+    natal = ziwei_ext.build_natal(birth.as_date, hb, clock_hour=birth.hour)
+    readings = ziwei_ext.readings(natal, today)
     readings["life_palace_branch"] = natal["life_branch"]
     readings["body_palace"] = next((p["name"] for p in natal["palaces"] if p["is_body"]), "")
     readings["hour_branch"] = natal["hour_branch"]
+    readings["lunar_birth"] = f"農曆 {natal['lunar']['year_gz']}年 {natal['lunar']['month']} 月 {natal['lunar']['day']} 日 {natal['hour_branch']}時"
     life = next((p for p in natal["palaces"] if p["name"] == "命宮"), None)
     body = next((p for p in natal["palaces"] if p["is_body"]), None)
     life_stars = "、".join(life["stars"]) if life and life["stars"] else "空宮"
     body_stars = "、".join(body["stars"]) if body and body["stars"] else "空宮"
     readings["life_palace_stars"] = life_stars          # 命宮內的星（≠ 命主星 soul_star，後者由命宮地支決定）
     readings["body_palace_stars"] = body_stars
+    readings["palaces"] = "　".join(f"{p['name']}({p['stem']}{p['branch']}):{'、'.join(p['stars']) or '空'}" for p in natal["palaces"])
     regime = _REGIME_ZH.get(readings.get("ziwei_regime", ""), readings.get("ziwei_regime", ""))
     readings["ziwei_regime"] = regime
-    # 引擎的 reasoning_chain 帶著母專案的交易措辭（上市日／開盤／訊號）且把「命主星」寫成「命宮主星」，
-    # 這裡換成命理用語，並補上命宮／身宮實際坐的星
-    chain = [line for line in ziwei.reasoning_chain(natal, today)
-             if not line.startswith("訊號") and not line.startswith("排盤（上市日")]
-    chain.insert(0, f"排盤：命宮在 {natal['life_branch']}宮（{life_stars}）、身宮在 {readings['body_palace']}宮（{body_stars}）、"
-                    f"{readings.get('five_elements_class', '')}；命主星 {readings.get('soul_star', '?')}、身主星 {readings.get('body_star', '?')}")
-    chain.insert(0, f"生時 {natal['hour_branch']}時 → 命宮在 {natal['life_branch']}宮")
+
+    notes = []
+    if natal["lunar"]["late_zi"]:
+        notes.append("晚子時（23 時後）以次日論")
+    if natal["lunar"]["leap_shifted"]:
+        notes.append("閏月下半月以次月論")
+    if not birth.birth_time:
+        notes.append("時辰未知，以午時估算")
+    chain = [
+        f"生時 {natal['hour_branch']}時・{readings['lunar_birth']}" + (f"（{'；'.join(notes)}）" if notes else "")
+        + f" → 命宮在 {natal['life_branch']}宮",
+        f"排盤：命宮在 {natal['life_branch']}宮（{life_stars}）、身宮在 {readings['body_palace']}宮（{body_stars}）、"
+        f"{readings.get('five_elements_class', '')}；命主星 {readings.get('soul_star', '?')}、身主星 {readings.get('body_star', '?')}",
+        f"生年四化（{natal['lunar']['year_gz'][0]}干）：{natal.get('natal_sihua', '')}。",
+        f"流年天干＝{readings['liunian_stem']}（農曆年），四化：{readings['liunian_sihua']}。",
+        f"四化飛星落宮：{readings['sihua_landing']}。",
+    ]
     summary = (
         f"命宮 {natal['life_branch']}・命主星 {readings.get('soul_star', '?')}・"
         f"{readings.get('five_elements_class', '')}・{regime}"
     )
     return Chart(
         system=KEY, system_en=EN, system_zh=ZH, subject=birth.label(), cast_at=birth.dt,
-        chart={"palaces": natal.get("palaces", []), "star_palace": natal.get("star_palace", {})},
+        chart={"palaces": natal.get("palaces", []), "star_palace": natal.get("star_palace", {}), "lunar": natal["lunar"]},
         reasoning_chain=chain, readings=readings, summary=summary,
     )

@@ -71,6 +71,8 @@ th { color: var(--dim); font-weight: 500; }
 .zw-cell { border: 1px solid var(--line); border-radius: 6px; padding: 5px 6px; display: flex; flex-direction: column; justify-content: space-between; font-size: 11px; overflow: hidden; }
 .zw-cell.body { border-color: var(--accent); background: #1c1530; }
 .zw-stars { line-height: 1.4; word-break: break-all; }
+.zw-major { font-weight: 700; color: var(--ink); }
+.zw-minor { font-size: 10px; color: var(--dim); }
 .zw-name { color: var(--accent); margin-top: 3px; }
 .zw-center { grid-row: 2 / 4; grid-column: 2 / 4; border: 1px solid var(--line); border-radius: 8px; padding: 10px; display: flex; flex-direction: column; justify-content: center; gap: 4px; font-size: 12px; text-align: center; }
 
@@ -90,3 +92,14 @@ th { color: var(--dim); font-weight: 500; }
 .bz-cell .bz-gz { margin: 2px 0; }
 .bz-months .bz-cell { background: #0e0e14; }
 .bz-sub { border-top: 1px solid var(--line); padding: 8px 0 2px; line-height: 1.7; }
+
+/* 奇門 九宮 */
+.qm-board { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; max-width: 420px; }
+.qm-cell { border: 1px solid var(--line); border-radius: 8px; padding: 6px 8px; min-height: 76px; font-size: 13px; display: flex; flex-direction: column; gap: 3px; }
+.qm-cell.good { border-color: #14532d; } .qm-cell.bad { border-color: #4c0519; } .qm-cell.fu { outline: 2px solid var(--accent); }
+.qm-top { display: flex; justify-content: space-between; font-size: 11px; color: var(--accent); }
+.qm-mid { display: flex; justify-content: space-between; }
+.qm-stem { font-weight: 600; } .qm-shi { color: var(--accent); font-weight: 700; }
+/* 六壬 天地盤 */
+.lr-plate { display: grid; grid-template-columns: repeat(12, 1fr); gap: 3px; }
+.lr-cell { border: 1px solid var(--line); border-radius: 6px; padding: 4px 0; text-align: center; font-size: 13px; display: flex; flex-direction: column; }

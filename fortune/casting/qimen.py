@@ -1,26 +1,41 @@
-"""奇門遁甲 — 八門九宮起局 from the birth date."""
+"""奇門遁甲 — 時家奇門 命局 (the hour chart of the birth moment) via fortune.qimen_ext.
+
+The synced engine's day-of-year 起局 is a placeholder and is no longer used for the chart;
+this adapter casts the standard 轉盤・拆補法 chart: 節氣 → 遁/元/局 → 地盤 → 值符值使 → 天盤.
+"""
 
 from __future__ import annotations
 
-from datetime import date
-
+from fortune import qimen_ext as Q
 from fortune.birth import BirthInput
-from fortune.engines.qimen import qimen
 from fortune.schemas import Chart
 
 KEY, ZH, EN = "qimen", "奇門遁甲", "Qi Men Dun Jia"
 
 
 def cast(birth: BirthInput) -> Chart:
-    today = date.today()
-    readings = qimen.qimen_readings(birth.as_date)
-    chain = qimen.reasoning_chain(birth.as_date, today)
-    layout = qimen.gate_layout(birth.as_date)
-    summary = (
-        f"{readings.get('dun', '')}・{readings.get('ju', '')}・"
-        f"值符門 {readings.get('active_gate', readings.get('qimen_regime', ''))}"
-    )
+    g = Q.cast_hour(birth.dt, birth.tz_offset_hours)
+    regime = "auspicious_gate" if g["gate_class"] == "三吉門" else "ill_gate" if g["gate_class"] == "凶門" else "neutral_gate"
+    readings = {
+        "qimen_regime": regime, "dun": g["dun"], "ju": g["ju_label"], "yuan": g["yuan"], "term": g["term"],
+        "day_hour": f"{g['day_gz']}日 {g['hour_gz']}時" + ("（晚子時以次日計）" if g["late_zi"] else "") + ("（時辰未知以午時計）" if not birth.birth_time else ""),
+        "xun": f"{g['xun_head']}旬（{g['xun_yi']}）・空亡 {g['kong_wang']}",
+        "zhifu": f"{g['zhifu']}（落{Q.PALACE_NAME[g['zhifu_palace']]}宮）", "zhishi": f"{g['zhishi']}（落{Q.PALACE_NAME[g['zhishi_palace']]}宮）",
+        "active_gate": g["zhishi"], "gate_class": g["gate_class"],
+        "palaces": "　".join(f"{p['name']}:{p['god']}{p['star']}{p['gate']}{p['sky_stem']}/{p['earth_stem']}" for p in g["palaces"]),
+    }
+    chain = [
+        f"起局（{birth.dt.isoformat(timespec='minutes')} 本地時）：節氣 {g['term']}（{g['term_at'].replace('T', ' ')} 交）→ {g['dun']}；"
+        f"日柱 {g['day_gz']} 符頭定 {g['yuan']} → {g['ju_label']}。",
+        "地盤：" + "、".join(f"{p['name']}{p['earth_stem']}" for p in g["palaces"]) + "。",
+        f"時柱 {g['hour_gz']}，{g['xun_head']}旬，旬首遁 {g['xun_yi']} → 值符 {g['zhifu']}、值使 {g['zhishi']}；時旬空亡 {g['kong_wang']}。",
+        f"值符隨時干落 {Q.PALACE_NAME[g['zhifu_palace']]}宮，值使隨時支落 {Q.PALACE_NAME[g['zhishi_palace']]}宮（{g['gate_class']}）。",
+        "天盤：" + "、".join(f"{p['name']} {p['god']}·{p['star']}·{p['gate']}·{p['sky_stem']}" for p in g["palaces"] if p["palace"] != 5) + "。",
+    ]
+    summary = f"{g['ju_label']}（{g['term']}{g['yuan']}）・值符 {g['zhifu']}・值使 {g['zhishi']}（{g['gate_class']}）"
     return Chart(
         system=KEY, system_en=EN, system_zh=ZH, subject=birth.label(), cast_at=birth.dt,
-        chart={"gates": layout}, reasoning_chain=chain, readings=readings, summary=summary,
+        chart={"ju": g["ju_label"], "palaces": g["palaces"], "zhifu": g["zhifu"], "zhishi": g["zhishi"],
+               "gates": [{"palace": p["name"], "gate": p["gate"], "cls": p["gate_cls"]} for p in g["palaces"] if p["gate"]]},
+        reasoning_chain=chain, readings=readings, summary=summary,
     )

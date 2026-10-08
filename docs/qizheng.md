@@ -33,3 +33,8 @@ Chinese astral astrology: a star chart of the **七政** (Sun, Moon, 5 visible p
 | 拱照 / 沖剋 | 吉星照命 / 凶星犯命 |
 
 > 七政為真實天文經度（`ephem`）；四餘用標準平均根數；命宮共用占星的上升幾何。
+
+## 排盤精度 / How positions are computed
+
+- 七政取出生精確時刻、當日黃道；四餘（羅睺、計都＝月交點，月孛＝月遠地點）用平均軌道要素在同一時刻求值；紫炁為虛擬之炁。
+- 命度（命宮）需時辰與出生地；流年看歲星拱照與火羅沖剋命主太陽之宮。

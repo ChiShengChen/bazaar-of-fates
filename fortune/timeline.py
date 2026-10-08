@@ -14,6 +14,8 @@ from datetime import date, timedelta
 
 import ephem
 
+from fortune import astro_ext as AX
+from fortune import jyotish_ext as JX
 from fortune.birth import BirthInput
 from fortune.engines.astrology import astro as ASTRO
 from fortune.engines.bazi import bazi as BZ
@@ -40,24 +42,16 @@ def _today() -> date:
 # --- Jyotiṣa Vimśottarī Mahādaśā ------------------------------------------------
 
 def jyotish_dasha(birth: BirthInput, count: int = 9) -> Timeline:
-    n, frac = JY.natal_nakshatra(birth.as_date)
-    start_idx = n % 9
+    """Vimśottarī Mahādaśā from the Moon at the exact birth instant (fortune.jyotish_ext)."""
     today = _today()
     periods: list[Period] = []
-    cursor = birth.as_date
-    for i in range(count):
-        lord = JY.DASHA_LORDS[(start_idx + i) % 9]
-        full = JY.DASHA_YEARS[(start_idx + i) % 9]
-        years = full * (1.0 - frac) if i == 0 else float(full)
-        end = cursor + timedelta(days=years * _DAYS_PER_YEAR)
-        nature = "benefic" if lord in JY.BENEFIC else "malefic"
+    for i, p in enumerate(JX.dasha_periods(AX.birth_utc(birth), count=count)):
         periods.append(Period(
-            index=i, label=lord, detail=f"{years:.1f} yr daśā",
-            start=cursor.isoformat(), end=end.isoformat(),
-            start_age=round((cursor - birth.as_date).days / _DAYS_PER_YEAR, 1),
-            nature=nature, current=cursor <= today < end,
+            index=i, label=p["lord"], detail=f"{p['years']:.1f} yr daśā",
+            start=p["start"].isoformat(), end=p["end"].isoformat(),
+            start_age=round((p["start"] - birth.as_date).days / _DAYS_PER_YEAR, 1),
+            nature=p["nature"], current=p["start"] <= today < p["end"],
         ))
-        cursor = end
     return Timeline(system="jyotish", system_en="Jyotiṣa · Vedic Astrology", system_zh="Jyotiṣa（吠陀占星）",
                     kind="mahadasha", kind_label="Vimśottarī Mahādaśā · 大運（120年九曜）", periods=periods)
 
@@ -122,13 +116,13 @@ def _return_dates(natal_lon: float, body_cls, birth_date: date, period_years: fl
         best = (approx, 999.0)
         for off in range(-400, 401, 5):                   # coarse, then fine
             dd = approx + timedelta(days=off)
-            sep = ASTRO._separation(ASTRO._lon(body_cls, dd), natal_lon)
+            sep = ASTRO._separation(AX.lon_on(body_cls, dd), natal_lon)
             if sep < best[1]:
                 best = (dd, sep)
         d0 = best[0]
         for off in range(-5, 6):
             dd = d0 + timedelta(days=off)
-            sep = ASTRO._separation(ASTRO._lon(body_cls, dd), natal_lon)
+            sep = ASTRO._separation(AX.lon_on(body_cls, dd), natal_lon)
             if sep < best[1]:
                 best = (dd, sep)
         out.append(best[0])
@@ -138,7 +132,7 @@ def _return_dates(natal_lon: float, body_cls, birth_date: date, period_years: fl
 def astrology_returns(birth: BirthInput) -> Timeline:
     """Jupiter (~12 yr) & Saturn (~29.5 yr) returns over the lifespan — the classic
     'Saturn return at ~29' milestones."""
-    natal = {b: lon for (b, lon, _s, _r) in ASTRO.chart_for(birth.as_date)}
+    natal = {p["body"]: p["ecliptic_lon"] for p in AX.planets_at(AX.birth_utc(birth))}
     today = _today()
     periods: list[Period] = []
     for body, (cls, per, nature) in _RETURNS.items():

@@ -34,14 +34,48 @@ def sign_zh(lon: float) -> str:
     return _SIGNS_ZH[int(lon // 30) % 12]
 
 
+def lon_of_date(body_cls, dt_utc) -> float:
+    """Apparent geocentric ecliptic longitude referred to the TRUE EQUINOX OF DATE at an
+    exact UT instant — the frame natal charts use, and the same frame as the ascendant /
+    house cusps here. (The synced engine's `astro._lon` is date-only and J2000-referred:
+    up to ~0.5° of precession off and, for the Moon, up to ±13° of missing motion.)"""
+    body = body_cls()
+    body.compute(ephem.Date(dt_utc))
+    eq = ephem.Equatorial(body.ra, body.dec, epoch=ephem.Date(dt_utc))
+    return math.degrees(ephem.Ecliptic(eq).lon) % 360.0
+
+
+def lon_on(body_cls, d, hour_utc: float = 12.0) -> float:
+    """lon_of_date at a clock time on calendar date `d` (default noon UT) — for day-level
+    scans (transits, returns, exact-date searches) that must stay in the of-date frame."""
+    from datetime import datetime as _datetime
+    return lon_of_date(body_cls, _datetime(d.year, d.month, d.day) + timedelta(hours=hour_utc))
+
+
+def birth_utc(birth: BirthInput):
+    """The birth instant in UT (noon local when the time-of-day is unknown)."""
+    return birth.dt - timedelta(hours=birth.tz_offset_hours)
+
+
+def is_retrograde_at(body_cls, dt_utc) -> bool:
+    a = lon_of_date(body_cls, dt_utc)
+    b = lon_of_date(body_cls, dt_utc + timedelta(days=1))
+    return ((b - a + 540.0) % 360.0 - 180.0) < 0
+
+
+def moon_illumination_at(dt_utc) -> float:
+    m = ephem.Moon()
+    m.compute(ephem.Date(dt_utc))
+    return float(m.phase)
+
+
 def planets_at(dt_utc) -> list[dict]:
-    """Planet rows at an exact UT datetime (time-accurate) — for Davison & progressions."""
+    """Planet rows at an exact UT datetime, true equinox of date — natal charts, transits,
+    Davison, progressions and returns all go through here so they share one frame."""
     out = []
     for name, cls in astro._BODIES.items():
-        body = cls()
-        body.compute(ephem.Date(dt_utc))
-        lo = math.degrees(ephem.Ecliptic(body).lon) % 360.0
-        retro = name not in ("Sun", "Moon") and astro.is_retrograde(cls, dt_utc.date())
+        lo = lon_of_date(cls, dt_utc)
+        retro = name not in ("Sun", "Moon") and is_retrograde_at(cls, dt_utc)
         out.append({"body": name, "ecliptic_lon": round(lo, 2),
                     "sign": sign_of(lo), "sign_zh": sign_zh(lo), "retrograde": retro})
     return out

@@ -196,3 +196,9 @@ Pick *transits*: a blue outer ring shows today's (or any day's) planets over you
 
 > ⚠️ 僅供文化、教育與娛樂用途。命理不是財務、醫療或法律決策的依據。
 > For cultural / educational / entertainment use only. Not a basis for real-world decisions.
+
+## 排盤精度 / How positions are computed
+
+- 行星位置取**出生當下的精確時刻**（本地時 − 時區 → UT），座標系為**當日真春分點黃道**，與上升／宮位同一框架。月亮一天走 13°，若只用日期算，約一成的人月亮星座會錯。
+- 行運、推運、太陽／月亮回歸、Davison、行星回歸都走同一套計算，所以回歸時刻是用同框架的本命太陽去找的。
+- 時辰未知時以當地正午估算，並在命盤要素標示。

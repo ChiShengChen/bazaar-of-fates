@@ -42,3 +42,9 @@ Vedic astrology: charts use the **sidereal** zodiac (tropical − Lahiri ayanā�
 | Vimśottarī Daśā | 120 年九曜輪值的人生分段 |
 
 > 恆星經度＝熱帶（`ephem`）− Lahiri 歲差；大運由月宿起算的 Vimśottarī 系統。
+
+## 排盤精度 / How positions are computed
+
+- 九曜取**出生精確時刻**的當日黃道位置，再減 Lahiri 歲差（J2000 ≈ 23.853°，每年 +50.27″）。
+- **月宿 nakṣatra**（寬 13°20′）與月亮一天的行程相當，所以用時刻而非日期算；Vimśottarī daśā 的起始主星與餘量都由此而來。
+- 羅睺／計都用平均交點；Lagna ＝ 回歸上升 − 歲差。

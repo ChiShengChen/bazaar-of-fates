@@ -1,8 +1,10 @@
 """西洋占星 — cast a natal chart (planets + ascendant + whole-sign houses) from a birth moment.
 
-Planet longitudes come from the synced engine (date-based). The ascendant and houses
-need the birth time AND birthplace, supplied by fortune.astro_ext. With no time/place we
-gracefully fall back to the planets-only chart and flag the ascendant as unknown.
+Planet longitudes are computed natively (fortune.astro_ext) at the exact birth instant,
+referred to the true equinox of date — the same frame as the ascendant and house cusps.
+(The synced engine's date-only J2000 positions are kept for its trading signal only.)
+The ascendant and houses need the birth time AND birthplace; with no time/place we
+gracefully fall back to the planets-only chart (noon local) and flag the ascendant as unknown.
 """
 
 from __future__ import annotations
@@ -50,7 +52,7 @@ def _exact_date(body_cls, target_lon: float, around: date, window: int = 500) ->
     Scans ±window days for a sign change of the signed arc, then refines — handling
     retrograde, where there can be several crossings."""
     def g(off: int) -> float:
-        return _signed_arc(astro._lon(body_cls, around + timedelta(days=off)) - target_lon)
+        return _signed_arc(AX.lon_on(body_cls, around + timedelta(days=off)) - target_lon)
 
     prev_off, prev = -window, g(-window)
     best = None
@@ -96,7 +98,7 @@ def _period_major_transits(angles: dict, start: date, span_days: int) -> list[di
     while d <= end:
         for body_name in _SLOW:
             cls = astro._BODIES[body_name]
-            lon = astro._lon(cls, d)
+            lon = AX.lon_on(cls, d)
             for an, alon in angles.items():
                 sep = astro._separation(lon, alon)
                 for asp, exact in _HARD.items():
@@ -169,7 +171,7 @@ def _find_lunar_return(target: date, natal_moon: float) -> datetime:
     """UT moment nearest `target` when the transiting Moon returns to the natal Moon
     longitude (≈ every 27.3 days) — the Lunar Return for that month."""
     def moon(dt: datetime) -> float:
-        return astro._lon(astro.ephem.Moon, dt)
+        return AX.lon_of_date(astro.ephem.Moon, dt)
     anchor = datetime(target.year, target.month, target.day)
     start = anchor - timedelta(days=16)
     prev, pv = start, _signed_arc(moon(start) - natal_moon)
@@ -284,17 +286,28 @@ def cast(birth: BirthInput, *, house_system: str = "whole_sign",
          progress: bool = False, progress_method: str = "secondary",
          solar_return: bool = False, lunar_return: bool = False) -> Chart:
     d = birth.as_date
-    chart_rows = [
-        {"body": b, "ecliptic_lon": lon, "sign": sign, "sign_zh": astro.sign_zh(lon), "retrograde": retro}
-        for (b, lon, sign, retro) in astro.chart_for(d)
-    ]
-    readings = astro.astro_readings(d, ORB)
-    chain = astro.reasoning_chain(d, ORB)
+    birth_ut = AX.birth_utc(birth)
+    chart_rows = AX.planets_at(birth_ut)                          # exact instant, equinox of date
     sun = next((r for r in chart_rows if r["body"] == "Sun"), None)
-    moon = readings.get("moon_phase", "")
-
-    aspects = astro.aspects_for(d, ORB)
-    readings["aspects"] = aspects                                  # surface aspects to the 解讀
+    merc = next((r for r in chart_rows if r["body"] == "Mercury"), None)
+    illum = AX.moon_illumination_at(birth_ut)
+    waxing = AX.moon_illumination_at(birth_ut + timedelta(days=1)) >= illum
+    moon = ("waxing" if waxing else "waning") + (" (near full)" if illum > 90 else " (near new)" if illum < 10 else "")
+    aspects_detail = aspects_within(chart_rows)
+    aspects = [f"{x['a']} {x['type']} {x['b']} ({x['orb']}° orb)" for x in aspects_detail]
+    readings = {
+        "astro_regime": "mercury_retrograde" if merc and merc["retrograde"] else "direct",
+        "mercury_retrograde": "yes" if merc and merc["retrograde"] else "no",
+        "moon_illumination_pct": round(illum, 1), "moon_phase": moon,
+        "sun_sign": sun["sign"] if sun else "", "n_aspects": float(len(aspects)),
+        "birth_moment_ut": birth_ut.isoformat(timespec="minutes") + " UT"
+                           + ("" if birth.birth_time else " (time unknown → noon local 時辰未知以正午計)"),
+        "aspects": aspects,                                       # surface aspects to the 解讀
+    }
+    chain = [f"{r['body']} {r['ecliptic_lon']:.1f}° · {r['sign']} ({r['sign_zh']}){' ℞ retrograde' if r['retrograde'] else ''}"
+             for r in chart_rows]
+    chain.append(f"Moon {illum:.0f}% illuminated → {'waxing (new→full)' if waxing else 'waning (full→new)'}")
+    chain.extend(f"aspect: {a}" for a in aspects[:6])
     asc = AX.ascendant_block(birth, house_system=house_system)    # None if 時辰/出生地 missing
     if asc:
         cusps = asc["houses"]
@@ -323,17 +336,14 @@ def cast(birth: BirthInput, *, house_system: str = "whole_sign",
         readings["ascendant"] = "unknown — needs birth time + place 需時辰＋出生地"
         asc_str = "・上升未知"
 
-    chart_payload = {"planets": chart_rows, "aspects": aspects, "aspects_detail": aspects_within(chart_rows)}
+    chart_payload = {"planets": chart_rows, "aspects": aspects, "aspects_detail": aspects_detail}
     if transits:                                                  # 流年行運：overlay the sky on a date
         td = date.fromisoformat(transit_date) if transit_date else date.today()
-        trows = [
-            {"body": b, "ecliptic_lon": lon, "sign": sign, "sign_zh": astro.sign_zh(lon), "retrograde": retro}
-            for (b, lon, sign, retro) in astro.chart_for(td)
-        ]
+        trows = AX.planets_at(datetime(td.year, td.month, td.day, 12))     # noon UT of that day
         tasp = _cross_aspects(chart_rows, trows)
         natal_by = {p["body"]: p["ecliptic_lon"] for p in chart_rows}
         t_now = {p["body"]: p["ecliptic_lon"] for p in trows}
-        t_next = {b: astro._lon(astro._BODIES[b], td + timedelta(days=1)) for b in t_now}
+        t_next = {b: AX.lon_on(astro._BODIES[b], td + timedelta(days=1)) for b in t_now}
         _enrich_aspects(tasp, natal_by, t_now, t_next, td, 1.0)
         chart_payload["transits"] = trows
         chart_payload["transit_aspects"] = tasp
@@ -363,7 +373,7 @@ def cast(birth: BirthInput, *, house_system: str = "whole_sign",
                             weight = round(_ASPECT_WEIGHT[asp] * (1.0 - 0.45 * orb / _ANGLE_ORB), 2)
                             cls = astro._BODIES[t["body"]]
                             # applying vs separating: is tomorrow's orb tighter? (handles retrograde)
-                            l1 = astro._lon(cls, td + timedelta(days=1))
+                            l1 = AX.lon_on(cls, td + timedelta(days=1))
                             orb1 = abs(astro._separation(l1, alon) - exact)
                             phase = "applying" if orb1 < orb else "separating"
                             # exact-aspect longitude the planet must reach → date it perfects

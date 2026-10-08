@@ -9,7 +9,8 @@ from __future__ import annotations
 
 from datetime import date
 
-from fortune import casting, timeline as tl
+from fortune import astro_ext as AX
+from fortune import casting, jyotish_ext as JX, timeline as tl
 from fortune.birth import BirthInput
 from fortune.engines.bazi import bazi as BZ
 from fortune.engines.jyotish import jyotish as JY
@@ -59,7 +60,7 @@ def compute(birth: BirthInput, year: int, *, light: bool = False) -> dict:
     }
 
     # — Jyotiṣa Mahādaśā —
-    lord = JY.mahadasha_lord(birth.as_date, mid)
+    lord = JX.mahadasha_lord(AX.birth_utc(birth), mid)
     report["sections"]["jyotish"] = {
         "mahadasha_lord": lord, "nature": "benefic" if lord in JY.BENEFIC else "malefic",
     }
