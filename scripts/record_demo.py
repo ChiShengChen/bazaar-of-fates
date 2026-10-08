@@ -77,5 +77,29 @@ def social() -> None:
     print("→", out)
 
 
+def gif_space() -> None:
+    """Hero GIF from the themed Space UI (run `python deploy/hf-space/app.py` on :7860 first, or set DEMO_SPACE)."""
+    url = os.environ.get("DEMO_SPACE", "http://localhost:7860/")
+    tmp = tempfile.mkdtemp()
+    with sync_playwright() as p:
+        b = p.chromium.launch()
+        ctx = b.new_context(viewport={"width": 1100, "height": 760}, record_video_dir=tmp, record_video_size={"width": 1100, "height": 760})
+        pg = ctx.new_page()
+        pg.goto(url, wait_until="networkidle"); pg.wait_for_timeout(1200)
+        pg.get_by_role("button", name="排 盤 · Cast").click(); pg.wait_for_timeout(2500)
+        pg.mouse.wheel(0, 650); pg.wait_for_timeout(1400); pg.mouse.wheel(0, 500); pg.wait_for_timeout(900); pg.mouse.wheel(0, -1150); pg.wait_for_timeout(300)
+        pg.locator("input[aria-label='System 系統']").click(); pg.wait_for_timeout(300); pg.get_by_role("option", name="紫微斗數 · Zi Wei Dou Shu · Purple Star").click(); pg.wait_for_timeout(300)
+        pg.get_by_role("button", name="排 盤 · Cast").click(); pg.wait_for_timeout(2500)
+        pg.mouse.wheel(0, 650); pg.wait_for_timeout(1600); pg.mouse.wheel(0, -650); pg.wait_for_timeout(300)
+        pg.get_by_role("tab", name="Synthesis 綜合會診").click(); pg.wait_for_timeout(400)
+        pg.locator("[placeholder*='事業']").first.fill("明年事業"); pg.get_by_role("button", name="會 診 · 十三術同問").click(); pg.wait_for_timeout(5000)
+        pg.mouse.wheel(0, 500); pg.wait_for_timeout(1500)
+        video = pg.video.path(); ctx.close(); b.close()
+    out = IMG / "demo.gif"
+    subprocess.run([_ffmpeg(), "-y", "-i", video, "-vf", "fps=10,scale=900:-1:flags=lanczos,split[s0][s1];[s0]palettegen=max_colors=128[p];[s1][p]paletteuse=dither=bayer",
+                    "-loop", "0", str(out)], check=True, capture_output=True)
+    print("→", out, f"{out.stat().st_size // 1024} KB")
+
+
 if __name__ == "__main__":
-    {"gif": gif, "social": social}.get(sys.argv[1] if len(sys.argv) > 1 else "gif", gif)()
+    {"gif": gif, "gif_space": gif_space, "social": social}.get(sys.argv[1] if len(sys.argv) > 1 else "gif", gif)()

@@ -11,7 +11,10 @@ body, .gradio-container{background:
   radial-gradient(1px 1px at 10% 70%, rgba(255,255,255,.35) 50%, transparent 51%),
   radial-gradient(ellipse at 50% -10%, #2a1f4a 0%, #15122a 45%, #0b0a14 100%) !important;
   color:#e8dcc0 !important; font-family:'Noto Serif TC','Songti TC','PingFang TC',serif !important}
-.gradio-container{max-width:1180px !important; margin:0 auto !important}
+.gradio-container{width:100% !important; max-width:1180px !important; margin:0 auto !important; box-sizing:border-box}
+html, body{overflow-x:hidden}
+.gradio-container .prose, .gradio-container .html-container, .share, .share a{overflow-wrap:anywhere; word-break:break-word}
+.share, .share a{word-break:break-all}
 .gradio-container *{font-family:'Noto Serif TC','Songti TC',serif}
 .gradio-container code, .gradio-container pre{font-family:ui-monospace,Menlo,monospace}
 .gradio-container .block, .gradio-container .form, .gradio-container .tabitem, .gradio-container .gr-box, .gradio-container .gr-panel{
@@ -46,6 +49,31 @@ body, .gradio-container{background:
 .gradio-container .paper .e-metal{color:#4a4238 !important} .gradio-container .paper .e-water{color:#1f4e8c !important}
 .gradio-container .paper .star{color:#b8892b !important}
 .gradio-container .paper .v-fav{color:#2f6b2f !important; font-weight:900} .gradio-container .paper .v-neu{color:#7a6a4e !important; font-weight:700} .gradio-container .paper .v-unf{color:#b4302b !important; font-weight:900}
+/* never let a sheet widen the page: every scrolling/grid piece gets a definite width */
+.gradio-container #board, .gradio-container .html-container, .gradio-container .prose{min-width:0 !important; max-width:100% !important; width:100% !important}
+.paper{width:100%; box-sizing:border-box; min-width:0; overflow:hidden}
+.paper .strip{min-width:0; width:100%} .paper .strip .cell{flex:0 0 72px}
+.zw{width:100%} .qm{width:100%} .lr{width:100%; min-width:0}
+.paper .tw{overflow-x:auto; -webkit-overflow-scrolling:touch; width:100%; min-width:0}
+.paper .tw table{min-width:520px}
+@media (max-width:700px){
+  .gradio-container .block, .gradio-container .column, .gradio-container .form, .gradio-container .tabitem{min-width:0 !important; max-width:100% !important}
+  .gradio-container .row{flex-wrap:wrap !important}
+  .gradio-container .row > *{flex:1 1 46% !important; min-width:46% !important}
+  .gradio-container .row > .block.padded{min-width:46% !important}
+  .hero{padding:10px 4px 2px} .hero .title{font-size:24px; white-space:normal !important; line-height:1.2} .hero .seal{margin-left:6px; font-size:11px} .hero .orn{display:none} .hero .orn{letter-spacing:.3em; font-size:11px} .hero .sub{font-size:12px; letter-spacing:.04em}
+  .gradio-container .block.padded{padding:10px !important}
+  .gradio-container button.primary{font-size:16px !important; letter-spacing:.1em}
+  .paper{padding:10px 8px} .paper .head{font-size:12.5px} .paper .note{font-size:12.5px} .paper th,.paper td{padding:3px 4px; font-size:12px} .paper .ch.big{font-size:20px}
+  .paper .tw table{min-width:0} .paper .cell{flex:0 0 64px}
+  .zw{max-width:100% !important; gap:3px; aspect-ratio:auto !important; grid-template-rows:auto auto auto auto} .zw .c{font-size:9px; padding:3px 4px; min-height:64px}
+  .zw .ctr{justify-content:flex-start; min-height:0; overflow:hidden; background-size:60%}
+  .qm{max-width:100% !important} .zw .maj{font-size:11px} .zw .min{font-size:8.5px} .zw .ctr{font-size:10px; padding:4px; gap:2px}
+  .qm{max-width:100%} .qm .c{font-size:11.5px; padding:5px 6px; min-height:60px}
+  .lr{grid-template-columns:repeat(6,1fr)}
+  .kv{grid-template-columns:1fr} .kv .k{margin-top:4px}
+}
+.share{font-size:12.5px; color:#c9b98f; word-break:break-all; padding:6px 2px} .share a{color:#f1d27a}
 .paper .v-fav{color:#2f6b2f; font-weight:900} .paper .v-neu{color:#7a6a4e; font-weight:700} .paper .v-unf{color:#b4302b; font-weight:900}
 .paper tr.conflict td{background:rgba(180,48,43,.07) !important}
 .paper .star{color:#b8892b; letter-spacing:-1px; white-space:nowrap}

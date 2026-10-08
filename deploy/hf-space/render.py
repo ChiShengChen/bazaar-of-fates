@@ -61,13 +61,13 @@ def bazi(c: dict) -> str:
     if s:
         out.append(f"<div><span class='muted'>旺衰</span> <b>{_e(s['label'])}</b>（得力 {int(s['ratio'] * 100)}%）　<span class='muted'>格局</span> {_e(s['pattern'])}　<span class='muted'>用神</span> {_c(s['yongshen'])}　"
                    f"<span class='muted'>喜</span> {''.join(_c(e) for e in s['favourable'])}　<span class='muted'>忌</span> {''.join(_c(e) for e in s['avoid'])}<div class='muted' style='font-size:12px'>{_e(s['yongshen_why'])}；{_e(s['tiaohou_note'])}</div></div>")
-    out.append("</div><table><tr><th>四柱</th>" + "".join(f"<th>{_e(p['pillar'])}</th>" for p in P) + "</tr>")
+    out.append("</div><div class='tw'><table><tr><th>四柱</th>" + "".join(f"<th>{_e(p['pillar'])}</th>" for p in P) + "</tr>")
     rows = [("十神", lambda p: _e(p["stem_god"])), ("天干", lambda p: _c(p["stem"], True)), ("地支", lambda p: _c(p["branch"], True) + f" <span class='muted'>{_e(p['zodiac'])}</span>"),
             ("藏干", lambda p: "<br>".join(_c(h["stem"]) + f"（{_e(h['god'])}）" for h in p["hidden"])), ("納音", lambda p: _e(p["nayin"])), ("長生", lambda p: _e(p["changsheng"])),
             ("空亡", lambda p: _e(p["kong_wang"])), ("神煞", lambda p: "<br>".join(map(_e, p["shensha"])) or "—")]
     for label, fn in rows:
         out.append(f"<tr><td>{label}</td>" + "".join(f"<td>{fn(p)}</td>" for p in P) + "</tr>")
-    out.append("</table>")
+    out.append("</table></div>")
     out.append(f"<div class='note'><span class='muted'>天干留意：</span>{_e('；'.join(c.get('stem_notes', [])) or '—')}</div><div class='note'><span class='muted'>地支留意：</span>{_e('；'.join(c.get('branch_notes', [])) or '—')}</div>")
     cg = c.get("cheng_gu", {})
     out.append(f"<div class='note'><span class='muted'>稱骨：</span>{_e(cg.get('label', ''))}（{cg.get('weight', '')} 兩）— {_e(cg.get('verdict', ''))}</div>")
@@ -115,13 +115,13 @@ def ziwei(c: dict, readings: dict, subject: str) -> str:
 
 def liuyao(g: dict) -> str:
     out = ["<div class='paper bz'><div class='title'>六爻納甲 <span class='seal'>卦</span></div>", f"<div class='note'><b>{_e(g['name'])}</b>（{_e(g['palace'])}宮{_e(g['palace_elem'])}）世{g['shi']}應{g['ying']}・月建 {_e(g['month_branch'])}・日辰 {_e(g['day_gz'])}・旬空 {_e(g['kong_wang'])}" + (f"・變卦 {_e(g['changed']['name'])}" if g.get("changed") else "") + "</div>",
-           "<table><tr><th>爻</th><th>六神</th><th>六親</th><th>干支</th><th></th><th>世應</th><th>伏神</th><th>旺衰</th><th>變</th></tr>"]
+           "<div class='tw'><table><tr><th>爻</th><th>六神</th><th>六親</th><th>干支</th><th></th><th>世應</th><th>伏神</th><th>旺衰</th><th>變</th></tr>"]
     for r in reversed(g["lines"]):
         ch = g.get("changed")
         out.append(f"<tr style='{'background:#f3e8ff' if r['moving'] else ''}'><td>{r['pos']}</td><td>{_e(r['god'])}</td><td><b>{_e(r['relative'])}</b></td><td>{_e(r['stem'] + r['branch'])}</td>"
                    f"<td style='font-family:monospace'>{'▅▅▅▅▅' if r['yang'] else '▅▅　▅▅'}{' ●' if r['moving'] else ''}</td><td>{'世' if r['shi'] else '應' if r['ying'] else ''}</td><td class='muted'>{_e(r.get('hidden', ''))}</td>"
                    f"<td class='muted'>{_e('/'.join(r['notes']))}</td><td>{(_e(ch['line']['relative'] + ch['line']['stem'] + ch['line']['branch']) + '（' + _e(ch['relation']) + '）') if r['moving'] and ch else ''}</td></tr>")
-    out.append("</table></div>")
+    out.append("</table></div></div>")
     return "".join(out)
 
 
