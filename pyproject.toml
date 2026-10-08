@@ -1,12 +1,13 @@
 [project]
 name = "bazaar-of-fates"
-version = "0.1.0"
+version = "0.2.0"
 description = "算命 — 13 traditional divination systems (西洋占星 · 八字 · 紫微 · 梅花 · 六爻 · 小六壬 · 四柱推命 · 七政四餘 · 鐵板 · 奇門 · 六壬 · 太乙 · Jyotiṣa) as deterministic Python engines + readings, from one birth moment."
 readme = "README.md"
-license = {text = "MIT"}
+license = "MIT"
+license-files = ["LICENSE"]
 requires-python = ">=3.10"
 keywords = ["astrology", "bazi", "ziwei", "divination", "fortune-telling", "jyotish", "i-ching", "qimen", "liuren", "mcp"]
-classifiers = ["Programming Language :: Python :: 3", "License :: OSI Approved :: MIT License", "Topic :: Games/Entertainment"]
+classifiers = ["Programming Language :: Python :: 3", "Topic :: Games/Entertainment"]
 dependencies = [
     "pydantic>=2.5",
     "pydantic-settings>=2.1",
