@@ -251,3 +251,24 @@ def interpret_synastry(syn, *, focus: str | None = None, lang: str | None = None
     user = (head + f"\nFacts (JSON):\n{json.dumps(facts, ensure_ascii=False, indent=2)}\n\n"
             "Read the relationship from the facts.")
     return complete(_SYNASTRY_SYSTEM + "\n" + lang_instruction(lang), user + " " + lang_instruction(lang))
+
+
+_ZERI_SYSTEM = (
+    "You are a diviner helping someone choose a date for a specific purpose. The candidate days below have "
+    "already been scored by rules (黃曆 宜忌/建除/神煞, 八字 流日 vs 喜用 and 沖破空亡, 紫微 流日四化, 奇門 值使與吉方, "
+    "小六壬). Use ONLY those facts. Recommend the top 2–3 days and, for each, the best 時辰 and 方位; say in one "
+    "line why each works for THIS person (their 喜用/日柱), and name the days to avoid and why. Short, practical, kind. "
+    "你在幫人擇日：依下列已評分的日期事實，推薦 2–3 個最佳日期與各自的吉時吉方，一句說明為何合此人命局，並點出應避開的日子。"
+)
+
+
+def interpret_zeri(out: dict, *, lang: str | None = None) -> str:
+    best = [d for d in out.get("days", []) if d["date"] in out.get("best", [])][:5]
+    rows = [{"date": d["date"], "weekday": d["weekday"], "lunar": d["lunar"], "干支": d["gz"], "score": d["score"], "grade": d["grade"],
+             "reasons": [f"{r['src']} {r['delta']:+} {r['text']}" for r in d["reasons"][:7]],
+             "best_hours": [f"{h['branch']}時 {h['hours']}（{h['score']:+}）" for h in d.get("hours", []) if h.get("best")],
+             "lucky_dirs": d["qimen"]["lucky_dirs"]} for d in best]
+    avoid = [{"date": d["date"], "why": [r["text"] for r in d["reasons"] if r["delta"] <= -2][:2]} for d in out.get("days", []) if d["grade"] == 1][:6]
+    head = f"Purpose / 目的: {out.get('purpose_label')}　Range: {out.get('start')} → {out.get('end')}　Subject: {out.get('subject')}\n"
+    user = head + f"\nTop days (JSON):\n{json.dumps(rows, ensure_ascii=False, indent=1)}\n\nDays to avoid:\n{json.dumps(avoid, ensure_ascii=False)}\n\n" + lang_instruction(lang)
+    return complete(_ZERI_SYSTEM + "\n" + lang_instruction(lang), user)

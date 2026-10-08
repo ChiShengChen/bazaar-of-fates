@@ -3,7 +3,9 @@ import { useEffect, useState } from "react";
 import {
   apiBase, getSystems, getTimeline, streamReading, getSynastry, getGroup, getCast, getAnnual, getOverview, getSynthesis,
   SystemInfo, Reading, Timeline, Synastry, GroupResult, AnnualReport, AnnualOverview, SynthesisResult, Lang,
+  getZeri, getDay, ZeriResult, DayOutlook,
 } from "@/lib/api";
+import { DatePickView, DayDetail } from "./_components/DatePickView";
 import { SynthesisView } from "./_components/SynthesisView";
 import { ChartView } from "./_components/ChartView";
 import { Houses } from "./_components/Houses";
@@ -23,7 +25,12 @@ const HOUSE_OPTS = [
 export default function Page() {
   const [systems, setSystems] = useState<SystemInfo[]>([]);
   const [sys, setSys] = useState("bazi");
-  const [mode, setMode] = useState<"single" | "synthesis" | "synastry" | "group" | "annual">("single");
+  const [mode, setMode] = useState<"single" | "synthesis" | "zeri" | "synastry" | "group" | "annual">("single");
+  const [zeri, setZeri] = useState<ZeriResult | null>(null);
+  const [dayOut, setDayOut] = useState<DayOutlook | null>(null);
+  const [purpose, setPurpose] = useState("wedding");
+  const [zStart, setZStart] = useState(() => new Date().toISOString().slice(0, 10));
+  const [zEnd, setZEnd] = useState(() => new Date(Date.now() + 60 * 86400000).toISOString().slice(0, 10));
   const [lang, setLang] = useState<Lang>("zh");
   const [synthesis, setSynthesis] = useState<SynthesisResult | null>(null);
   const [houseSystem, setHouseSystem] = useState("whole_sign");
@@ -130,6 +137,19 @@ export default function Page() {
     finally { setBusy(false); }
   }
 
+  async function pickDates() {
+    setBusy(true); setErr(null); setZeri(null); setDayOut(null);
+    try { setZeri(await getZeri(toBirth(formA), zStart, zEnd, purpose, lang)); }
+    catch (e: any) { setErr(String(e.message || e)); }
+    finally { setBusy(false); }
+  }
+  async function todayOutlook() {
+    setBusy(true); setErr(null); setZeri(null); setDayOut(null);
+    try { setDayOut(await getDay(toBirth(formA), null)); }
+    catch (e: any) { setErr(String(e.message || e)); }
+    finally { setBusy(false); }
+  }
+
   async function synthesize() {
     setBusy(true); setErr(null); setSynthesis(null);
     try {
@@ -187,7 +207,7 @@ export default function Page() {
   }
 
   const hasSvgChart = mode === "synastry" || (mode === "single" && reading && ["astrology", "qizheng", "jyotish"].includes(reading.system));
-  const showResults = mode === "single" ? reading : mode === "synthesis" ? synthesis : mode === "synastry" ? synastry : mode === "group" ? group : (annual || overview || compareOv);
+  const showResults = mode === "single" ? reading : mode === "synthesis" ? synthesis : mode === "zeri" ? (zeri || dayOut) : mode === "synastry" ? synastry : mode === "group" ? group : (annual || overview || compareOv);
 
   return (
     <div className="wrap">
@@ -201,6 +221,7 @@ export default function Page() {
         <div className="pills" style={{ marginBottom: 12 }}>
           <div className={`pill${mode === "single" ? " on" : ""}`} onClick={() => setMode("single")}>Single 單人</div>
           <div className={`pill${mode === "synthesis" ? " on" : ""}`} onClick={() => setMode("synthesis")}>Synthesis 綜合</div>
+          <div className={`pill${mode === "zeri" ? " on" : ""}`} onClick={() => setMode("zeri")}>Dates 擇日 · 今日</div>
           <div className={`pill${mode === "synastry" ? " on" : ""}`} onClick={() => setMode("synastry")}>Synastry 合盤</div>
           <div className={`pill${mode === "group" ? " on" : ""}`} onClick={() => setMode("group")}>Group 團體</div>
           <div className={`pill${mode === "annual" ? " on" : ""}`} onClick={() => setMode("annual")}>Annual 年度報告</div>
@@ -301,6 +322,18 @@ export default function Page() {
               </select>
             </div>
           )}
+          {mode === "zeri" && (
+            <>
+              <div style={{ flex: 0, minWidth: 140 }}><label>Purpose 目的</label>
+                <select value={purpose} onChange={(e) => setPurpose(e.target.value)}>
+                  <option value="wedding">結婚 wedding</option><option value="opening">開業 opening</option><option value="moving">搬家 moving</option>
+                  <option value="contract">簽約 contract</option><option value="surgery">手術 surgery</option><option value="travel">出行 travel</option>
+                  <option value="wealth">求財 wealth</option><option value="general">一般 general</option>
+                </select></div>
+              <div style={{ flex: 0, minWidth: 150 }}><label>From 起</label><input type="date" value={zStart} onChange={(e) => setZStart(e.target.value)} /></div>
+              <div style={{ flex: 0, minWidth: 150 }}><label>To 迄（≤121 天）</label><input type="date" value={zEnd} onChange={(e) => setZEnd(e.target.value)} /></div>
+            </>
+          )}
           {mode === "annual" && (
             <>
               <div style={{ flex: 0, minWidth: 90 }}><label>Year 年份</label>
@@ -311,6 +344,12 @@ export default function Page() {
           )}
           <div style={{ flex: 0 }}>
             {mode === "single" && <button onClick={cast} disabled={busy}>{busy ? "Casting… 排盤中" : "Cast + Read 排盤＋解讀"}</button>}
+            {mode === "zeri" && (
+              <div style={{ display: "flex", gap: 8 }}>
+                <button onClick={pickDates} disabled={busy}>{busy ? "Scoring… 評分中" : "Pick dates 擇日"}</button>
+                <button onClick={todayOutlook} disabled={busy} style={{ background: "#27272a", color: "var(--ink)" }}>Today 今日運勢</button>
+              </div>
+            )}
             {mode === "synthesis" && <button onClick={synthesize} disabled={busy}>{busy ? "Casting 13… 排盤中" : "Synthesize 綜合會診"}</button>}
             {mode === "synastry" && <button onClick={compare} disabled={busy}>{busy ? "Comparing… 合盤中" : "Compare 合盤"}</button>}
             {mode === "group" && <button onClick={compareGroup} disabled={busy}>{busy ? "Comparing… 合盤中" : "Compare group 團體合盤"}</button>}
@@ -345,6 +384,8 @@ export default function Page() {
       )}
 
       {mode === "synthesis" && synthesis && <SynthesisView s={synthesis} />}
+      {mode === "zeri" && zeri && <DatePickView z={zeri} />}
+      {mode === "zeri" && dayOut && <div className="card"><h3>Today 今日運勢 · {dayOut.date}</h3><DayDetail d={dayOut} /></div>}
       {mode === "synastry" && synastry && <SynastryView s={synastry} busy={busy} />}
       {mode === "group" && group && <GroupView g={group} />}
       {mode === "annual" && compareOv && <CompareView a={compareOv.a} b={compareOv.b} />}

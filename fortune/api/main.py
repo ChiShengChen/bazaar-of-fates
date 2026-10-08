@@ -18,6 +18,7 @@ from pydantic import BaseModel
 from fortune import annual as annual_mod, casting, geo, group as grp_mod, synastry as syn_mod, timeline as tl
 from fortune.birth import BirthInput
 from fortune import focus as focus_mod
+from fortune import zeri as zeri_mod
 from fortune.interpret import (
     interpret, interpret_annual, interpret_composite, interpret_davison, interpret_group,
     interpret_overview, interpret_stream, interpret_synastry, interpret_synthesis,
@@ -81,6 +82,22 @@ class SynthesisRequest(BaseModel):
     systems: list[str] | None = None   # default: all 13
     lang: str = "both"
     house_system: str = "whole_sign"
+
+
+class ZeriRequest(BaseModel):
+    birth: BirthInput
+    start: str                          # ISO date
+    end: str
+    purpose: str = "general"            # wedding | opening | moving | contract | surgery | travel | wealth | general
+    top: int = 10
+    lang: str = "both"
+    interpret: bool = True
+
+
+class DayRequest(BaseModel):
+    birth: BirthInput
+    date: str | None = None             # ISO date, default today
+    hour: int | None = None             # clock hour for the 奇門/紫微 流時 (default noon)
 
 
 class OverviewRequest(BaseModel):
@@ -174,6 +191,42 @@ def synthesis(req: SynthesisRequest) -> dict:
     syn["errors"] = errors
     syn["interpretation"] = interpret_synthesis(syn, focus=req.focus, lang=req.lang)
     return syn
+
+
+@app.post("/zeri")
+def zeri(req: ZeriRequest) -> dict:
+    """擇日: score every day in [start, end] for a purpose (黃曆 + 八字流日 + 紫微流日四化 + 奇門 + 小六壬),
+    rank them, add the 吉時 of the best days, and (optionally) one short reading of the picks."""
+    from datetime import date as _date
+    try:
+        s, e = _date.fromisoformat(req.start), _date.fromisoformat(req.end)
+    except ValueError as ex:
+        raise HTTPException(400, f"bad date: {ex}") from ex
+    if e < s or (e - s).days > 120:
+        raise HTTPException(400, "range must be 1–121 days / 區間需在 121 天內")
+    if req.purpose not in zeri_mod.PURPOSES:
+        raise HTTPException(400, f"purpose must be one of {list(zeri_mod.PURPOSES)}")
+    try:
+        out = zeri_mod.select(req.birth, s, e, req.purpose, top=max(1, min(req.top, 30)))
+    except Exception as ex:  # noqa: BLE001
+        log.exception("zeri_failed")
+        raise HTTPException(500, f"擇日失敗：{ex}") from ex
+    if req.interpret:
+        from fortune.interpret import interpret_zeri
+        out["interpretation"] = interpret_zeri(out, lang=req.lang)
+    return out
+
+
+@app.post("/day")
+def day(req: DayRequest) -> dict:
+    """今日運勢: one day's score, reasons, 黃曆, 流日, 紫微流日四化, 奇門吉方, 小六壬 and the 12 時辰."""
+    from datetime import date as _date
+    d = _date.fromisoformat(req.date) if req.date else _date.today()
+    try:
+        return zeri_mod.day_outlook(req.birth, d, req.hour)
+    except Exception as ex:  # noqa: BLE001
+        log.exception("day_failed")
+        raise HTTPException(500, f"流日失敗：{ex}") from ex
 
 
 @app.post("/synastry", response_model=Synastry)

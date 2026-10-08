@@ -78,6 +78,26 @@ export interface SynthesisResult {
   lean: "favourable" | "neutral" | "unfavourable"; lean_zh: string; consensus: string[]; conflicts: string[];
   errors: Record<string, string>; interpretation: string;
 }
+export interface ZeriReason { src: string; delta: number; text: string }
+export interface ZeriHour { branch: string; gz: string; hours: string; stem_god: string; nature: string; score: number; reasons: string[]; best: boolean }
+export interface ZeriDay {
+  date: string; weekday: string; lunar: string; gz: { year: string; month: string; day: string };
+  score: number; grade: number; verdict: string; hard_avoid: boolean; reasons: ZeriReason[];
+  almanac: { yi: string[]; ji: string[]; jishen: string[]; xiongsha: string[]; jianchu: string; xiu: string; positions: Record<string, string> } | null;
+  bazi: { gz: string; stem_god: string; nature: string; shensha: string[]; notes: string[]; kong_wang: string; changsheng: string };
+  ziwei: { gz: string; mutagen: string[]; landing: Record<string, string> } | null;
+  qimen: { ju: string; zhishi: string; cls: string; lucky_dirs: string[]; unlucky_dirs: string[] };
+  xiaoliuren: string; hours?: ZeriHour[];
+}
+export interface ZeriResult {
+  purpose: string; purpose_label: string; start: string; end: string; subject: string;
+  days: ZeriDay[]; best: string[]; avoid: string[]; rules: string[]; ziwei_available: boolean; almanac_available: boolean; interpretation?: string;
+}
+export interface DayOutlook extends ZeriDay { hours: ZeriHour[]; context: { dayun: string | null; liunian: string | null; liuyue: string; strength: string; favourable: string[] } }
+export const getZeri = (birth: BirthInput, start: string, end: string, purpose: string, lang: Lang, interpret = true) =>
+  post<ZeriResult>(`/zeri`, { birth, start, end, purpose, lang, interpret, top: 10 });
+export const getDay = (birth: BirthInput, date: string | null) => post<DayOutlook>(`/day`, { birth, date });
+
 export const getSynthesis = (birth: BirthInput, focus: string | null, lang: Lang, house_system: string) =>
   post<SynthesisResult>(`/synthesis`, { birth, focus, lang, house_system });
 export const getTimeline = (system: string, birth: BirthInput) =>

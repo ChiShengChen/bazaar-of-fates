@@ -903,3 +903,50 @@ def test_synthesis_endpoint():
     assert [s["system"] for s in r2.json()["systems"]] == ["bazi", "ziwei", "liuyao"]
     r3 = c.post("/reading/bazi", json={"birth": BIRTH.model_dump(mode="json"), "focus": "財運", "lang": "en"})
     assert r3.status_code == 200 and r3.json()["readings"]["focus_topic"].startswith("財運")
+
+
+# --- 擇日 / 流日 ---------------------------------------------------------------------------------
+
+def test_liuri_and_liushi():
+    from fortune import bazi_ext as X
+    full = X.full_chart(BIRTH)
+    lr = X.liuri(full, date(2026, 11, 3), 8)
+    assert lr["gz"] == "辛巳" and lr["clash_natal_day"]                 # 巳 沖 natal 日支 亥
+    assert lr["year_gz"] == "丙午" and lr["month_gz"] == "戊戌" and lr["stem_god"] == "比肩"
+    hs = X.liushi(full, date(2026, 11, 12), 8)
+    assert len(hs) == 12 and hs[0]["gz"] == "丙子" and hs[5]["clash_natal_day"]   # 庚寅日 → 丙子時; 巳時 沖 亥
+    assert any(h["he_natal_day"] for h in hs)                            # 寅 合 亥
+
+
+def test_zeri_select_and_rules():
+    from fortune import zeri
+    out = zeri.select(BIRTH, date(2026, 11, 1), date(2026, 11, 30), "wedding", top=5)
+    assert len(out["days"]) == 30 and len(out["best"]) == 5 and out["purpose_label"].startswith("結婚")
+    by = {d["date"]: d for d in out["days"]}
+    assert by["2026-11-03"]["grade"] == 1 and by["2026-11-03"]["hard_avoid"]           # 日沖 → 忌
+    assert all(by[d]["grade"] >= 3 and not by[d]["hard_avoid"] for d in out["best"])
+    assert all(by[d]["grade"] == 1 for d in out["avoid"])
+    best = by[out["best"][0]]
+    assert best.get("hours") and len(best["hours"]) == 12 and sum(1 for h in best["hours"] if h["best"]) <= 3
+    assert best["qimen"]["zhishi"] and isinstance(best["qimen"]["lucky_dirs"], list)
+    assert any(r["src"] == "八字" for r in best["reasons"]) and all("delta" in r for r in best["reasons"])
+    # every day's score is the sum of its listed reasons
+    for d in out["days"]:
+        assert abs(sum(r["delta"] for r in d["reasons"]) - d["score"]) < 0.15, d["date"]
+    today = zeri.day_outlook(BIRTH, date(2026, 10, 8))
+    assert today["context"]["liuyue"] == "丁酉" and len(today["hours"]) == 12 and today["gz"]["day"] == "乙卯"
+
+
+def test_zeri_and_day_endpoints():
+    from fastapi.testclient import TestClient
+    from fortune.api.main import app
+    c = TestClient(app)
+    b = BIRTH.model_dump(mode="json")
+    r = c.post("/zeri", json={"birth": b, "start": "2026-11-01", "end": "2026-11-15", "purpose": "opening", "top": 3, "lang": "zh"})
+    assert r.status_code == 200, r.text
+    j = r.json()
+    assert len(j["days"]) == 15 and len(j["best"]) == 3 and j["interpretation"] and j["rules"]
+    assert c.post("/zeri", json={"birth": b, "start": "2026-01-01", "end": "2026-12-31", "purpose": "opening"}).status_code == 400
+    assert c.post("/zeri", json={"birth": b, "start": "2026-01-01", "end": "2026-01-02", "purpose": "nope"}).status_code == 400
+    d = c.post("/day", json={"birth": b, "date": "2026-10-08"})
+    assert d.status_code == 200 and d.json()["gz"]["day"] == "乙卯" and len(d.json()["hours"]) == 12

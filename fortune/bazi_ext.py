@@ -706,3 +706,53 @@ def full_chart(birth: BirthInput, *, dayun_count: int = 9, today: date | None = 
         "dayun": dayun, "xiaoyun": xiaoyun,
         "favourable": sorted(fav),
     }
+
+
+# --- 流日 / 流時 -------------------------------------------------------------------------------
+
+def day_pillars_on(d: date, tz: float) -> dict:
+    """年/月/日 pillars in force on calendar date d (noon local, exact 節氣) — the 流年/流月/流日."""
+    return exact_pillars(datetime(d.year, d.month, d.day, 12, 0), tz)
+
+
+def liuri(full: dict, d: date, tz: float) -> dict:
+    """流日 for a natal `full_chart`: the day's 干支 as seen from the natal 日主 — 十神, 藏干十神, 納音,
+    旬空 (of the day), 神煞 the day branch triggers, and its 刑沖合會 with the natal + 流年 + 流月 branches."""
+    nat = {p["role"]: p for p in full["pillars"]}
+    ds = nat["day"]["stem_idx"]
+    ys, yb = nat["year"]["stem_idx"], nat["year"]["branch_idx"]
+    db, mb = nat["day"]["branch_idx"], nat["month"]["branch_idx"]
+    now = day_pillars_on(d, tz)
+    ls, lb = now["day"]["stem_idx"], now["day"]["branch_idx"]
+    fav = set(full["strength"]["favourable"])
+    natal_branches = [nat[k]["branch_idx"] for k in ("year", "month", "day", "hour")]
+    natal_stems = [nat[k]["stem_idx"] for k in ("year", "month", "day", "hour")]
+    ctx_b = [now["year"]["branch_idx"], now["month"]["branch_idx"]]
+    ctx_s = [now["year"]["stem_idx"], now["month"]["stem_idx"]]
+    return {
+        "date": d.isoformat(), "gz": now["day"]["gz"], "stem": now["day"]["stem"], "branch": now["day"]["branch"],
+        "year_gz": now["year"]["gz"], "month_gz": now["month"]["gz"],
+        "stem_god": ten_god(ds, ls), "hidden": hidden_gods(ds, lb), "nayin": nayin(ls, lb), "changsheng": changsheng(ds, lb),
+        "kong_wang": kong_wang(ls, lb), "elem": STEM_ELEM[ls], "nature": "favourable" if STEM_ELEM[ls] in fav else "unfavourable",
+        "shensha": shensha_for(ls, lb, ys=ys, ds=ds, yb=yb, db=db, mb=mb),
+        "stem_notes": stem_relations(natal_stems + ctx_s + [ls]), "branch_notes": branch_relations(natal_branches + ctx_b + [lb]),
+        "clash_natal_day": (lb - db) % 12 == 6, "clash_year": (lb - now["year"]["branch_idx"]) % 12 == 6,
+        "clash_month": (lb - now["month"]["branch_idx"]) % 12 == 6, "in_natal_kong": BRANCHES[lb] in nat["day"]["kong_wang"],
+    }
+
+
+def liushi(full: dict, d: date, tz: float) -> list[dict]:
+    """The twelve 流時 of a day: 時柱 by 五鼠遁 from the day stem, 十神, 沖合 with the day and natal 日支."""
+    nat = {p["role"]: p for p in full["pillars"]}
+    ds, db = nat["day"]["stem_idx"], nat["day"]["branch_idx"]
+    now = day_pillars_on(d, tz)
+    day_stem, lb = now["day"]["stem_idx"], now["day"]["branch_idx"]
+    fav = set(full["strength"]["favourable"])
+    out = []
+    for hb in range(12):
+        hs = ((2 * (day_stem % 5)) % 10 + hb) % 10
+        out.append({"branch": BRANCHES[hb], "gz": STEMS[hs] + BRANCHES[hb], "hours": f"{(hb * 2 + 23) % 24:02d}–{(hb * 2 + 1) % 24:02d}",
+                    "stem_god": ten_god(ds, hs), "nature": "favourable" if STEM_ELEM[hs] in fav else "unfavourable",
+                    "clash_day": (hb - lb) % 12 == 6, "clash_natal_day": (hb - db) % 12 == 6,
+                    "he_day": tuple(sorted((hb, lb))) in _LIUHE, "he_natal_day": tuple(sorted((hb, db))) in _LIUHE})
+    return out

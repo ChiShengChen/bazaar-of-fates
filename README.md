@@ -10,7 +10,7 @@
 ![FastAPI](https://img.shields.io/badge/FastAPI-009688?logo=fastapi&logoColor=white)
 ![Next.js](https://img.shields.io/badge/Next.js-14-000000?logo=nextdotjs)
 ![systems](https://img.shields.io/badge/divination%20systems-13-a78bfa)
-![tests](https://img.shields.io/badge/tests-93%20passing-3fb950)
+![tests](https://img.shields.io/badge/tests-96%20passing-3fb950)
 ![bilingual](https://img.shields.io/badge/readings-EN%20%2B%20中文-ec4899)
 ![use](https://img.shields.io/badge/use-cultural%20%C2%B7%20educational%20%C2%B7%20fun-blue)
 
@@ -30,6 +30,7 @@
 > - **八字 full almanac sheet 完整排盤** — 十神 · 藏干 · 納音 · 空亡 · 神煞 · 胎元命宮 · 起運交運 · 稱骨, an auditable **旺衰 / 用神 / 調候 / 格局** analysis, and a clickable 大運 → 流年 → 流月 drill-down. All 24 節氣 to the minute.
 > - **More of each tradition** — 紫微: 36 stars, 閏月/晚子時 conventions, **大限 → 流年** panel; 梅花: classical 年月日時起卦; 奇門: 時家轉盤 **拆補 / 置閏**; 六壬: all **nine course types**.
 > - **2026-10-08 (later)** — **13 systems**: 六爻（納甲）and 小六壬 added; 紫微 gains star brightness / 雜曜 / 格局 from **x-iztro**, 八字 gains a 黃曆 block from **lunar-python**, 六壬 gains 十二天將. Every native engine is now **cross-validated in tests** against lunar-python, x-iztro, kinliuren, kinqimen and Swiss Ephemeris — see [docs/CREDITS.md](docs/CREDITS.md).
+> - **2026-10-08 (dates)** — **擇日 / 今日運勢**: a purpose + a date range → every day scored from 黃曆, 八字 流日, 紫微 流日四化, 奇門 and 小六壬 (rules listed per day), calendar view, best 時辰 and 吉方; 八字 流日/流時 added.
 > - **2026-10-08 (readings)** — question-oriented prompts (the facts that bear on what you asked lead the prompt, with each tradition's own rule-based verdict), a **Synthesis 綜合** mode that puts all 13 systems' verdicts on one question side by side with agreement/conflict, and a reading **language** switch (中文 / English / both).
 > - **Input & output** — type a city and lat/lon/time zone fill in (Taiwan historical DST applied), optional **true solar time**, and a one-page **full report** (`/report`) for all 11 systems → PDF.
 
@@ -40,6 +41,7 @@
 | 🌏 **13 systems, 1 input** | Western astrology, BaZi, 紫微, I Ching, Jyotiṣa & more — all from a single **birth moment**. Type a city and the lat/lon/time zone fill in (Taiwan historical DST applied); optional **true solar time** for the 干支 systems. |
 | 🎯 **Deterministic + real astronomy** | Same birth → same chart, every time; planets at the **exact birth instant, true equinox of date** via `ephem`, house systems **validated against Swiss Ephemeris to <0.006°**, 24 節氣 to the minute. |
 | 🗣️ **AI readings, your language** | 中文 / English / bilingual interpretations that stream token-by-token; runs fully offline (mock) with no API key. Ask a question and the prompt leads with the facts that bear on it (八字 本題十神, 紫微 本題宮位三方四正 + 四化, 六爻 用神, 西占/Jyotiṣa 本題宮位…), each tradition's own rule-based verdict included. |
+| 📅 **Date picking 擇日 · 今日運勢** | Pick a purpose (結婚/開業/搬家/簽約/手術/出行/求財) and a range: every day scored from 黃曆 宜忌, 八字 流日 (喜用, 沖日柱/歲破/月破/空亡, 神煞), 紫微 流日四化, 奇門 值使 + 吉方 and 小六壬 — ranked on a calendar with the best 時辰 of each top day; or today's outlook with 12 時辰. |
 | 🧑‍⚖️ **Synthesis 綜合會診** | One question → all 13 systems cast, each gives a deterministic verdict with its reason, agreement and conflicts tallied, then one panel reading that explains why traditions differ. |
 | 🪐 **A full Western stack** | 6 house systems · transits · secondary & solar-arc progressions · Solar & Lunar Returns · life timelines. |
 | 💞 **Relationships & groups** | Synastry bi-wheel · composite · Davison · 2–8-person compatibility matrix. |
@@ -155,6 +157,7 @@ An **Overlay** selector adds a second ring; a **time slider** scrubs ±5 years, 
 | `POST` | `/timeline/{system}` | 大運 / Mahādaśā / 流年 / planet returns → `Timeline` |
 | `POST` | `/synastry` · `/group` | relationship / group charts + readings |
 | `POST` | `/annual-report` · `/annual-overview` | one-year report / multi-year arc |
+| `POST` | `/zeri` · `/day` | date picking over a range for a purpose (scored days, best/avoid, 吉時, 吉方) · one day's outlook with 12 時辰 |
 | `POST` | `/synthesis` | one question across all (or chosen) systems: per-system verdict + facts, tally, consensus/conflicts, panel reading |
 
 Astrology overlay params (on `/cast` query & `/reading` body): `house_system` · `transits` · `transit_date` · `progress` · `progress_method` · `solar_return` · `lunar_return`; 奇門: `qimen_method` (`chaibu` | `zhirun`). `BirthInput.true_solar_time` casts the 干支 systems on true solar time. `lang` (`zh` | `en` | `both`, default `both`) on every reading request; `focus` turns on question-oriented extraction. Supported birth years: 1900–2099 (農曆 table range).
@@ -177,6 +180,7 @@ fortune/
   timeline.py         native: 大運 / Mahādaśā / 流年 / planet-return sequences
   casting/<system>.py per-system adapter: birth → engine fns → Chart
   synastry.py · group.py · annual.py   native: relationships / group / forecasts
+  zeri.py             擇日 scorer (黃曆 + 八字流日 + 紫微流日 + 奇門 + 小六壬) and the daily outlook
   focus.py            question → topic; per-system relevant facts + rule-based verdict; cross-system tally
   interpret.py        chart facts + tradition prompt → reading (zh / en / both, sync + stream), synthesis prompt
   api/main.py         FastAPI
@@ -190,7 +194,7 @@ scripts/              screenshots.py (doc screenshots via Playwright)
 ## ✅ Tests
 
 ```bash
-pytest -q     # 93 tests (5 cross-validate against sibling engines when installed)
+pytest -q     # 96 tests (5 cross-validate against sibling engines when installed)
 ```
 
 Every system casts · 6 house systems vs Swiss Ephemeris · transits (applying/separating, exact dates, major-transit highlights) · progressions (secondary & solar-arc, major progressions, directed-to-angles) · Solar & Lunar Returns · aspect ranking · planet-return & SR-year timelines · synastry / composite / Davison · group matrix & composite · annual report & multi-year overview.

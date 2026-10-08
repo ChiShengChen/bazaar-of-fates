@@ -121,3 +121,18 @@ th { color: var(--dim); font-weight: 500; }
 .ly-moving td { background: #1c1530; }
 
 .syn-conflict td { background: #1a1416; }
+
+/* 擇日 calendar */
+.zr-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+.zr-wd { text-align: center; font-size: 11px; }
+.zr-day { border: 1px solid var(--line); border-radius: 8px; padding: 4px 6px; min-height: 54px; cursor: pointer; font-size: 11px; line-height: 1.4; }
+.zr-day.on { outline: 2px solid var(--accent); } .zr-day.best .zr-num::after { content: " ★"; color: #fbbf24; }
+.zr-day.g5 { background: #14532d; } .zr-day.g4 { background: #1b4332; } .zr-day.g3 { background: #1f2a1f; } .zr-day.g2 { background: #202024; } .zr-day.g1 { background: #4c0519; }
+.zr-num { font-weight: 700; font-size: 13px; } .zr-gz { color: var(--dim); } .zr-sc { color: var(--dim); }
+.zr-detail .pos { color: #4ade80; } .zr-detail .neg { color: #f87171; }
+.zr-src { font-size: 11px; padding: 1px 6px; border-radius: 999px; border: 1px solid var(--line); margin-right: 4px; }
+.src-alm { color: #fbbf24; } .src-bz { color: #60a5fa; } .src-zw { color: #c084fc; } .src-qm { color: #34d399; } .src-xl { color: #f472b6; }
+.zr-hours { display: grid; grid-template-columns: repeat(6, 1fr); gap: 4px; }
+.zr-hour { border: 1px solid var(--line); border-radius: 6px; padding: 4px; text-align: center; font-size: 11px; }
+.zr-hour.best { border-color: #fbbf24; background: #1f1a0e; } .zr-hour.bad { opacity: 0.6; }
+.zr-month { margin-bottom: 10px; }
