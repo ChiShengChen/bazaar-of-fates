@@ -10,7 +10,7 @@
                                          (日月金火土 cross-aspects), scored with reasons
   consult(birth, question, partner…)  → the whole consultation: profile + timing (+ match) + the reading
 
-Everything but the prose is deterministic and auditable; the 命理師 prompt (prompts/love/) is told to read
+Everything but the prose is deterministic and auditable; the 命理師 prompt (fortune/prompts/love/) is told to read
 only from these facts, answer the sub-question first, and never to pronounce fate.
 """
 
@@ -32,7 +32,7 @@ from fortune.engines.ziwei import ziwei as ZW
 from fortune.schemas import Chart
 from fortune.shared.llm import complete
 
-_PROMPT = Path(__file__).resolve().parent.parent / "prompts" / "love" / "love_master.md"
+_PROMPT = Path(__file__).resolve().parent / "prompts" / "love" / "love_master.md"
 
 INTENTS = {
     "timing": {"zh": "何時有緣（桃花／婚緣時機）", "en": "when — timing of love / marriage",

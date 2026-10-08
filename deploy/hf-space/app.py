@@ -25,7 +25,7 @@ try:                                                     # ZeroGPU Spaces requir
 except Exception:  # noqa: BLE001
     _zero_gpu_stub = None
 
-from fortune import casting, focus as F, geo, love as LV, zeri as Z
+from fortune import casting, focus as F, geo, love as LV, specialist as SP, zeri as Z
 from fortune.api.main import app as api
 from fortune.birth import BirthInput
 from fortune.interpret import interpret, interpret_synthesis, interpret_zeri
@@ -47,6 +47,8 @@ PNG_JS = """() => {
 }"""
 PURPOSES = [(f"{v['zh']} · {v['en']}", k) for k, v in Z.PURPOSES.items()]
 LANGS = [("中文", "zh"), ("English", "en"), ("中文 + English", "both")]
+TOPICS = [("自動分科 auto", "auto")] + [(f"{v['title']} · {v['en']}", k) for k, v in SP.SPECS.items()]
+_SHEET = {"career": "事業方向", "wealth": "財性與財庫", "health": "體質與臟腑", "study": "學習型態與科系", "family": "六親宮位"}
 DISCLAIMER = "僅供文化、教育與娛樂用途；命理不應作為財務、醫療或法律決策的依據。 Cultural / educational / entertainment only."
 
 
@@ -179,6 +181,45 @@ def love_consult(name, d, t, gender, place, tst, question, lang, read, p_name, p
         return f"⚠️ {e}", "", "", "", "", ""
 
 
+def _fact(v) -> str:
+    if isinstance(v, dict):
+        return "<br>".join(f"<span class='muted'>{R._e(k)}</span> {R._e(x)}" for k, x in v.items())
+    if isinstance(v, list):
+        return "、".join(R._e(x) for x in v)
+    return R._e(v)
+
+
+def specialist_consult(name, d, t, gender, place, tst, question, lang, read, topic, years):
+    try:
+        b = _birth(name, d, t, gender, place, tst)
+        topic = SP.route(question) if topic == "auto" else topic
+        if topic == "love":
+            head, natal_html, timing_html, match_html, prose, raw = love_consult(name, d, t, gender, place, tst, question, lang, read, "", "", "", "", "", years)
+            return head + "\n\n（感情問題已轉給感情專科；要合婚請用 Love 分頁）", natal_html, timing_html, match_html, prose, raw
+        out = SP.consult(topic, b, question or None, years=int(years or 8), read=bool(read), lang=lang)
+        sp = SP.spec(topic)
+        head = f"### {R._e(sp['title'])} · {R._e(out['subject'])}\n\n問：{R._e(question or '整體' + sp['zh'] + '運')}　子題：**{R._e(out['intent_label'])}**"
+        nat = "".join(f"<tr><td style='text-align:left'><b>{R._e(r['system_zh'])}</b></td><td class='nw'>{r['score']:+.1f}</td>"
+                      f"<td style='text-align:left;font-size:12px'>{R._e('；'.join(r['reasons']) or '—')}</td></tr>" for r in out["natal"]["systems"])
+        natal_html = (f"<div class='paper'><div class='title'>命 · {R._e(sp['zh'])}格局 <span class='seal'>{R._e(out['natal']['label'])}</span></div>"
+                      f"<div class='tw'><table><tr><th style='text-align:left'>系統</th><th>分</th><th style='text-align:left'>依據</th></tr>{nat}</table></div></div>")
+        tl = out["timing"]["sign_label"]
+        yrs = "".join(f"<tr class='{'now' if y['sign'] else ''}'><td class='nw'><b>{y['year']}</b><div class='muted' style='font-size:11px'>{y['age']} 歲</div></td>"
+                      f"<td class='star'>{'★' * y['grade']}{'☆' * (5 - y['grade'])}</td><td class='nw'>{y['score']:+}</td><td class='nw'>{'◆ ' + R._e(tl) if y['sign'] else ''}</td>"
+                      f"<td style='text-align:left;font-size:12px'>{R._e(_reasons(y['reasons']))}</td></tr>" for y in out["timing"]["years"])
+        timing_html = (f"<div class='paper'><div class='title'>運 · {R._e(sp['zh'])}流年 <span class='seal'>{R._e('、'.join(map(str, out['timing']['best'])) or '—')}</span></div>"
+                       f"<div class='tw'><table><tr><th>年</th><th>等級</th><th>分</th><th></th><th style='text-align:left'>依據（八字流年・紫微流年四化・西洋行運・daśā）</th></tr>{yrs}</table></div>"
+                       f"<div class='note'><span class='muted'>{'需注意' if topic == 'health' else '宜守'}：</span>{R._e('、'.join(map(str, out['timing']['caution'])) or '—')}</div></div>")
+        ex = out["extra"]
+        rows = "".join(f"<tr><td style='text-align:left;white-space:nowrap'><b>{R._e(k)}</b></td><td style='text-align:left;font-size:12px'>{_fact(v)}</td></tr>" for k, v in ex.get("facts", {}).items())
+        extra_html = (f"<div class='paper'><div class='title'>{R._e(_SHEET[topic])}</div><div class='tw'><table>{rows}</table></div>"
+                      f"<div class='note'>{R._e(ex.get('summary', ''))}</div></div>") if rows else ""
+        prose = out.get("interpretation", "") if read else ""
+        return head, natal_html, timing_html, extra_html, prose, json.dumps(out, ensure_ascii=False, indent=1, default=str)
+    except Exception as e:  # noqa: BLE001
+        return f"⚠️ {e}", "", "", "", "", ""
+
+
 with gr.Blocks(title="Bazaar of Fates · 算命") as demo:
     gr.HTML(HERO)
     with gr.Row():
@@ -241,6 +282,17 @@ with gr.Blocks(title="Bazaar of Fates · 算命") as demo:
             raw4 = gr.Code(language="json")
         go4.click(love_consult, [name, bdate, btime, gender, place, tst, question, lang, read, p_name, p_date, p_time, p_gender, p_place, years],
                   [head4, natal4, timing4, match4, prose4, raw4])
+
+    with gr.Tab("專科 Consult"):
+        gr.Markdown("事業・財運・健康・學業・家庭，各一位只看一題的命理師：上方填生辰與問題，這裡選科（或自動分科）。命（四系統評分）→ 運（逐年，每一分列依據）→ 專科表。健康科不是醫療建議。")
+        with gr.Row():
+            topic = gr.Dropdown(label="Specialist 專科", choices=TOPICS, value="auto", scale=2)
+            years5 = gr.Number(label="看幾年 Years", value=8, precision=0, scale=0)
+        go5 = gr.Button("問 專 科 · Ask the specialist", variant="primary")
+        head5 = gr.Markdown(); natal5 = gr.HTML(); timing5 = gr.HTML(); extra5 = gr.HTML(); prose5 = gr.Markdown()
+        with gr.Accordion("raw JSON", open=False):
+            raw5 = gr.Code(language="json")
+        go5.click(specialist_consult, [name, bdate, btime, gender, place, tst, question, lang, read, topic, years5], [head5, natal5, timing5, extra5, prose5, raw5])
 
     gr.HTML(f"<div style='text-align:center;color:#9c8c68;font-size:12px;letter-spacing:.1em;padding:14px 0 4px'>{DISCLAIMER}</div>")
 

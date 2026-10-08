@@ -10,7 +10,7 @@ Same skeleton as fortune/love.py (感情專科), driven by one SPEC per topic:
   extra(topic, charts, male)                  → the topic's own sheet: 事業方向 / 財性與財庫 / 體質與臟腑 / 學習傾向與科系 / 六親宮位
   consult(topic, birth, question, …)          → the whole sitting: natal + this_year (all 13 systems) + timing + extra (+ the reading)
 
-Everything but the prose is deterministic and auditable; each 專科 prompt (prompts/specialist/) is told to read only
+Everything but the prose is deterministic and auditable; each 專科 prompt (fortune/prompts/specialist/) is told to read only
 from these facts, answer the sub-question first, and never to pronounce fate.
 """
 
@@ -33,7 +33,7 @@ from fortune.love import _SHA, _grade, _male, _verdict
 from fortune.schemas import Chart
 from fortune.shared.llm import complete
 
-_PROMPTS = Path(__file__).resolve().parent.parent / "prompts" / "specialist"
+_PROMPTS = Path(__file__).resolve().parent / "prompts" / "specialist"
 _B = "子丑寅卯辰巳午未申酉戌亥"
 _PALACE_OFFSET = {"命宮": 0, "兄弟": 1, "夫妻": 2, "子女": 3, "財帛": 4, "疾厄": 5, "遷移": 6, "僕役": 7, "官祿": 8, "田宅": 9, "福德": 10, "父母": 11}
 _MAJORS = {"紫微", "天機", "太陽", "武曲", "天同", "廉貞", "天府", "太陰", "貪狼", "巨門", "天相", "天梁", "七殺", "破軍"}

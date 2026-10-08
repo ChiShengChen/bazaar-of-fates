@@ -54,6 +54,6 @@ API `POST /love`（`birth`, `question`, `partner?`, `start_year?`, `years`, `rea
 
 ## 解讀 / The reading
 
-`prompts/love/love_master.md` 是這位命理師的人設：只讀事實、先答子題、命→運→合、點名證據（「流年丁未透七殺」「Venus square Saturn 2.1°」）、各門派相左時各自解釋、不說「註定」、不替人決定分合、涉及安全時直接建議求助。沒接 LLM 時回傳事實摘要。
+`fortune/prompts/love/love_master.md` 是這位命理師的人設：只讀事實、先答子題、命→運→合、點名證據（「流年丁未透七殺」「Venus square Saturn 2.1°」）、各門派相左時各自解釋、不說「註定」、不替人決定分合、涉及安全時直接建議求助。沒接 LLM 時回傳事實摘要。
 
 > ⚠️ 僅供文化、教育與娛樂用途。感情由兩個人經營，命盤只說傾向與時機。

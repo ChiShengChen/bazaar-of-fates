@@ -237,6 +237,7 @@ Each row is a complete deterministic chart (紫微: palaces with brightness/雜�
 
 ## 📰 Changelog
 
+- **2026-10-10** — **0.3.0**: specialist readers — 感情專科 love (natal disposition, 桃花年／婚緣年 scan, 合婚) and five more on the same skeleton: career 事業, wealth 財運, health 健康, study 學業, family 家庭 (natal, this year, yearly scan with every +/− listed, the topic's own sheet, sub-question-first readings); `bazaar love|career|wealth|health|study|family`, `POST /love`, `POST /consult/{topic}`, MCP `love` / `consult`; Space tabs; prompts now ship inside the wheel; phone layouts, share links and PNG download in the Space.
 - **2026-10-09** — PyPI package + `bazaar` CLI, `bazaar-mcp` MCP server + Claude Code skill, live Hugging Face Space, Dockerfile, MIT licence, 繁中/简中 READMEs, hero GIF; full-space check against iztro (which exposed three wrong month lengths in `lunardate` — the 農曆 layer now prefers lunar-python / 壽星萬年曆); dataset builder.
 - **2026-10-08** — 擇日 + 今日運勢 (流日/流時); question-oriented readings, Synthesis mode, reading language switch; 六爻 and 小六壬 (13 systems); x-iztro / lunar-python enrichment; cross-validation tests against five sibling engines; 八字 旺衰/用神/格局 analysis, true solar time, birthplace lookup with Taiwan DST, 紫微 大限/流年, 六壬 九宗門, 奇門 置閏, one-page report; the 八字 full almanac sheet; and the accuracy audit — time-exact equinox-of-date planets (the old date-only positions put ~11% of Moon signs and ~25% of nakṣatras in the wrong place), 六壬 月將, real hours for 四柱推命/鐵板.
 

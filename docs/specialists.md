@@ -51,7 +51,7 @@ API `POST /consult/{topic}`（`career | wealth | health | study | family | love 
 
 ## 命理師人設
 
-`prompts/specialist/{career,wealth,health,study,family}_master.md`：只從事實讀、先答子題、引用具體依據、門派相左要說明、不說「註定」。健康科明說**不是醫療建議**、不診斷不開藥；財運科**不指名標的、不保證報酬**；家庭科不說剋父剋母無子。
+`fortune/prompts/specialist/{career,wealth,health,study,family}_master.md`：只從事實讀、先答子題、引用具體依據、門派相左要說明、不說「註定」。健康科明說**不是醫療建議**、不診斷不開藥；財運科**不指名標的、不保證報酬**；家庭科不說剋父剋母無子。
 
 ## 回傳結構
 
