@@ -28,6 +28,8 @@ from fortune.api.main import app as api
 from fortune.birth import BirthInput
 from fortune.interpret import interpret, interpret_synthesis, interpret_zeri
 
+import render as R
+
 SYSTEMS = [(f"{s['zh']} · {s['en']}", s["key"]) for s in casting.systems()]
 PURPOSES = [(f"{v['zh']} · {v['en']}", k) for k, v in Z.PURPOSES.items()]
 LANGS = [("中文", "zh"), ("English", "en"), ("中文 + English", "both")]
@@ -49,8 +51,10 @@ def _birth(name, d, t, gender, place, tst) -> BirthInput:
                       latitude=lat, longitude=lon, tz_offset_hours=tz, true_solar_time=bool(tst))
 
 
-def _kv(readings: dict) -> list[list[str]]:
-    return [[k, "、".join(map(str, v)) if isinstance(v, list) else str(v)] for k, v in readings.items()]
+def _focus_line(readings: dict) -> str:
+    if readings.get("focus_topic"):
+        return f"**問題主題：{readings['focus_topic']}**　本門派規則判斷：{readings.get('focus_verdict', '')}\n\n"
+    return ""
 
 
 def cast_one(name, d, t, gender, place, tst, system, question, lang, read):
@@ -63,11 +67,14 @@ def cast_one(name, d, t, gender, place, tst, system, question, lang, read):
             chart.readings["focus_topic"] = F.topic_label(topic)
             chart.readings["focus_verdict"] = f"{fx['verdict']}（{fx['reason']}）"
         prose = interpret(chart, focus=question or None, lang=lang).interpretation if read else ""
-        return (f"**{chart.system_en} · {chart.system_zh}** — {chart.subject}\n\n### {chart.summary}",
-                "\n".join(f"{i + 1}. {c}" for i, c in enumerate(chart.reasoning_chain)), _kv(chart.readings), prose,
-                json.dumps(chart.model_dump(mode="json"), ensure_ascii=False, indent=1))
+        head = f"**{chart.system_en} · {chart.system_zh}** — {chart.subject}\n\n### {chart.summary}\n\n" + _focus_line(chart.readings)
+        board = R.chart_html(chart)
+        if not board:                                      # systems without a dedicated sheet: the key facts
+            board = R.readings_html(chart.readings)
+        chain = "\n".join(f"{i + 1}. {c}" for i, c in enumerate(chart.reasoning_chain))
+        return (head, board, prose, chain, R.readings_html(chart.readings), json.dumps(chart.model_dump(mode="json"), ensure_ascii=False, indent=1))
     except Exception as e:  # noqa: BLE001
-        return f"⚠️ {e}", "", [], "", ""
+        return f"⚠️ {e}", "", "", "", "", ""
 
 
 def synthesize(name, d, t, gender, place, tst, question, lang, read):
@@ -124,13 +131,15 @@ with gr.Blocks(title="Bazaar of Fates · 算命") as demo:
         system = gr.Dropdown(label="System 系統", choices=SYSTEMS, value="bazi")
         go = gr.Button("Cast 排盤", variant="primary")
         head = gr.Markdown()
-        with gr.Row():
-            chain = gr.Markdown(label="排盤步驟")
-            kv = gr.Dataframe(headers=["item", "value"], label="命盤要素", wrap=True)
+        board = gr.HTML(label="命盤")
         prose = gr.Markdown(label="解讀")
+        with gr.Accordion("排盤步驟 Casting steps", open=False):
+            chain = gr.Markdown()
+        with gr.Accordion("命盤要素 Chart elements", open=False):
+            kv = gr.HTML()
         with gr.Accordion("raw JSON", open=False):
             raw = gr.Code(language="json")
-        go.click(cast_one, [name, bdate, btime, gender, place, tst, system, question, lang, read], [head, chain, kv, prose, raw])
+        go.click(cast_one, [name, bdate, btime, gender, place, tst, system, question, lang, read], [head, board, prose, chain, kv, raw])
 
     with gr.Tab("Synthesis 綜合會診"):
         go2 = gr.Button("Synthesize 十三套會診", variant="primary")
