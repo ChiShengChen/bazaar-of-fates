@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import html
 
-ELEM_COLOR = {"木": "#15803d", "火": "#dc2626", "土": "#b45309", "金": "#525252", "水": "#2563eb"}
+ELEM_COLOR = {"木": "#2f6b2f", "火": "#b4302b", "土": "#8a5a1b", "金": "#4a4238", "水": "#1f4e8c"}
 STEM_ELEM = dict(zip("甲乙丙丁戊己庚辛壬癸", "木木火火土土金金水水"))
 BRANCH_ELEM = dict(zip("子丑寅卯辰巳午未申酉戌亥", "水土木木土火火土金金土水"))
 MAJOR = {"紫微", "天機", "太陽", "武曲", "天同", "廉貞", "天府", "太陰", "貪狼", "巨門", "天相", "天梁", "七殺", "破軍"}
@@ -33,21 +33,7 @@ LABELS = {
     "taiyi_regime": "狀態", "natal_accumulated_years": "命局積年", "natal_palace": "命局太乙宮", "natal_host_guest": "命局主客", "liunian_palace": "流年太乙宮",
     "liunian_host_guest": "流年主客", "verdict": "斷", "day_master_elem": "日主五行", "twelve_fortune": "十二運星", "tenchusatsu": "天中殺",
 }
-_CSS = """<style>
-.bz{font-size:14px;line-height:1.6}.bz table{border-collapse:collapse;width:100%}.bz th,.bz td{border-bottom:1px solid #e5e7eb;padding:4px 8px;text-align:center;vertical-align:top}
-.bz th{color:#6b7280;font-weight:500}.bz td:first-child{text-align:left;color:#6b7280;white-space:nowrap}.bz .big{font-size:24px;font-weight:700}
-.bz .head{display:flex;flex-direction:column;gap:2px;margin:6px 0 10px}.bz .muted{color:#6b7280}.bz .note{margin-top:4px}
-.bz .strip{display:flex;gap:4px;overflow-x:auto;margin:8px 0}.bz .cell{flex:1 0 70px;border:1px solid #e5e7eb;border-radius:8px;padding:5px 3px;text-align:center;font-size:12px}
-.bz .cell.fav{background:#dcfce7}.bz .cell.unf{background:#fee2e2}.bz .cell.now{outline:2px solid #7c3aed}
-.zw{display:grid;grid-template-columns:repeat(4,1fr);grid-template-rows:repeat(4,1fr);gap:4px;max-width:560px;aspect-ratio:1}
-.zw .c{border:1px solid #e5e7eb;border-radius:6px;padding:4px 6px;font-size:11px;display:flex;flex-direction:column;justify-content:space-between;overflow:hidden}
-.zw .c.body{background:#f3e8ff}.zw .maj{font-weight:700;font-size:13px}.zw .min{color:#6b7280;font-size:10px}.zw .nm{color:#7c3aed;margin-top:2px}
-.zw .ctr{grid-row:2/4;grid-column:2/4;border:1px solid #e5e7eb;border-radius:8px;padding:8px;font-size:12px;text-align:center;display:flex;flex-direction:column;justify-content:center;gap:3px}
-.qm{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;max-width:440px}.qm .c{border:1px solid #e5e7eb;border-radius:8px;padding:6px 8px;min-height:70px;font-size:13px}
-.qm .c.good{border-color:#16a34a}.qm .c.bad{border-color:#dc2626}.qm .c.fu{outline:2px solid #7c3aed}.qm .t{display:flex;justify-content:space-between;font-size:11px;color:#7c3aed}.qm .m{display:flex;justify-content:space-between}
-.lr{display:grid;grid-template-columns:repeat(12,1fr);gap:3px}.lr .c{border:1px solid #e5e7eb;border-radius:6px;text-align:center;font-size:13px;padding:3px 0}.lr .g{font-size:10px;color:#7c3aed}
-.kv{display:grid;grid-template-columns:auto 1fr;gap:3px 12px;font-size:13px}.kv .k{color:#6b7280;white-space:nowrap}
-</style>"""
+_CSS = ""
 
 
 def _c(ch: str, big: bool = False) -> str:
@@ -63,7 +49,7 @@ def bazi(c: dict) -> str:
     P = c.get("pillars", [])
     s = c.get("strength", {})
     q = c.get("qi_yun", {})
-    out = [_CSS, '<div class="bz"><div class="head">']
+    out = ['<div class="paper bz"><div class="title">八字命盤 <span class="seal">四柱</span></div><div class="head">']
     out.append(f"<div><span class='muted'>日主</span> {_c(c['day_master']['stem'])}（{c['day_master']['yinyang']}{c['day_master']['elem']}）　<span class='muted'>性別</span> {c['gender']}　"
                f"<span class='muted'>胎元</span> {_e(c['tai_yuan'])}［{_e(c['tai_yuan_nayin'])}］　<span class='muted'>命宮</span> {_e(c['ming_gong'])}［{_e(c['ming_gong_nayin'])}］</div>")
     out.append(f"<div><span class='muted'>節氣</span> {_e(c['jie_prev']['at'].replace('T', ' '))} {_e(c['jie_prev']['name'])} ～ {_e(c['jie_next']['at'].replace('T', ' '))} {_e(c['jie_next']['name'])}　"
@@ -100,7 +86,7 @@ def bazi(c: dict) -> str:
 def ziwei(c: dict, readings: dict, subject: str) -> str:
     CELL = {5: (1, 1), 6: (1, 2), 7: (1, 3), 8: (1, 4), 4: (2, 1), 9: (2, 4), 3: (3, 1), 10: (3, 4), 2: (4, 1), 1: (4, 2), 0: (4, 3), 11: (4, 4)}
     B = "子丑寅卯辰巳午未申酉戌亥"
-    out = [_CSS, '<div class="zw">']
+    out = ['<div class="paper"><div class="title">紫微斗數命盤 <span class="seal">十二宮</span></div><div class="zw">']
     for p in c.get("palaces", []):
         r, col = CELL[B.index(p["branch"])]
         stars = []
@@ -120,11 +106,12 @@ def ziwei(c: dict, readings: dict, subject: str) -> str:
         for d in luck["daxian"]:
             out.append(f"<div class='cell{' now' if d['current'] else ''}'><div class='muted'>{d['ages'][0]}–{d['ages'][1]}歲</div><div><b>{_e(d['palace'])}</b></div><div>{_e(d['gz'])}</div><div class='muted'>{_e(d['changsheng'])}</div></div>")
         out.append("</div></div>")
+    out.append("</div>")
     return "".join(out)
 
 
 def liuyao(g: dict) -> str:
-    out = [_CSS, "<div class='bz'>", f"<div class='note'><b>{_e(g['name'])}</b>（{_e(g['palace'])}宮{_e(g['palace_elem'])}）世{g['shi']}應{g['ying']}・月建 {_e(g['month_branch'])}・日辰 {_e(g['day_gz'])}・旬空 {_e(g['kong_wang'])}" + (f"・變卦 {_e(g['changed']['name'])}" if g.get("changed") else "") + "</div>",
+    out = ["<div class='paper bz'><div class='title'>六爻納甲 <span class='seal'>卦</span></div>", f"<div class='note'><b>{_e(g['name'])}</b>（{_e(g['palace'])}宮{_e(g['palace_elem'])}）世{g['shi']}應{g['ying']}・月建 {_e(g['month_branch'])}・日辰 {_e(g['day_gz'])}・旬空 {_e(g['kong_wang'])}" + (f"・變卦 {_e(g['changed']['name'])}" if g.get("changed") else "") + "</div>",
            "<table><tr><th>爻</th><th>六神</th><th>六親</th><th>干支</th><th></th><th>世應</th><th>伏神</th><th>旺衰</th><th>變</th></tr>"]
     for r in reversed(g["lines"]):
         ch = g.get("changed")
@@ -137,18 +124,18 @@ def liuyao(g: dict) -> str:
 
 def qimen(c: dict) -> str:
     by = {p["palace"]: p for p in c.get("palaces", [])}
-    out = [_CSS, f"<div class='bz note muted'>{_e(c.get('ju', ''))} · 值符 {_e(c.get('zhifu', ''))} · 值使 {_e(c.get('zhishi', ''))}</div><div class='qm'>"]
+    out = [f"<div class='paper'><div class='title'>奇門遁甲 <span class='seal'>九宮</span></div><div class='note muted'>{_e(c.get('ju', ''))} · 值符 {_e(c.get('zhifu', ''))} · 值使 {_e(c.get('zhishi', ''))}</div><div class='qm'>"]
     for n in (4, 9, 2, 3, 5, 7, 8, 1, 6):
         p = by.get(n, {})
         cls = "good" if p.get("gate_cls") == "吉" else "bad" if p.get("gate_cls") == "凶" else ""
         out.append(f"<div class='c {cls}{' fu' if p.get('god') == '值符' else ''}'><div class='t'><span>{_e(p.get('god', ''))}</span><span class='muted'>{_e(p.get('name', ''))}</span></div>"
                    f"<div class='m'><b>{_e(p.get('star', ''))}</b><b>{_e(p.get('sky_stem', ''))}</b></div><div class='m'><span>{_e(p.get('gate', ''))}</span><span class='muted'>{_e(p.get('earth_stem', ''))}</span></div></div>")
-    out.append("</div>")
+    out.append("</div></div>")
     return "".join(out)
 
 
 def liuren(c: dict) -> str:
-    out = [_CSS, f"<div class='bz'><div class='note muted'>{_e(c.get('yue_jiang', ''))}將加{_e(c.get('occupy', ''))}時 · 天盤／地盤・天將</div><div class='lr'>"]
+    out = [f"<div class='paper bz'><div class='title'>大六壬課式 <span class='seal'>三傳</span></div><div class='note muted'>{_e(c.get('yue_jiang', ''))}將加{_e(c.get('occupy', ''))}時 · 天盤／地盤・天將</div><div class='lr'>"]
     for x in c.get("heaven_plate", []):
         out.append(f"<div class='c'><div class='g'>{_e((x.get('general') or '')[:1])}</div><b>{_e(x['sky'])}</b><div class='muted'>{_e(x['ground'])}</div></div>")
     out.append("</div><table><tr>" + "".join(f"<th>{_e(k['name'])}</th>" for k in c.get("courses", [])) + "</tr><tr>" + "".join(f"<td class='big'>{_e(k['upper'])}</td>" for k in c.get("courses", [])) + "</tr><tr>"
@@ -165,7 +152,7 @@ def readings_html(readings: dict) -> str:
         if lab is None:
             continue
         rows.append(f"<div class='k'>{_e(lab)}</div><div>{_e('、'.join(map(str, v)) if isinstance(v, list) else v)}</div>")
-    return _CSS + "<div class='kv'>" + "".join(rows) + "</div>"
+    return "<div class='paper'><div class='kv'>" + "".join(rows) + "</div></div>"
 
 
 def chart_html(chart) -> str:

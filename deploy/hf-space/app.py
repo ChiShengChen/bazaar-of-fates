@@ -29,6 +29,7 @@ from fortune.birth import BirthInput
 from fortune.interpret import interpret, interpret_synthesis, interpret_zeri
 
 import render as R
+from theme import CSS as THEME_CSS, HERO
 
 SYSTEMS = [(f"{s['zh']} · {s['en']}", s["key"]) for s in casting.systems()]
 PURPOSES = [(f"{v['zh']} · {v['en']}", k) for k, v in Z.PURPOSES.items()]
@@ -82,12 +83,16 @@ def synthesize(name, d, t, gender, place, tst, question, lang, read):
         b = _birth(name, d, t, gender, place, tst)
         charts = {k: casting.cast(k, b, transits=(k == "astrology")) for k in casting.REGISTRY}
         syn = F.synthesize(charts, F.classify(question), {"male": True, "female": False}.get(gender or ""))
-        rows = [[r["system_zh"], r["verdict_zh"], r["reason"]] for r in syn["systems"]]
         head = f"### {syn['summary']}\n\n一致：{'、'.join(syn['consensus']) or '—'}　相左：{'、'.join(syn['conflicts']) or '—'}"
+        cls = {"favourable": "v-fav", "neutral": "v-neu", "unfavourable": "v-unf"}
+        rows = "".join(
+            f"<tr class='{'conflict' if r['verdict'] != 'neutral' and r['verdict'] != syn['lean'] else ''}'><td style='text-align:left'><b>{R._e(r['system_zh'])}</b><div class='muted' style='font-size:11px'>{R._e(r['system_en'])}</div></td>"
+            f"<td class='{cls[r['verdict']]}'>{R._e(r['verdict_zh'])}</td><td style='text-align:left'>{R._e(r['reason'])}</td></tr>" for r in syn["systems"])
+        table = f"<div class='paper'><div class='title'>十三術會診 <span class='seal'>{R._e(syn['lean_zh'])}</span></div><table><tr><th style='text-align:left'>系統</th><th>判斷</th><th style='text-align:left'>依據（該門派規則）</th></tr>{rows}</table></div>"
         prose = interpret_synthesis(syn, focus=question, lang=lang) if read else ""
-        return head, rows, prose
+        return head, table, prose
     except Exception as e:  # noqa: BLE001
-        return f"⚠️ {e}", [], ""
+        return f"⚠️ {e}", "", ""
 
 
 def pick_dates(name, d, t, gender, place, tst, purpose, start, end, lang, read):
@@ -101,20 +106,22 @@ def pick_dates(name, d, t, gender, place, tst, purpose, start, end, lang, read):
         rows = []
         for i, dd in enumerate(out["best"], 1):
             x = by[dd]
-            rows.append([f"#{i}", dd, x["weekday"], x["gz"]["day"], "★" * x["grade"], f"{x['score']:+}",
-                         "、".join(f"{h['branch']}時" for h in x.get("hours", []) if h.get("best")),
-                         "、".join(x["qimen"]["lucky_dirs"][:3]),
-                         "；".join(f"{r['src']}{r['delta']:+} {r['text']}" for r in x["reasons"][:4])])
-        head = f"### 擇日 {out['purpose_label']} {out['start']} → {out['end']}\n\n忌日：{'、'.join(out['avoid'][:15]) or '—'}"
+            hours = "、".join(f"{h['branch']}時" for h in x.get("hours", []) if h.get("best"))
+            why = "；".join(f"{r['src']}{r['delta']:+} {r['text']}" for r in x["reasons"][:4])
+            rows.append(f"<tr><td class='nw'>#{i}</td><td class='nw'><b>{dd}</b><div class='muted' style='font-size:11px'>{R._e(x['weekday'])} · 農曆 {R._e(x['lunar'])}</div></td><td class='nw'>{R._c(x['gz']['day'][0])}{R._c(x['gz']['day'][1])}</td>"
+                        f"<td class='star'>{'★' * x['grade']}{'☆' * (5 - x['grade'])}</td><td class='nw'>{x['score']:+}</td><td class='nw'>{R._e(hours)}</td><td style='text-align:left'>{R._e('、'.join(x['qimen']['lucky_dirs'][:3]))}</td><td style='text-align:left;font-size:12px'>{R._e(why)}</td></tr>")
+        table = (f"<div class='paper'><div class='title'>擇日 · {R._e(out['purpose_label'])} <span class='seal'>吉日</span></div>"
+                 f"<table><tr><th>#</th><th>日期</th><th>日柱</th><th>等級</th><th>分數</th><th>吉時</th><th style='text-align:left'>吉方</th><th style='text-align:left'>依據</th></tr>{''.join(rows)}</table>"
+                 f"<div class='note'><span class='muted'>忌日：</span>{R._e('、'.join(out['avoid'][:20]) or '—')}</div></div>")
+        head = f"### 擇日 {out['purpose_label']} {out['start']} → {out['end']}"
         prose = interpret_zeri(out, lang=lang) if read else ""
-        return head, rows, prose
+        return head, table, prose
     except Exception as e:  # noqa: BLE001
-        return f"⚠️ {e}", [], ""
+        return f"⚠️ {e}", "", ""
 
 
 with gr.Blocks(title="Bazaar of Fates · 算命") as demo:
-    gr.Markdown("# 🔮 Bazaar of Fates · 算命\n十三套傳統命理 · 一個生辰 · 確定性命盤 — 西洋占星 · 八字 · 紫微斗數 · 梅花易數 · 六爻 · 小六壬 · 四柱推命 · 七政四餘 · 鐵板神數 · 奇門遁甲 · 大六壬 · 太乙神數 · Jyotiṣa　"
-                "[GitHub](https://github.com/ChiShengChen/bazaar-of-fates) · `pip install bazaar-of-fates` · [API docs](docs) · [static UI](web/)")
+    gr.HTML(HERO)
     with gr.Row():
         name = gr.Textbox(label="Name 稱呼", value="Mei", scale=1)
         bdate = gr.Textbox(label="Birth date 出生日期 (YYYY-MM-DD)", value="1990-06-15", scale=1)
@@ -129,7 +136,7 @@ with gr.Blocks(title="Bazaar of Fates · 算命") as demo:
 
     with gr.Tab("Single 單盤"):
         system = gr.Dropdown(label="System 系統", choices=SYSTEMS, value="bazi")
-        go = gr.Button("Cast 排盤", variant="primary")
+        go = gr.Button("排 盤 · Cast", variant="primary")
         head = gr.Markdown()
         board = gr.HTML(label="命盤")
         prose = gr.Markdown(label="解讀")
@@ -142,8 +149,8 @@ with gr.Blocks(title="Bazaar of Fates · 算命") as demo:
         go.click(cast_one, [name, bdate, btime, gender, place, tst, system, question, lang, read], [head, board, prose, chain, kv, raw])
 
     with gr.Tab("Synthesis 綜合會診"):
-        go2 = gr.Button("Synthesize 十三套會診", variant="primary")
-        head2 = gr.Markdown(); table2 = gr.Dataframe(headers=["系統", "判斷", "依據"], wrap=True); prose2 = gr.Markdown()
+        go2 = gr.Button("會 診 · 十三術同問", variant="primary")
+        head2 = gr.Markdown(); table2 = gr.HTML(); prose2 = gr.Markdown()
         go2.click(synthesize, [name, bdate, btime, gender, place, tst, question, lang, read], [head2, table2, prose2])
 
     with gr.Tab("Dates 擇日"):
@@ -151,19 +158,23 @@ with gr.Blocks(title="Bazaar of Fates · 算命") as demo:
             purpose = gr.Dropdown(label="Purpose 目的", choices=PURPOSES, value="wedding")
             start = gr.Textbox(label="From 起", value=date.today().isoformat())
             end = gr.Textbox(label="To 迄（≤121 天）", value=date.fromordinal(date.today().toordinal() + 60).isoformat())
-        go3 = gr.Button("Pick dates 擇日", variant="primary")
-        head3 = gr.Markdown(); table3 = gr.Dataframe(headers=["#", "日期", "週", "日柱", "等級", "分數", "吉時", "吉方", "依據"], wrap=True); prose3 = gr.Markdown()
+        go3 = gr.Button("擇 日 · Pick dates", variant="primary")
+        head3 = gr.Markdown(); table3 = gr.HTML(); prose3 = gr.Markdown()
         go3.click(pick_dates, [name, bdate, btime, gender, place, tst, purpose, start, end, lang, read], [head3, table3, prose3])
 
-    gr.Markdown(f"<sub>{DISCLAIMER}</sub>")
+    gr.HTML(f"<div style='text-align:center;color:#9c8c68;font-size:12px;letter-spacing:.1em;padding:14px 0 4px'>{DISCLAIMER}</div>")
 
 # Hugging Face's Gradio runtime pre-binds port 7860 for `demo.launch()`, so we must launch the Blocks
 # (not run uvicorn ourselves) and then graft the FastAPI routes (/cast, /synthesis, /zeri, /docs, /web …)
 # onto Gradio's own FastAPI app.
 if __name__ == "__main__":
     import threading
-    app, _local, _share = demo.launch(server_name="0.0.0.0", prevent_thread_lock=True, ssr_mode=False,
-                                      theme=gr.themes.Soft(primary_hue="purple"))
+    _theme = gr.themes.Base(primary_hue="amber", neutral_hue="slate")
+    try:
+        app, _local, _share = demo.launch(server_name="0.0.0.0", prevent_thread_lock=True, ssr_mode=False, theme=_theme, css=THEME_CSS)
+    except TypeError:                                  # gradio < 6: css/theme live on Blocks()
+        demo.css = THEME_CSS
+        app, _local, _share = demo.launch(server_name="0.0.0.0", prevent_thread_lock=True, ssr_mode=False)
     app.include_router(api.router)          # /cast, /synthesis, /zeri, /docs … on the same port
     if os.path.exists("web/index.html"):     # the no-build static page, shipped alongside app.py in the Space
         from fastapi.staticfiles import StaticFiles
