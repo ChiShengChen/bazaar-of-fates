@@ -34,6 +34,7 @@ bazaar ziwei 1990-06-15 14:30 --place 台北 --gender female       # 紫微 4×4
 bazaar synthesis 1990-06-15 14:30 --gender female --ask "明年事業"   # 十三套對同一個問題的判斷
 bazaar zeri 1990-06-15 14:30 --purpose wedding --from 2026-11-01 --to 2026-12-31   # 擇日
 bazaar today 1990-06-15 14:30                                    # 今日運勢
+bazaar love 1990-06-15 14:30 --gender female --ask "何時有正緣"      # 感情專科（加 --partner-date 合婚）
 ```
 
 完整網頁版（Next.js）：
@@ -59,6 +60,7 @@ cd web && npm install && npm run dev             # 完整 UI → :3000
 | 🧑‍⚖️ **綜合會診** | 一個問題，十三套各給依自家規則的判斷與依據，統計一致與相左，再由 AI 解釋各門派為何不同。 |
 | 📅 **擇日・今日運勢** | 黃曆宜忌＋八字流日（沖日柱、歲破、月破、空亡、神煞）＋紫微流日四化＋奇門值使吉方＋小六壬，逐日打分、月曆呈現、每日吉時。 |
 | 💞 **合盤與預測** | 西占合盤雙輪、組合盤、Davison、團體矩陣；跨系統年度報告與多年熱力圖。 |
+| 💘 **感情專科** | 專看感情的命理師：命（八字配偶星與夫妻宮、紫微夫妻宮、西洋金星七宮、Jyotiṣa 七宮）、運（逐年**桃花年／婚緣年**評分，每一分列依據）、合（填對方生辰即**合婚**：八字日柱干支關係＋西占合盤），解讀先回答子題（何時有緣／合不合／復合／該不該分開／婚姻／第三者）。規則見 [docs/love.md](docs/love.md)。 |
 | 🤖 **CLI・API・MCP** | `bazaar` 指令列、FastAPI、`bazaar-mcp` 讓 Claude／Cursor 直接排盤，附 Claude Code skill。 |
 | 🗃️ **資料集** | 一行指令窮舉紫微全部 518,400 張命盤（含七個主題的規則判斷），八字依日期區間產出。 |
 
@@ -91,6 +93,7 @@ cd web && npm install && npm run dev             # 完整 UI → :3000
 | `POST` | `/reading/{system}` `[/stream]` | 命盤＋解讀（`focus` 問題導向，`lang` 語言） |
 | `POST` | `/synthesis` | 綜合會診 |
 | `POST` | `/zeri` · `/day` | 擇日・今日運勢 |
+| `POST` | `/love` | 感情專科：命・今年・桃花年婚緣年・合婚・解讀 |
 | `POST` | `/timeline/{system}` · `/synastry` · `/group` · `/annual-report` · `/annual-overview` | 時間軸、合盤、團體、年度、多年 |
 
 ## 🤖 MCP server

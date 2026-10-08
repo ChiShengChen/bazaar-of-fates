@@ -28,7 +28,8 @@ bazaar zeri 1990-06-15 14:30 --purpose wedding --from 2026-11-01 --to 2026-12-31
 2. For one tradition: `cast` (facts) or `reading` (facts + prose; pass the user's question as `focus`, and `lang`).
 3. For "what do the systems say about X": `synthesis` — show the per-system verdicts and reasons as a table, then explain agreements and conflicts in each tradition's own terms.
 4. For "when should I…": `zeri` with the purpose; present the top days with their 吉時 and 吉方 and the hard-avoid days (沖日柱, 歲破).
-5. Always keep the disclaimer: cultural / educational / entertainment; not a basis for medical, financial or legal decisions.
+5. For anything about love / romance / marriage (何時有緣, 合不合, 復合, 該不該分開, 婚姻, 第三者): `love` — pass gender (男命財星為妻、女命官殺為夫) and the partner's birth for 合婚. Present `timing.years` as a ranked list of 桃花年／婚緣年 with their reasons, `natal` as how this person loves, and `match` as the biggest + and − terms; never pronounce fate or decide a breakup for them.
+6. Always keep the disclaimer: cultural / educational / entertainment; not a basis for medical, financial or legal decisions.
 
 ## Reading the payloads
 

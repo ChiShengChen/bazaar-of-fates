@@ -48,6 +48,7 @@ pip install bazaar-of-fates && bazaar bazi 1990-06-15 14:30 --place 台北 --gen
 | 🗣️ **Readings in your language** | 中文 / English / both, streamed token-by-token. Ask a question and the prompt leads with the facts that bear on it. Runs fully offline (facts digest) with no API key. |
 | 🪐 **Western stack** | 6 house systems · transits · secondary & solar-arc progressions · Solar & Lunar Returns · planet-return timelines. |
 | 💞 **Relationships & forecasts** | Synastry bi-wheel · composite · Davison · 2–8-person matrix · cross-tradition annual report · multi-year heatmap with turning points · two-person arc. |
+| 💘 **Love-specialist reader 感情專科** | One question type, read deeply: natal love disposition (八字 配偶星・夫妻宮, 紫微 夫妻宮, 西洋 金星・七宮, Jyotiṣa 七宮), a **桃花年／婚緣年** scan with every +/− listed, **合婚** (八字 日柱干支 + synastry) when a partner is given, and a reading that answers the sub-question (何時有緣／合不合／復合／該不該分開／婚姻／第三者) first. Rules: [docs/love.md](docs/love.md). |
 | 🤖 **CLI · API · MCP** | `bazaar` in the terminal, FastAPI with SSE streaming, `bazaar-mcp` for Claude / Cursor, a Claude Code skill, a one-page printable report. |
 | 🗃️ **Datasets** | One command enumerates the entire 紫微 input space (518,400 charts, with 7-topic rule verdicts) or 八字 by date range. |
 
@@ -86,6 +87,7 @@ bazaar ziwei 1990-06-15 14:30 --place 台北 --gender female    # 紫微 4×4 bo
 bazaar synthesis 1990-06-15 14:30 --gender female --ask "明年事業"      # 13 systems, one question
 bazaar zeri 1990-06-15 14:30 --purpose wedding --from 2026-11-01 --to 2026-12-31   # 擇日
 bazaar today 1990-06-15 14:30                    # 今日運勢
+bazaar love 1990-06-15 14:30 --gender female --ask "何時有正緣" --years 8        # 感情專科：命・桃花年・(合婚 with --partner-date)
 bazaar all 1990-06-15 14:30 --json               # everything as JSON; add --read for a reading
 ```
 
@@ -175,6 +177,7 @@ Tools: `list_systems` · `geo_lookup` · `cast` · `reading` · `synthesis` · `
 | `POST` | `/reading/{system}` `[/stream]` | chart + reading (`focus`, `lang`; `/stream` = SSE) → `Reading` |
 | `POST` | `/synthesis` | one question across all (or chosen) systems: verdicts + facts, tally, consensus/conflicts, panel reading |
 | `POST` | `/zeri` · `/day` | date picking for a purpose (scored days, best/avoid, 吉時, 吉方) · one day's outlook with 12 時辰 |
+| `POST` | `/love` | love-specialist sitting: natal disposition, this year's 13-system lean, 桃花年／婚緣年 scan, 合婚 with a partner, reading |
 | `POST` | `/timeline/{system}` | 大運 / Mahādaśā / 流年 / planet returns → `Timeline` |
 | `POST` | `/synastry` · `/group` | relationship / group charts + readings |
 | `POST` | `/annual-report` · `/annual-overview` | one-year report / multi-year arc |
