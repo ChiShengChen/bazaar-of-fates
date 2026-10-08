@@ -1,6 +1,6 @@
 """時家奇門遁甲・轉盤・拆補法 / Hour-chart Qi Men Dun Jia (rotating plates, 拆補 method).
 
-Native module (NOT synced). The synced engine is a day-of-year placeholder; this is the
+Native module. The engine is a day-of-year placeholder; this is the
 standard 起局:
   1. 節氣 in force (exact, from fortune.bazi_ext) → 陽遁 (冬至…芒種) / 陰遁 (夏至…大雪)
   2. 元 (上/中/下) from the day's 符頭 — the latest 甲/己 day at or before it

@@ -1,17 +1,4 @@
-"""七政四餘 (Chinese horoscopic astrology) deterministic engine. Offline, lookahead-free.
-
-七政 = 日月 + 水金火木土 (Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn).
-四餘 = 羅睺 (Moon's ascending node), 計都 (descending node), 月孛 (lunar apogee), 紫炁
-       (a fictitious slow point — defined mean motion, no astronomical basis: caveated).
-All from `ephem` + standard mean-element formulas → pure functions of the date.
-
-命主 = the natal Sun's ecliptic position (太陽躔度). Signal rides the 七政四餘 transits:
-  • benefic_transit  — hold when 歲星 (Jupiter, the great benefic) is in a sign that
-                       conjoins or trines (三合) the natal Sun's sign.
-  • avoid_malefic    — stand aside when 火星 (Mars) or 羅睺 conjoins/opposes the natal Sun.
-Reuses Task 25's zodiac-sign helpers.
-
-⚠️ CONTROL / PLACEBO — no economic mechanism.
+"""七政四餘 primitives: 四餘 mean elements (羅睺/計都 = lunar nodes, 月孛 = lunar apogee, 紫炁 = a defined fictitious point) and sign helpers.
 """
 
 from __future__ import annotations
@@ -62,7 +49,7 @@ def _sign(lon: float) -> int:
 
 
 def build_state(dates: list[date], natal_sun_sign: int) -> dict[date, dict]:
-    """Per-date transit state used by the signal: Jupiter sign vs natal Sun sign (benefic),
+    """Per-date transit state: Jupiter sign vs natal Sun sign (benefic),
     Mars/羅睺 sign vs natal Sun (malefic)."""
     trine = {(natal_sun_sign + k) % 12 for k in (0, 4, 8)}        # 三合 (conjunction + both trines)
     opp = {(natal_sun_sign + k) % 12 for k in (0, 6)}             # conjunction + opposition
@@ -73,21 +60,6 @@ def build_state(dates: list[date], natal_sun_sign: int) -> dict[date, dict]:
         node = _sign(four_remainders(d)["羅睺"])
         state[d] = {"benefic": jup in trine, "malefic": (mars in opp) or (node in opp)}
     return state
-
-
-def make_want_long(spec, state: dict[date, dict]):
-    def want_long(d: date) -> bool:
-        s = state.get(d)
-        if spec.entry_signal == "buy_and_hold":
-            return True
-        if s is None:
-            return False
-        if spec.entry_signal == "benefic_transit":
-            return s["benefic"]
-        if spec.entry_signal == "avoid_malefic":
-            return not s["malefic"]
-        return False
-    return want_long
 
 
 def qizheng_readings(natal_sun_sign: int, d: date) -> dict[str, float | str]:
@@ -125,5 +97,4 @@ def reasoning_chain(natal_sun_sign: int, d: date, natal_chart: list) -> list[str
         f"流年躔度：歲星(木)入{r['jupiter_sign']}、火星入{r['mars_sign']}、羅睺入{r['rahu_sign']}。",
         f"歲星{'拱照命主（三合/同宮）' if r['jupiter_blesses'] == '是' else '未照命主'}；"
         f"火羅{'沖剋命主' if r['malefic_afflicts'] == '是' else '無沖'}。",
-        f"訊號：{'持有（吉曜拱命）' if r['qizheng_regime'] == 'benefic_blessing' else '空手（凶曜沖命）' if r['qizheng_regime'] == 'malefic_affliction' else '依規則判定'}。",
     ]

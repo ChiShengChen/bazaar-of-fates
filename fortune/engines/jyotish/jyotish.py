@@ -1,13 +1,5 @@
-"""Jyotiṣa (Vedic / Hindu sidereal astrology) deterministic engine. Offline, lookahead-free.
-
-Genuinely computable (unlike the 三式 simplifications): SIDEREAL positions = tropical
-(ephem) − ayanāṃśa (Lahiri), the 9 grahas incl. Rāhu/Ketu (lunar nodes), the natal
-Moon's nakṣatra, and the **Vimśottarī Daśā** — the 120-year planetary-period cycle that
-is the heart of Vedic timing. The signal rides the current Mahādaśā lord:
-  benefic daśā (Jupiter / Venus / Mercury / Moon)  →  favourable
-  malefic daśā (Saturn / Mars / Rāhu / Ketu / Sun)  →  unfavourable
-
-All a pure function of the date. ⚠️ CONTROL / PLACEBO — no economic mechanism.
+"""Jyotiṣa tables and date-level helpers: Lahiri ayanāṃśa, rāśi / nakṣatra names, Vimśottarī lords, years and benefics, mean lunar node.
+Time-exact positions and the daśā walk live in fortune/jyotish_ext.py.
 """
 
 from __future__ import annotations
@@ -70,19 +62,19 @@ def chart(d: date) -> list[tuple[str, float, str]]:
     return out
 
 
-def natal_nakshatra(listing: date) -> tuple[int, float]:
+def natal_nakshatra(birth: date) -> tuple[int, float]:
     """(nakshatra index 0-26, fraction elapsed within it) for the natal Moon."""
-    moon = sidereal_lon("Moon", listing)
+    moon = sidereal_lon("Moon", birth)
     n = int(moon // _NAK_SIZE) % 27
     frac = (moon % _NAK_SIZE) / _NAK_SIZE
     return n, frac
 
 
-def mahadasha_lord(listing: date, on: date) -> str:
+def mahadasha_lord(birth: date, on: date) -> str:
     """The Vimśottarī Mahādaśā lord active on `on`, from the natal Moon nakṣatra."""
-    n, frac = natal_nakshatra(listing)
+    n, frac = natal_nakshatra(birth)
     start = n % 9
-    elapsed = (_jd(on) - _jd(listing)) / 365.25
+    elapsed = (_jd(on) - _jd(birth)) / 365.25
     # balance of the birth daśā
     remaining = (1.0 - frac) * DASHA_YEARS[start]
     if elapsed < remaining:
@@ -95,23 +87,10 @@ def mahadasha_lord(listing: date, on: date) -> str:
     return DASHA_LORDS[i]
 
 
-def make_want_long(spec, listing: date):
-    def want_long(d: date) -> bool:
-        if spec.entry_signal == "buy_and_hold":
-            return True
-        lord = mahadasha_lord(listing, d)
-        if spec.entry_signal == "benefic_dasha":
-            return lord in BENEFIC
-        if spec.entry_signal == "avoid_malefic_dasha":
-            return lord in BENEFIC
-        return False
-    return want_long
-
-
-def jyotish_readings(listing: date, as_of: date) -> dict[str, float | str]:
-    n, _frac = natal_nakshatra(listing)
-    lord = mahadasha_lord(listing, as_of)
-    moon_rashi = RASHI[int(sidereal_lon("Moon", listing) // 30) % 12]
+def jyotish_readings(birth: date, as_of: date) -> dict[str, float | str]:
+    n, _frac = natal_nakshatra(birth)
+    lord = mahadasha_lord(birth, as_of)
+    moon_rashi = RASHI[int(sidereal_lon("Moon", birth) // 30) % 12]
     return {
         "jyotish_regime": "benefic_dasha" if lord in BENEFIC else "malefic_dasha",
         "moon_nakshatra": NAKSHATRA[n],
@@ -127,13 +106,12 @@ def readings_block(r: dict[str, float | str]) -> str:
     return "\n".join(f"- {k}: {r[k]}" for k in order if k in r)
 
 
-def reasoning_chain(listing: date, as_of: date) -> list[str]:
-    n, frac = natal_nakshatra(listing)
-    lord = mahadasha_lord(listing, as_of)
+def reasoning_chain(birth: date, as_of: date) -> list[str]:
+    n, frac = natal_nakshatra(birth)
+    lord = mahadasha_lord(birth, as_of)
     return [
-        f"Birth chart (listing {listing.isoformat()}): sidereal = tropical − Lahiri ayanāṃśa ({ayanamsa(as_of):.1f}°).",
+        f"Birth chart (birth {birth.isoformat()}): sidereal = tropical − Lahiri ayanāṃśa ({ayanamsa(as_of):.1f}°).",
         f"Natal Moon in nakṣatra {NAKSHATRA[n]} ({frac*100:.0f}% elapsed) → starts the Vimśottarī sequence at its lord.",
         f"Walking the 120-yr Vimśottarī cycle to {as_of.isoformat()}: current Mahādaśā lord = {lord}.",
         f"{lord} is a {'benefic' if lord in BENEFIC else 'malefic'} (benefics: Jupiter/Venus/Mercury/Moon).",
-        f"Signal: {'hold (benefic daśā)' if lord in BENEFIC else 'flat (malefic daśā)'}.",
     ]

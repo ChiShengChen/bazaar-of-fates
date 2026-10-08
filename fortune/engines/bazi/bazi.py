@@ -1,18 +1,5 @@
-"""八字（四柱）deterministic engine. Pure, offline, lookahead-free.
-
-A company's natal chart is cast from its **listing/first-trade date** (the firm's
-"birth"). From the four pillars we read the 日主 (Day Master) element, estimate the
-chart's 旺衰 (strength), and derive its 喜用神 (favorable elements). The trading signal
-holds the stock when the *current* period's 流年/流月 element is favourable to the Day
-Master, and stands aside otherwise — a deterministic function of the date, so it can
-never peek ahead.
-
-⚠️ This is a CONTROL / PLACEBO: 八字 has no economic mechanism. The engine is exact
-where it can be (the day pillar is pinned to the verifiable anchor 2000-01-07 = 甲子日;
-the year pillar to 1984 = 甲子年); solar-term month boundaries are the standard ±1-day
-approximations, and the listing time-of-day is assumed to be the US market open
-(09:30 → 巳時) since IPO clock-times aren't published. None of that affects the point:
-a worthless signal, run through the same honest backtest.
+"""八字 calendar primitives: 干支 tables, JDN-anchored 日柱 (2000-01-07 = 甲子), 五虎遁 month stems, 五鼠遁 hour stems, a simple 旺衰 estimate.
+Exact 節氣 boundaries live in fortune/bazi_ext.py; these month tables are ±1-day approximations kept for the simple helpers.
 """
 
 from __future__ import annotations
@@ -92,7 +79,7 @@ def hour_pillar(day_stem: int, hour: int) -> tuple[int, int]:
 
 
 def four_pillars(d: date, hour: int = 9) -> dict:
-    """The natal 命盤: 年/月/日/時 pillars (listing hour defaults to market open → 巳時)."""
+    """The natal 命盤: 年/月/日/時 pillars (hour defaults to 巳時)."""
     ys, yb = year_pillar(d)
     ms, mb = month_pillar(d)
     ds, db = day_pillar(d)
@@ -140,13 +127,3 @@ def liuyue_elem(d: date) -> str:
     return STEM_ELEM[month_pillar(d)[0]]
 
 
-def make_want_long(spec, fav: set[str]):
-    def want_long(d: date) -> bool:
-        if spec.entry_signal == "buy_and_hold":
-            return True
-        if spec.entry_signal == "favorable_year":
-            return liunian_elem(d) in fav
-        if spec.entry_signal == "favorable_month":
-            return liuyue_elem(d) in fav
-        return False
-    return want_long

@@ -1,13 +1,4 @@
-"""大六壬 (Da Liu Ren) deterministic engine. Offline, lookahead-free. ⚠️ PLACEBO.
-
-One of the 三式. The full 起課 (月將加時 → 天地盤 → 四課 → 三傳 via 九宗門/賊克法) is very
-intricate; this is a SIMPLIFIED deterministic version keyed to the 月將 (sun's sign),
-the 占時支, and the natal 日干 — enough to derive a 用神 (初傳) branch and read its 五行
-relationship to the 日主, which is what the signal needs:
-  用神生扶日主 (生/比和)  →  favourable
-  用神剋洩日主            →  unfavourable
-
-Reuses Task 27's 干支 calendar; 月將 from the solar sign (太陽過宮).
+"""大六壬 basic helpers: 地支五行 and the 日主 vs 用神 五行 relation. The full 起課 (月將加時, 四課三傳, 九宗門, 天將) lives in fortune/liuren_ext.py.
 """
 
 from __future__ import annotations
@@ -23,7 +14,7 @@ BRANCHES = B.BRANCHES
 BRANCH_ELEM = ["水", "土", "木", "木", "土", "火", "火", "土", "金", "金", "土", "水"]  # 子..亥
 _SHENG = {"金": "水", "水": "木", "木": "火", "火": "土", "土": "金"}
 _KE = {"金": "木", "木": "土", "土": "水", "水": "火", "火": "金"}
-_OCCUPY = 5   # 占時 = 巳時 (listing-open convention)
+_OCCUPY = 5   # 占時 = 巳時 (birth-open convention)
 
 
 def _sun_sign(d: date) -> int:
@@ -63,19 +54,6 @@ def auspicious(d: date, day_stem_elem: str) -> tuple[bool, str]:
     return good, rel
 
 
-def make_want_long(spec, day_stem_elem: str):
-    def want_long(d: date) -> bool:
-        if spec.entry_signal == "buy_and_hold":
-            return True
-        good, _ = auspicious(d, day_stem_elem)
-        if spec.entry_signal == "yong_supports":
-            return good
-        if spec.entry_signal == "avoid_ke":
-            return good
-        return False
-    return want_long
-
-
 def liuren_readings(d: date, day_stem: str, day_stem_elem: str) -> dict[str, float | str]:
     yb = yong_branch(d)
     good, rel = auspicious(d, day_stem_elem)
@@ -101,5 +79,4 @@ def reasoning_chain(d_natal: date, as_of: date, day_stem: str, day_stem_elem: st
         f"月將 {r['yue_jiang']}（太陽過宮）加 占時 {r['occupy_hour']} → 天地盤。",
         f"用神（初傳）：{r['yong_branch']}。",
         f"與日主 {day_stem}（{day_stem_elem}）之關係：{r['relation']}。",
-        f"訊號：{'持有（用神生扶日主）' if r['liuren_regime'] == 'supported' else '空手（用神剋洩日主）'}。",
     ]

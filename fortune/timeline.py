@@ -1,6 +1,6 @@
 """Life timelines / 大運・流年 — the time axis the point-in-time chart doesn't show.
 
-Native module (not synced). Builds reproducible period sequences from the synced
+Builds reproducible period sequences from the
 engine primitives:
   • jyotish — Vimśottarī Mahādaśā (120-yr cycle of 9 planetary lords)
   • bazi    — 大運 (10-year luck pillars, direction by 年干陰陽 × gender) + 流年 nature

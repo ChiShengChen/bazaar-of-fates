@@ -1,7 +1,7 @@
 """四柱推命（日系・京都泰山流）— 十二運星 + 天中殺（空亡）from the natal four pillars.
 
 Pillars come from fortune.bazi_ext (exact 節氣 boundaries, the real birth hour); the
-synced engine's `build_chart` hardcodes 巳時 and ±1-day term tables, so only its
+engine's `build_chart` hardcodes 巳時 and ±1-day term tables, so only its
 十二運星 / 天中殺 / 藏干 tables are reused here.
 """
 

@@ -1,7 +1,6 @@
 """紫微斗數 with the real birth hour / 接時辰的紫微排盤 — plus the stars the core leaves out.
 
-The synced `ziwei_core.build_chart` hardcodes 巳時 (the market open) because a stock has
-no birth hour. 命宮/身宮/五行局/紫微星位/輔星 all genuinely depend on 生時, and the core
+`ziwei_core.build_chart` hardcodes 巳時 and has no birth-hour parameter. 命宮/身宮/五行局/紫微星位/輔星 all genuinely depend on 生時, and the core
 primitives (`life_palace_branch`, `major_star_positions`, `aux_star_positions`, …) already
 accept a `hour_branch` — so this native module re-assembles the natal chart threading the
 real hour, calling those primitives rather than copying their internals, and adds:
@@ -11,8 +10,6 @@ real hour, calling those primitives rather than copying their internals, and add
     地空 地劫 (時支), 天刑 天姚 (月), 天才 天壽 (命/身)
   • 流年四化 keyed to the 農曆 year (same calendar as the natal 年干), not 立春
 
-This is NOT synced; if `ziwei_core.build_chart` changes upstream, re-check this mirror.
-本檔不被 sync 覆蓋；若上游 build_chart 變更，需回頭核對此鏡像。
 """
 
 from __future__ import annotations
@@ -30,7 +27,7 @@ SUIQIAN = ["太歲", "晦氣", "喪門", "貫索", "官符", "小耗", "大耗",
 JIANGQIAN = ["將星", "攀鞍", "歲驛", "息神", "華蓋", "劫煞", "災煞", "天煞", "指背", "咸池", "月煞", "亡神"]
 _JIANGXING = [0, 6, 9, 3]                                            # 將星 by 三合 group (申子辰/寅午戌/巳酉丑/亥卯未)
 _LIUCHANG = [5, 6, 8, 9, 8, 9, 11, 0, 2, 3]                          # 流年文昌 by 年干
-# 身主 by 年支 — the synced core's table has 鈴星 at 午; iztro (and the classical 子午 火星 rule) has 火星
+# 身主 by 年支 — the engine core's table has 鈴星 at 午; iztro (and the classical 子午 火星 rule) has 火星
 _SHEN_ZHU = ["火星", "天相", "天梁", "天同", "文昌", "天機", "火星", "天相", "天梁", "天同", "文昌", "天機"]
 
 STEMS, BRANCHES = ZC.STEMS, ZC.BRANCHES

@@ -1,13 +1,4 @@
-"""太乙神數 (Taiyi Shenshu) deterministic engine. Offline, lookahead-free. ⚠️ PLACEBO.
-
-The third 式 — historically used for 國運/軍國 prognostication. The authentic system
-walks 太乙積年 through the 十六神/九宮 with 主算 (host) vs 客算 (guest) and a web of 格局
-(囚/格/迫/關); this is a SIMPLIFIED deterministic version: a 太乙積年 from a fixed 上元,
-the 太乙宮 it occupies, and a 主算/客算 pair whose comparison (主客勝負) drives the signal:
-  主算 ≥ 客算  →  主勝 (host wins) → favourable
-  主算 <  客算 →  客勝 (guest wins) → unfavourable
-
-Reuses Task 27's 干支 calendar for the 流年.
+"""太乙神數 simplified model: 積年 from a nominal 上元, 太乙 palace (24 years per palace, 八宮), 主算/客算.
 """
 
 from __future__ import annotations
@@ -44,18 +35,6 @@ def host_wins(d: date) -> bool:
     return h >= g
 
 
-def make_want_long(spec):
-    def want_long(d: date) -> bool:
-        if spec.entry_signal == "buy_and_hold":
-            return True
-        if spec.entry_signal == "host_prevails":
-            return host_wins(d)
-        if spec.entry_signal == "avoid_guest_win":
-            return host_wins(d)
-        return False
-    return want_long
-
-
 def taiyi_readings(d: date) -> dict[str, float | str]:
     h, g = host_guest(d)
     return {
@@ -79,5 +58,4 @@ def reasoning_chain(d_natal: date, as_of: date) -> list[str]:
         f"積年（上市 {d_natal.isoformat()} 命盤；流年 {B._solar_year(as_of)} 推算，簡化上元）。",
         f"太乙積年 ＝ {int(r['accumulated_years'])}，太乙臨 {r['taiyi_palace']}（24 年遷一宮）。",
         f"主算 ＝ {int(r['host_count'])}、客算 ＝ {int(r['guest_count'])} → 斷「{r['verdict']}」。",
-        f"訊號：{'持有（主勝，利己）' if r['taiyi_regime'] == 'host_prevails' else '空手（客勝，不利己）'}。",
     ]

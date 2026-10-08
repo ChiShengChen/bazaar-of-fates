@@ -32,14 +32,6 @@
 > - **2026-10-08 (later)** — **13 systems**: 六爻（納甲）and 小六壬 added; 紫微 gains star brightness / 雜曜 / 格局 from **x-iztro**, 八字 gains a 黃曆 block from **lunar-python**, 六壬 gains 十二天將. Every native engine is now **cross-validated in tests** against lunar-python, x-iztro, kinliuren, kinqimen and Swiss Ephemeris — see [docs/CREDITS.md](docs/CREDITS.md).
 > - **Input & output** — type a city and lat/lon/time zone fill in (Taiwan historical DST applied), optional **true solar time**, and a one-page **full report** (`/report`) for all 11 systems → PDF.
 
-> ### 🃏 The twist / 緣起
-> These eleven engines began life as **placebo controls** in a quantitative-finance project — divination cast as date-keyed trading signals, run through a lookahead-free backtest to *prove they were statistical noise*. We lifted out the chart math, stripped the trading, and gave them back their day job: **telling fortunes**.
-> So yes — this fortune-teller is powered by signals we mathematically demonstrated are worthless. The astronomy underneath, though, is real (Swiss-Ephemeris-validated). Enjoy responsibly. 🔮
->
-> 這十一套引擎原本是某量化專案的「對照組／安慰劑」——把命理當訊號跑無未來函數回測，**證明它們是雜訊**。這裡把排盤數學抽出、去掉交易，還給它們本來的工作：算命。
-
----
-
 ## ✨ Highlights
 
 | | |
@@ -169,7 +161,7 @@ Astrology overlay params (on `/cast` query & `/reading` body): `house_system` ·
 ```
 fortune/
   birth.py            BirthInput — the single input / 生辰輸入
-  engines/<system>/   ← SYNCED 排盤 math from the parent monorepo (do NOT hand-edit)
+  engines/<system>/   per-system 排盤 engine cores (calendar / ephemeris primitives + tables)
   astro_ext.py        native: ascendant + 6 house systems (swisseph-validated)
   ziwei_ext.py        native: 紫微 with the real birth 時辰, 閏月/晚子時 conventions, 輔星/煞星
   bazi_ext.py         native: full 八字 sheet — exact 24 節氣, 十神/藏干/納音/空亡/神煞, 起運, 大運/流年/流月, 稱骨
@@ -186,10 +178,10 @@ fortune/
   api/main.py         FastAPI
 web/                  Next.js app + static index.html (no-build fallback)
 docs/                 per-system visual guides + screenshots
-scripts/              sync_from_main.sh (re-sync 排盤 math) · screenshots.py
+scripts/              screenshots.py (doc screenshots via Playwright)
 ```
 
-The 排盤 math is synced from the parent quant monorepo (single source of truth) via `scripts/sync_from_main.sh`, which overwrites **only** `fortune/engines/*` and `prompts/*`. Everything else — ascendant/house geometry, the time-exact planet positions, transits, synastry/group/annual, the per-system adapters in `fortune/casting/` (which re-cast with the real birth hour and exact 節氣 where the engine cores approximate), API, readings, the web app **including the chart renderers** — is native to this repo and never touched by sync.
+`fortune/engines/` holds the low-level primitives and tables per system (干支 calendar anchors, 五虎遁/五鼠遁, 紫微 安星, 六十四卦, Vimśottarī tables…). The `*_ext.py` modules and `fortune/casting/` adapters build the actual charts on top of them: exact 節氣, time-exact planet positions, ascendant/house geometry, transits, synastry/group/annual, the full 八字/紫微/六壬/奇門 sheets, API, readings and the web app.
 
 ## ✅ Tests
 

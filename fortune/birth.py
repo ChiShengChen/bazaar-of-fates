@@ -1,10 +1,9 @@
 """Birth input / 生辰輸入 — the one input the whole service takes.
 
-Replaces the monorepo's "stock listing date": a person's birth moment (date +
-time-of-day + optional birthplace). Time-of-day drives the 時柱 / Moon position;
+The single input: a person's birth moment (date + time-of-day + optional birthplace). Time-of-day drives the 時柱 / Moon position;
 birthplace (lat/lon) is what house-/ascendant-based systems (astrology, Jyotiṣa)
 need — carried here so engines can use it as they grow into it.
-取代母專案的「股票上市日」：一個人的出生時刻（日期＋時辰＋出生地）。
+一個人的出生時刻（日期＋時辰＋出生地）。
 """
 
 from __future__ import annotations

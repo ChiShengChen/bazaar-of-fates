@@ -1,7 +1,7 @@
 """Chart → reading / 命盤 → 解讀.
 
 Turns a cast Chart's deterministic facts into a readable, bilingual (English + 中文)
-divination reading. The synced author prompts (prompts/<system>/*.md) supply each
+divination reading. The author prompts (prompts/<system>/*.md) supply each
 tradition's voice; the deterministic facts are handed over verbatim so the model
 narrates the real 命盤 rather than inventing one. On the mock backend this returns a
 faithful facts digest. / mock 後端回傳忠實的事實摘要。

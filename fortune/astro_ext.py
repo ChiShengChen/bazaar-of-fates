@@ -1,10 +1,9 @@
-"""Ascendant / houses — the place-&-time-aware layer the synced engines don't carry.
+"""Ascendant / houses — the place-&-time-aware layer the engines don't carry.
 
-The monorepo engines compute planetary longitudes from the *date* alone (a stock has
-no birth time or birthplace). Real fortune-telling needs the **ascendant** (rising
+The shared engine cores compute planetary longitudes from the *date* alone. Real fortune-telling needs the **ascendant** (rising
 degree) and **houses**, which depend on the exact birth moment AND latitude/longitude.
 This native module adds that on top of `ephem`, shared by astrology · qizheng · jyotish.
-It is NOT synced — `sync_from_main.sh` never touches it.
+
 
 上升點與宮位 — 母 repo 引擎只用日期算行星經度（股票沒有時辰、出生地）。真正算命需要
 上升（命度）與十二宮，取決於精確的出生時刻與經緯度。此原生模組以 ephem 補上，三系共用。
@@ -37,7 +36,7 @@ def sign_zh(lon: float) -> str:
 def lon_of_date(body_cls, dt_utc) -> float:
     """Apparent geocentric ecliptic longitude referred to the TRUE EQUINOX OF DATE at an
     exact UT instant — the frame natal charts use, and the same frame as the ascendant /
-    house cusps here. (The synced engine's `astro._lon` is date-only and J2000-referred:
+    house cusps here. (The engine's `astro._lon` is date-only and J2000-referred:
     up to ~0.5° of precession off and, for the Moon, up to ±13° of missing motion.)"""
     body = body_cls()
     body.compute(ephem.Date(dt_utc))

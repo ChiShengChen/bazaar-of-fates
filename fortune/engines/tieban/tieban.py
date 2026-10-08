@@ -1,14 +1,5 @@
-"""鐵板神數 (Iron-Plate Numerology) deterministic engine. Offline, lookahead-free.
-
-The real 鐵板神數 derives eerily-specific 條文 (fate verses) from a secret, proprietary
-萬言書 via opaque 起數/考刻 methods — there is NO public algorithm. So this is an HONEST
-STAND-IN: a deterministic 太玄數 起數 over the natal 八字 (each 干支 → its 太玄數), giving a
-命數 (太極數); the 流年's verse number = 命數 + 流年干支數, and a 吉/平/凶 verdict from it.
-The LLM writes a 條文-style verse for flavour; the backtest only reads the deterministic
-verdict. Reuses Task 27's 干支 calendar.
-
-⚠️ CONTROL / PLACEBO — no economic mechanism, and the 條文 system itself is legendary/
-proprietary, so even the "authentic" version would not be reproducible. Doubly a placebo.
+"""鐵板神數 stand-in: 太玄數 of each 干支, 命數 = Σ over the four pillars, verse number and 吉/平/凶 verdict.
+The real 條文 system has no public algorithm; this is an honest deterministic substitute.
 """
 
 from __future__ import annotations
@@ -27,9 +18,9 @@ def _gz_number(stem: int, branch: int) -> int:
     return _STEM_TAIXUAN[stem] + _BRANCH_TAIXUAN[branch]
 
 
-def ming_number(listing: date) -> int:
+def ming_number(birth: date) -> int:
     """命數 (太極數) = Σ 太玄數 over the four natal 干支 pillars."""
-    p = B.four_pillars(listing)
+    p = B.four_pillars(birth)
     return sum(_gz_number(p[k]["stem_idx"], p[k]["branch_idx"]) for k in ("year", "month", "day", "hour"))
 
 
@@ -47,19 +38,7 @@ def verdict(verse_no: int) -> str:
     return _VERDICT[verse_no % 3]
 
 
-def make_want_long(spec, ming: int):
-    def want_long(d: date) -> bool:
-        if spec.entry_signal == "buy_and_hold":
-            return True
-        if spec.entry_signal == "verse_fortune":          # hold only on 吉 years
-            return verdict(liunian_number(ming, d)) == "吉"
-        if spec.entry_signal == "avoid_inauspicious":     # flat only on 凶 years
-            return verdict(liunian_number(ming, d)) != "凶"
-        return False
-    return want_long
-
-
-def tieban_readings(listing: date, ming: int, as_of: date) -> dict[str, float | str]:
+def tieban_readings(birth: date, ming: int, as_of: date) -> dict[str, float | str]:
     vn = liunian_number(ming, as_of)
     v = verdict(vn)
     return {
@@ -76,8 +55,8 @@ def readings_block(r: dict[str, float | str]) -> str:
     return "\n".join(f"- {k}: {r[k]}" for k in order if k in r)
 
 
-def reasoning_chain(listing: date, ming: int, as_of: date) -> list[str]:
-    p = B.four_pillars(listing)
+def reasoning_chain(birth: date, ming: int, as_of: date) -> list[str]:
+    p = B.four_pillars(birth)
     gz = "、".join(f"{p[k]['gz']}({_gz_number(p[k]['stem_idx'], p[k]['branch_idx'])})" for k in ("year", "month", "day", "hour"))
     vn = liunian_number(ming, as_of)
     return [
@@ -85,5 +64,4 @@ def reasoning_chain(listing: date, ming: int, as_of: date) -> list[str]:
         f"命數（太極數）＝四柱太玄數之和＝{ming}。",
         f"流年起例：命數 + 流年干支太玄數 ＝ 條文 #{vn}。",
         f"斷例：條文 #{vn} → 「{verdict(vn)}」（編號 mod 3）；流年卦象 {'乾兌離震巽坎艮坤'[vn % 8]}。",
-        f"訊號：{'持有（流年得吉條）' if verdict(vn) == '吉' else '空手（流年逢凶條）' if verdict(vn) == '凶' else '依規則判定（平）'}。",
     ]

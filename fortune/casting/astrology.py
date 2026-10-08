@@ -2,7 +2,7 @@
 
 Planet longitudes are computed natively (fortune.astro_ext) at the exact birth instant,
 referred to the true equinox of date — the same frame as the ascendant and house cusps.
-(The synced engine's date-only J2000 positions are kept for its trading signal only.)
+(The engine's date-only J2000 positions are no longer used for charts.)
 The ascendant and houses need the birth time AND birthplace; with no time/place we
 gracefully fall back to the planets-only chart (noon local) and flag the ascendant as unknown.
 """

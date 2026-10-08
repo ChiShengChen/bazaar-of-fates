@@ -1,7 +1,7 @@
 """紫微斗數 — cast the natal 命盤 (命宮 from the real birth 時辰) and read 流年四化.
 
-命宮/身宮/五行局/星位 are cast from the birth hour via fortune.ziwei_ext (the synced
-core hardcodes 巳時 for stocks); it also applies the 閏月 / 晚子時 conventions and adds the
+命宮/身宮/五行局/星位 are cast from the birth hour via fortune.ziwei_ext (the
+core hardcodes 巳時); it also applies the 閏月 / 晚子時 conventions and adds the
 auxiliary and 煞 stars. With no birth_time we fall back to 午時 (noon).
 """
 

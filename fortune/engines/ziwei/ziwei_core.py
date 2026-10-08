@@ -1,17 +1,4 @@
-"""Pure-Python 紫微斗數 engine — no native deps (lunardate only), so it deploys anywhere.
-
-Replaces py-iztro (which transitively needs pythonmonkey→pminit, and pminit has NO
-linux wheels → undeployable on the prod container). This engine reproduces iztro's
-14-major-star placement + 命宮 + 五行局 + 文昌文曲左輔右弼 EXACTLY (verified cell-by-cell
-against py-iztro as an oracle across many tickers — see tests). All standard 紫微
-algorithms:
-
-  命宮  = 寅起正月順數至生月，再從該宮起子時逆數至生時
-  五行局 = 納音五行 of 命宮干支 (水2 木3 金4 土5 火6)
-  紫微  = 安紫微訣 from 五行局 + 農曆日
-  14 主星 = 紫微系 (逆) + 天府系 (順), 天府 = (4 − 紫微) mod 12
-  昌曲輔弼 = standard 時支/月支 安法
-
+"""紫微斗數 安星 core (pure Python): 命宮/身宮, 五行局 (納音), 安紫微訣, 14 主星, 昌曲輔弼, 命主/身主 tables. Verified cell-by-cell against py-iztro.
 Branch index: 子0 丑1 寅2 卯3 辰4 巳5 午6 未7 申8 酉9 戌10 亥11.
 """
 
@@ -90,9 +77,9 @@ def aux_star_positions(lunar_month: int, hour_branch: int) -> dict[str, int]:
     }
 
 
-def build_chart(listing: date) -> dict:
+def build_chart(birth: date) -> dict:
     """Full natal chart: palace names+branches, star→palace map, 命宮/五行局. iztro-equivalent."""
-    ld = LunarDate.fromSolarDate(listing.year, listing.month, listing.day)
+    ld = LunarDate.fromSolarDate(birth.year, birth.month, birth.day)
     lunar_month, lunar_day, lunar_year = ld.month, ld.day, ld.year
     hour_branch = 5                                       # 09:30 市場開盤 → 巳時
     life_b = life_palace_branch(lunar_month, hour_branch)

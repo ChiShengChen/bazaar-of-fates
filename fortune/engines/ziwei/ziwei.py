@@ -1,18 +1,4 @@
-"""紫微斗數（含四化飛星）deterministic engine. Lookahead-free.
-
-A company's natal 命盤 is cast from its **listing date** (treated as the firm's
-birth, hour fixed to the US market open 09:30 → 巳時). The 14 major stars, 12 palaces,
-五行局 and natal 四化 come from the `py_iztro` engine (the iztro 紫微 implementation).
-
-The trading signal is the **四化飛星** application: each year's 天干 transforms four
-stars (化祿/化權/化科/化忌); we track which NATAL palace each flown star lands in. When
-化祿/化權 fly into the life/wealth/career palaces (命宮 / 財帛 / 官祿) the period is
-favourable (hold); when 化忌 flies into them it is unfavourable (flat). Everything is a
-pure function of the date, so it can never peek ahead.
-
-⚠️ CONTROL / PLACEBO: 紫微斗數 has no economic mechanism. py_iztro is imported lazily so
-a missing wheel degrades gracefully instead of breaking app startup. The 流年/流月 干支
-reuse Task 27's verified 八字 calendar (立春-anchored).
+"""紫微斗數 四化 tables and helpers (年干 → 化祿/化權/化科/化忌), plus the 命財官 landing score used by the readings.
 """
 
 from __future__ import annotations
@@ -30,7 +16,7 @@ SIHUA = {
     "壬": ["天梁", "紫微", "左輔", "武曲"], "癸": ["破軍", "巨門", "太陰", "貪狼"],
 }
 HUA = ["祿", "權", "科", "忌"]
-TARGET = {"命宮", "財帛", "官祿"}        # life / wealth / career — what matters for a firm
+TARGET = {"命宮", "財帛", "官祿"}        # life / wealth / career
 _HOUR_INDEX = 5                          # 09:30 市場開盤 → 巳時
 
 
@@ -38,7 +24,7 @@ class EngineUnavailable(RuntimeError):
     pass
 
 
-def build_natal(listing: date) -> dict:
+def build_natal(birth: date) -> dict:
     """Cast the natal 命盤 via the pure-Python engine (no native deps; verified
     cell-by-cell against py-iztro). Overlays the natal 四化 (生年天干's transformations)
     onto the stars for display. Returns palaces + star→palace map + meta."""
@@ -48,8 +34,8 @@ def build_natal(listing: date) -> dict:
         from fortune.engines.ziwei import ziwei_core
     except Exception as e:  # noqa: BLE001
         raise EngineUnavailable(f"ziwei engine unavailable: {type(e).__name__}") from e
-    natal = ziwei_core.build_chart(listing)
-    ly = LunarDate.fromSolarDate(listing.year, listing.month, listing.day).year
+    natal = ziwei_core.build_chart(birth)
+    ly = LunarDate.fromSolarDate(birth.year, birth.month, birth.day).year
     natal_hua = {s: HUA[i] for i, s in enumerate(SIHUA.get(B.STEMS[(ly - 4) % 10], []))}
     for p in natal["palaces"]:
         p["stars"] = [s + (f"({natal_hua[s]})" if s in natal_hua else "") for s in p["stars"]]
@@ -76,21 +62,6 @@ def _score(star_palace: dict[str, str], mutagen: list[str]) -> tuple[int, int, d
     return fav, unfav, landing
 
 
-def make_want_long(spec, star_palace: dict[str, str]):
-    def want_long(d: date) -> bool:
-        if spec.entry_signal == "buy_and_hold":
-            return True
-        if spec.entry_signal == "sihua_year":
-            _stem, mut = liunian_sihua(d)
-        elif spec.entry_signal == "sihua_month":
-            _stem, mut = liuyue_sihua(d)
-        else:
-            return False
-        fav, unfav, _ = _score(star_palace, mut)
-        return fav > unfav
-    return want_long
-
-
 def ziwei_readings(natal: dict, as_of: date) -> dict[str, float | str]:
     stem, mut = liunian_sihua(as_of)
     fav, unfav, landing = _score(natal["star_palace"], mut)
@@ -114,9 +85,8 @@ def reasoning_chain(natal: dict, as_of: date) -> list[str]:
     stem, mut = liunian_sihua(as_of)
     fav, unfav, landing = _score(natal["star_palace"], mut)
     return [
-        f"排盤（上市日，時辰以開盤 09:30＝巳時為準）：命宮主星 {natal['soul']}、身宮主星 {natal['body']}、{natal['five_elements_class']}。",
+        f"排盤：命宮主星 {natal['soul']}、身宮主星 {natal['body']}、{natal['five_elements_class']}。",
         f"流年天干＝{stem}，四化：" + "、".join(f"{mut[i]}化{HUA[i]}" for i in range(4)) + "。",
         "四化飛星落宮：" + "；".join(f"{k} {v}" for k, v in landing.items()) + "。",
         f"命財官三宮（命宮/財帛/官祿）：化祿權入 {fav} 顆、化忌入 {unfav} 顆。",
-        f"訊號：{'祿權入命財官，吉 → 持有' if fav > unfav else '忌入或祿權不入命財官 → 空手'}。",
     ]

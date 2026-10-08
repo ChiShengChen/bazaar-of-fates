@@ -1,6 +1,6 @@
 """八字（四柱）— cast the natal 命盤 from birth date + 時辰.
 
-Adapter over fortune/engines/bazi/bazi.py (喜用神 / 旺衰) + the native fortune/bazi_ext.py
+Adapter over fortune/engines/bazi/bazi.py + fortune/bazi_ext.py
 (exact 節氣 pillars, 十神, 藏干, 納音, 空亡, 神煞, 胎元/命宮, 起運, 大運/流年/流月, 稱骨).
 Birth hour drives the 時柱 (defaults to noon → 午時 when unknown); the engine pins 日柱
 to the verified 甲子 anchor.

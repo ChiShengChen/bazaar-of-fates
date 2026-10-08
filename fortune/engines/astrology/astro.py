@@ -1,9 +1,4 @@
-"""Deterministic financial-astrology engine. Pure, offline, lookahead-free.
-
-Every quantity here is a function of the calendar date alone (planetary ecliptic
-longitudes via `ephem`), so it can NEVER leak future prices — the placebo is, if
-anything, cleaner than the real agents. Signals decided at close i execute open i+1
-via the shared factor backtest.
+"""Western astrology primitives: ecliptic longitudes via ephem, signs, aspects, retrograde and Moon phase helpers.
 """
 
 from __future__ import annotations
@@ -97,7 +92,7 @@ def benefic_to_sun(d: date, orb: float) -> bool:
 
 
 def build_astro_state(dates: list[date], orb: float) -> dict[date, dict]:
-    """Precompute the per-date deterministic state used by the signal + readings."""
+    """Precompute the per-date deterministic state used by the readings."""
     state: dict[date, dict] = {}
     for d in dates:
         state[d] = {
@@ -107,24 +102,6 @@ def build_astro_state(dates: list[date], orb: float) -> dict[date, dict]:
             "benefic": benefic_to_sun(d, orb),
         }
     return state
-
-
-def make_want_long(spec, state: dict[date, dict]):
-    def want_long(d: date) -> bool:
-        s = state.get(d)
-        if s is None:
-            return spec.entry_signal == "buy_and_hold"
-        if spec.entry_signal == "buy_and_hold":
-            return True
-        if spec.entry_signal == "avoid_mercury_retrograde":
-            return not s["mercury_retro"]
-        if spec.entry_signal == "moon_phase_long":
-            return s["waxing"]
-        if spec.entry_signal == "benefic_aspect":
-            return s["benefic"]
-        return False
-
-    return want_long
 
 
 def astro_readings(d: date, orb: float) -> dict[str, float | str]:

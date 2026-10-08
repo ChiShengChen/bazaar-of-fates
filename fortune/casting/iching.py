@@ -1,7 +1,7 @@
 """梅花易數 — traditional 時間起卦 from the birth moment (農曆年月日＋時辰).
 
-Native casting rule (the synced engine's `cast` is a Gregorian-date hash for the trading
-signal; the classical 年月日時起卦 is):
+Native casting rule (the engine's `cast` is a Gregorian-date hash; the classical
+年月日時起卦 is):
   上卦 = (年支數 + 農曆月 + 農曆日) mod 8        (0 → 8 坤)
   下卦 = (年支數 + 農曆月 + 農曆日 + 時辰數) mod 8
   動爻 = (年支數 + 農曆月 + 農曆日 + 時辰數) mod 6  (0 → 6)

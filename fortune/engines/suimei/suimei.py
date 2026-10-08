@@ -1,20 +1,4 @@
-"""四柱推命 (Japanese Shichū-Suimei, 京都泰山流) deterministic engine. Lookahead-free.
-
-Same four 干支 pillars as the Chinese 八字 (T27, whose calendar we reuse), but read the
-**Japanese** way: the two main axes are 十二運星 (the 長生→帝旺→絕→養 life-stage cycle of
-the 日主 against each branch) and 空亡 / 天中殺 (the void pair from the 日柱 旬) — both
-mere footnotes in the Chinese system but the spine of Japanese 推命 (細木数子's 六星占術
-and 動物占い both descend from the 空亡 logic). 用神 is de-emphasised.
-
-The trading signal therefore comes from those two axes, applied to the 流年 branch:
-  • twelve_fortune  — hold when the 流年 is a thriving stage (長生/冠帶/臨官/帝旺) of the
-                      day master, flat in the weak stages (病/死/墓/絕…).
-  • avoid_tenchusatsu — stand aside when the 流年 branch falls in the natal 天中殺 pair
-                      (the "lie low during your void years" rule), else hold.
-Both are pure functions of the date, so the backtest can never peek ahead.
-
-⚠️ CONTROL / PLACEBO — no economic mechanism. 藏干 are shown standard; the Taizan-ryū
-節入深淺 hidden-stem refinement is noted but not the basis of the (worthless) signal.
+"""四柱推命 (Japanese Shichū-Suimei) tables: 十二運星 cycle, 天中殺 (空亡) from the 日柱 旬, 藏干.
 """
 
 from __future__ import annotations
@@ -73,21 +57,9 @@ def liuyue_branch(d: date) -> int:
     return B.month_pillar(d)[1]
 
 
-def make_want_long(spec, day_stem: int, void: tuple[int, int]):
-    def want_long(dt: date) -> bool:
-        if spec.entry_signal == "buy_and_hold":
-            return True
-        if spec.entry_signal == "twelve_fortune":
-            return twelve_fortune(day_stem, liunian_branch(dt)) in THRIVING
-        if spec.entry_signal == "avoid_tenchusatsu":
-            return liunian_branch(dt) not in void
-        return False
-    return want_long
-
-
-def build_chart(listing: date) -> dict:
+def build_chart(birth: date) -> dict:
     """The natal 四柱 read Japanese-style: pillars + 十二運星 + 藏干, 日主, 天中殺."""
-    p = B.four_pillars(listing)
+    p = B.four_pillars(birth)
     day_stem = p["day"]["stem_idx"]
     void = tenchusatsu(day_stem, p["day"]["branch_idx"])
     roles = {"year": "年", "month": "月", "day": "日", "hour": "時"}

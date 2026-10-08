@@ -1,6 +1,6 @@
 """奇門遁甲 — 時家奇門 命局 (the hour chart of the birth moment) via fortune.qimen_ext.
 
-The synced engine's day-of-year 起局 is a placeholder and is no longer used for the chart;
+The engine's day-of-year 起局 is a placeholder and is no longer used for the chart;
 this adapter casts the standard 轉盤・拆補法 chart: 節氣 → 遁/元/局 → 地盤 → 值符值使 → 天盤.
 """
 

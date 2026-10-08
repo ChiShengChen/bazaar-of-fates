@@ -1,6 +1,6 @@
 """大六壬 — 命課 cast at the birth moment: 月將加時 → 天地盤 → 四課 → 三傳（九宗門）.
 
-Native 起課 (fortune.liuren_ext). The synced engine's simplified `yong_branch` has the 月將
+Native 起課 (fortune.liuren_ext). The engine's simplified `yong_branch` has the 月將
 mapping reversed (Sun in Aries at 寅; 太陽躔降婁(Aries) is the 戌將), so only its 五行
 relation helper is reused. 月將 = the 地支 of the sign the Sun occupies (子=Aquarius …
 戌=Aries, 亥=Pisces); 占時 = the birth hour (true solar time if requested).

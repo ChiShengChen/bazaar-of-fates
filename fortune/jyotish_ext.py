@@ -1,6 +1,6 @@
 """Jyotiṣa at the exact birth instant / 吠陀占星・精確時刻版.
 
-Native module (NOT synced). The synced engine computes the natal Moon from the calendar
+Native module. The engine computes the natal Moon from the calendar
 date only (midnight UT, J2000 frame). The Moon moves ~13°/day — one full nakṣatra — so a
 quarter of births land in the wrong nakṣatra and therefore start the Vimśottarī daśā
 sequence from the wrong lord. This module recomputes the grahas, nakṣatra and daśā from

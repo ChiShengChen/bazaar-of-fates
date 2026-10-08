@@ -1,14 +1,5 @@
-"""Plum-Blossom (梅花易數) deterministic I Ching engine. Pure, offline, lookahead-free.
-
-Time-based casting (時間起卦): the decision date's integers fix the upper trigram,
-lower trigram, and moving line — so a date maps to ONE hexagram, fully reproducible
-and auditable, with zero lookahead (a calendar date leaks nothing about prices). A
-`seed` shifts the casting deterministically, which is what the null-distribution
-harness uses to draw many independent placebo draws.
-
-The signal comes from the 體用五行生剋 (body/use five-element generation–restriction)
-verdict — a fixed rule. The LLM only writes the 卦辭 narrative; it cannot move the
-backtest (selection ≠ execution).
+"""I Ching primitives: 先天八卦 tables, the King Wen 64-hexagram table, 互卦/變卦, 體用五行生剋 verdict, line diagrams.
+The classical 年月日時起卦 lives in fortune/casting/iching.py.
 """
 
 from __future__ import annotations

@@ -1,14 +1,4 @@
-"""奇門遁甲 (Qimen Dunjia) deterministic engine. Offline, lookahead-free. ⚠️ PLACEBO.
-
-One of the 三式. The full 起局 (拆補/置閏, 三元, 陰陽遁, 天/地/人/神四盤) is famously
-intricate and school-dependent; this is a SIMPLIFIED deterministic 起局 keyed to the
-solar season + the day's sexagenary index — enough to place the 八門 and read the
-gate-of-the-day, which is what the signal needs. The eight gates split 吉/平/凶:
-  三吉門 = 開 / 休 / 生  →  favourable
-  凶門   = 傷 / 死 / 驚  →  unfavourable
-  平門   = 杜 / 景
-
-Reuses Task 27's 干支 calendar (JDN + pillars).
+"""奇門遁甲 basic tables (八門, 九宮 names) and a simplified day-of-year 局. The real 時家奇門 轉盤 起局 lives in fortune/qimen_ext.py.
 """
 
 from __future__ import annotations
@@ -44,19 +34,6 @@ def active_gate(d: date) -> int:
     ju = ju_number(d)
     step = B._jdn(d.year, d.month, d.day) + (ju if is_yang_dun(d) else -ju)
     return step % 8
-
-
-def make_want_long(spec):
-    def want_long(d: date) -> bool:
-        if spec.entry_signal == "buy_and_hold":
-            return True
-        g = active_gate(d)
-        if spec.entry_signal == "auspicious_gate":
-            return g in AUSPICIOUS
-        if spec.entry_signal == "avoid_ill_gate":
-            return g not in ILL
-        return False
-    return want_long
 
 
 def qimen_readings(d: date) -> dict[str, float | str]:
@@ -95,5 +72,4 @@ def reasoning_chain(d_natal: date, as_of: date) -> list[str]:
         f"起局（上市 {d_natal.isoformat()} 為命局；流日 {as_of.isoformat()} 起盤，簡化節氣三元）。",
         f"遁：{r['dun']}；局：{r['ju']}（{'順布' if is_yang_dun(as_of) else '逆布'}八門九宮）。",
         f"值使門：{r['active_gate']}（{r['gate_class']}）。三吉門＝開/休/生，凶門＝傷/死/驚。",
-        f"訊號：{'持有（值三吉門）' if r['qimen_regime'] == 'auspicious_gate' else '空手（值凶門）' if r['qimen_regime'] == 'ill_gate' else '平門，依規則判定'}。",
     ]

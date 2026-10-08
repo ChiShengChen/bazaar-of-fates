@@ -1,7 +1,7 @@
 """Jyotiṣa（吠陀占星）— sidereal 命盤 + the active Vimśottarī Mahādaśā.
 
 Positions, nakṣatra and daśā come from fortune.jyotish_ext at the exact birth instant
-(true equinox of date − Lahiri ayanāṃśa); the synced engine's date-only Moon is not used.
+(true equinox of date − Lahiri ayanāṃśa); the engine's date-only Moon is not used.
 """
 
 from __future__ import annotations

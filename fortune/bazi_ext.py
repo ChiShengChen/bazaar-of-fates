@@ -1,7 +1,7 @@
-"""八字 full 排盤 extension / 完整八字命盤擴充 — the almanac-grade detail the synced
-engine core deliberately leaves out (it only needs 四柱 + 喜用神 for its trading signal).
+"""八字 full 排盤 extension / 完整八字命盤擴充 — the almanac-grade detail the
+engine core leaves out (it only computes 四柱 + 喜用神).
 
-Native module (NOT synced). Everything a traditional 排盤 sheet shows, in the style of
+Native module. Everything a traditional 排盤 sheet shows, in the style of
 周易大學堂-type online 排盤:
   • exact 節氣 (sun's apparent ecliptic longitude via ephem → minute-accurate 交節)
   • 四柱 with precise 年/月 boundaries (立春 / 12 節), 十神, 藏干(+十神), 納音, 空亡, 十二長生
@@ -11,7 +11,7 @@ Native module (NOT synced). Everything a traditional 排盤 sheet shows, in the 
   • 神煞 (common set), 天干/地支 relations (五合・相沖 / 六沖・六合・三合・三會・刑・破・害・暗合)
   • 稱骨 (袁天罡) weight + verdict
 Built on the engine's day-pillar anchor and 五虎遁/五鼠遁 helpers so day/hour pillars agree
-with the synced core; year/month pillars here are exact-節氣 (the core uses ±1-day tables).
+with the engine core; year/month pillars here are exact-節氣 (the core uses ±1-day tables).
 """
 
 from __future__ import annotations
