@@ -29,12 +29,12 @@ function ReportInner() {
     const b = toBirth(f);
     const focus = q.get("focus") || null;
     ORDER.forEach((s) => {
-      getReading(s, b, focus, "whole_sign").then((r) => setReadings((m) => ({ ...m, [s]: r })))
+      getReading(s, b, focus, "whole_sign", (q.get("lang") as any) || "zh").then((r) => setReadings((m) => ({ ...m, [s]: r })))
         .catch((e) => setErrs((x) => [...x, `${s}: ${e.message || e}`]));
       if (["bazi", "ziwei", "jyotish", "astrology"].includes(s))
         getTimeline(s, b).then((t) => setTimelines((m) => ({ ...m, [s]: t }))).catch(() => {});
     });
-    getAnnual(b, new Date().getFullYear(), focus).then(setAnnual).catch((e) => setErrs((x) => [...x, `annual: ${e.message || e}`]));
+    getAnnual(b, new Date().getFullYear(), focus, (q.get("lang") as any) || "zh").then(setAnnual).catch((e) => setErrs((x) => [...x, `annual: ${e.message || e}`]));
   }, []);  // eslint-disable-line react-hooks/exhaustive-deps
 
   const subject = Object.values(readings)[0]?.subject || `${f.name || "命主"} · ${f.date} ${f.time}`;

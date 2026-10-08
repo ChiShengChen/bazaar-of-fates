@@ -64,13 +64,27 @@ export const apiBase = () => BASE;
 export async function getSystems(): Promise<SystemInfo[]> {
   const r = await fetch(`${BASE}/systems`); if (!r.ok) throw new Error(r.statusText); return r.json();
 }
-export const getReading = (system: string, birth: BirthInput, focus: string | null, house_system: string) =>
-  post<Reading>(`/reading/${system}`, { birth, focus, house_system });
+export type Lang = "zh" | "en" | "both";
+export const getReading = (system: string, birth: BirthInput, focus: string | null, house_system: string, lang: Lang = "both") =>
+  post<Reading>(`/reading/${system}`, { birth, focus, house_system, lang });
+
+export interface SynthesisRow {
+  system: string; system_zh: string; system_en: string; summary: string;
+  verdict: "favourable" | "neutral" | "unfavourable"; verdict_zh: string; reason: string; facts: Record<string, any>;
+}
+export interface SynthesisResult {
+  topic: string; topic_label: string; focus?: string | null; subject: string; summary: string;
+  systems: SynthesisRow[]; tally: { favourable: number; neutral: number; unfavourable: number };
+  lean: "favourable" | "neutral" | "unfavourable"; lean_zh: string; consensus: string[]; conflicts: string[];
+  errors: Record<string, string>; interpretation: string;
+}
+export const getSynthesis = (birth: BirthInput, focus: string | null, lang: Lang, house_system: string) =>
+  post<SynthesisResult>(`/synthesis`, { birth, focus, lang, house_system });
 export const getTimeline = (system: string, birth: BirthInput) =>
   post<Timeline>(`/timeline/${system}`, birth);
 
-export const getSynastry = (a: BirthInput, b: BirthInput, focus: string | null, house_system: string) =>
-  post<Synastry>(`/synastry`, { a, b, focus, house_system });
+export const getSynastry = (a: BirthInput, b: BirthInput, focus: string | null, house_system: string, lang: Lang = "both") =>
+  post<Synastry>(`/synastry`, { a, b, focus, house_system, lang });
 
 export interface GroupResult {
   people: { name: string; subject: string; summary: string }[];
@@ -82,8 +96,8 @@ export interface GroupResult {
   composite?: MidpointChart | null;
   summary: string; interpretation: string;
 }
-export const getGroup = (births: BirthInput[], focus: string | null, house_system: string) =>
-  post<GroupResult>(`/group`, { births, focus, house_system });
+export const getGroup = (births: BirthInput[], focus: string | null, house_system: string, lang: Lang = "both") =>
+  post<GroupResult>(`/group`, { births, focus, house_system, lang });
 
 export interface AnnualReport {
   year: number; subject: string; summary: string; interpretation: string;
@@ -98,8 +112,8 @@ export interface AnnualReport {
     jyotish?: { mahadasha_lord?: string; nature?: string };
   };
 }
-export const getAnnual = (birth: BirthInput, year: number, focus: string | null) =>
-  post<AnnualReport>(`/annual-report`, { birth, year, focus });
+export const getAnnual = (birth: BirthInput, year: number, focus: string | null, lang: Lang = "both") =>
+  post<AnnualReport>(`/annual-report`, { birth, year, focus, lang });
 
 export interface OverviewYear {
   year: number; age: number; sr_ascendant?: string; bazi_element?: string; bazi_verdict?: string;
@@ -111,8 +125,8 @@ export interface AnnualOverview {
   years: OverviewYear[];
   turning_points: { year: number; events: string[] }[];
 }
-export const getOverview = (birth: BirthInput, start_year: number, count: number, focus: string | null) =>
-  post<AnnualOverview>(`/annual-overview`, { birth, start_year, count, focus });
+export const getOverview = (birth: BirthInput, start_year: number, count: number, focus: string | null, lang: Lang = "both") =>
+  post<AnnualOverview>(`/annual-overview`, { birth, start_year, count, focus, lang });
 
 // Stream a reading via SSE: onChart fires once with the deterministic 命盤,
 // onDelta fires for each text chunk of the 解讀.

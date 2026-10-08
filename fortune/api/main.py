@@ -17,9 +17,10 @@ from pydantic import BaseModel
 
 from fortune import annual as annual_mod, casting, geo, group as grp_mod, synastry as syn_mod, timeline as tl
 from fortune.birth import BirthInput
+from fortune import focus as focus_mod
 from fortune.interpret import (
     interpret, interpret_annual, interpret_composite, interpret_davison, interpret_group,
-    interpret_overview, interpret_stream, interpret_synastry,
+    interpret_overview, interpret_stream, interpret_synastry, interpret_synthesis,
 )
 from fortune.schemas import Chart, Group, Reading, Synastry, Timeline
 from fortune.shared.config import get_settings
@@ -49,6 +50,7 @@ class ReadingRequest(BaseModel):
     solar_return: bool = False         # overlay the Solar Return chart 太陽回歸
     lunar_return: bool = False         # overlay the Lunar Return chart 月亮回歸
     qimen_method: str = "chaibu"       # 奇門 起局: "chaibu" 拆補法 | "zhirun" 置閏法
+    lang: str = "both"                 # reading language: "zh" | "en" | "both"
 
 
 class SynastryRequest(BaseModel):
@@ -56,18 +58,29 @@ class SynastryRequest(BaseModel):
     b: BirthInput
     focus: str | None = None
     house_system: str = "whole_sign"
+    lang: str = "both"
 
 
 class GroupRequest(BaseModel):
     births: list[BirthInput]
     focus: str | None = None
     house_system: str = "whole_sign"
+    lang: str = "both"
 
 
 class AnnualRequest(BaseModel):
     birth: BirthInput
     year: int
     focus: str | None = None
+    lang: str = "both"
+
+
+class SynthesisRequest(BaseModel):
+    birth: BirthInput
+    focus: str | None = None
+    systems: list[str] | None = None   # default: all 13
+    lang: str = "both"
+    house_system: str = "whole_sign"
 
 
 class OverviewRequest(BaseModel):
@@ -75,6 +88,7 @@ class OverviewRequest(BaseModel):
     start_year: int
     count: int = 6
     focus: str | None = None
+    lang: str = "both"
 
 
 @app.get("/health")
@@ -134,7 +148,32 @@ def reading(system: str, req: ReadingRequest) -> Reading:
     except Exception as e:  # noqa: BLE001
         log.exception("cast_failed", system=system)
         raise HTTPException(500, f"{system} cast failed / 排盤失敗：{e}") from e
-    return interpret(chart, focus=req.focus)
+    return interpret(chart, focus=req.focus, lang=req.lang)
+
+
+@app.post("/synthesis")
+def synthesis(req: SynthesisRequest) -> dict:
+    """綜合 / Cross-tradition synthesis: cast every system, extract the facts that bear on the
+    question, give each tradition its own rule-based verdict, tally agreement vs conflict, then one
+    reading that weighs them. No LLM is needed for the table; the prose is one call."""
+    keys = req.systems or list(casting.REGISTRY)
+    charts: dict[str, Chart] = {}
+    errors: dict[str, str] = {}
+    for k in keys:
+        if k not in casting.REGISTRY:
+            raise HTTPException(404, f"unknown system: {k}")
+        try:
+            charts[k] = casting.cast(k, req.birth, house_system=req.house_system, transits=(k == "astrology"))
+        except Exception as e:  # noqa: BLE001
+            log.exception("synthesis_cast_failed", system=k)
+            errors[k] = str(e)
+    male = {"male": True, "female": False}.get((req.birth.gender or "").lower())
+    syn = focus_mod.synthesize(charts, focus_mod.classify(req.focus), male)
+    syn["subject"] = req.birth.label()
+    syn["focus"] = req.focus
+    syn["errors"] = errors
+    syn["interpretation"] = interpret_synthesis(syn, focus=req.focus, lang=req.lang)
+    return syn
 
 
 @app.post("/synastry", response_model=Synastry)
@@ -145,11 +184,11 @@ def synastry(req: SynastryRequest) -> Synastry:
     except Exception as e:  # noqa: BLE001
         log.exception("synastry_failed")
         raise HTTPException(500, f"synastry failed / 合盤失敗：{e}") from e
-    s.interpretation = interpret_synastry(s, focus=req.focus)
+    s.interpretation = interpret_synastry(s, focus=req.focus, lang=req.lang)
     if s.composite:
-        s.composite["interpretation"] = interpret_composite(s.composite, focus=req.focus)
+        s.composite["interpretation"] = interpret_composite(s.composite, focus=req.focus, lang=req.lang)
     if s.davison:
-        s.davison["interpretation"] = interpret_davison(s.davison, focus=req.focus)
+        s.davison["interpretation"] = interpret_davison(s.davison, focus=req.focus, lang=req.lang)
     return s
 
 
@@ -165,9 +204,9 @@ def group(req: GroupRequest) -> Group:
     except Exception as e:  # noqa: BLE001
         log.exception("group_failed")
         raise HTTPException(500, f"group failed / 團體合盤失敗：{e}") from e
-    g["interpretation"] = interpret_group(g, focus=req.focus)
+    g["interpretation"] = interpret_group(g, focus=req.focus, lang=req.lang)
     if g.get("composite"):
-        g["composite"]["interpretation"] = interpret_composite(g["composite"], focus=req.focus)
+        g["composite"]["interpretation"] = interpret_composite(g["composite"], focus=req.focus, lang=req.lang)
     return Group(**g)
 
 
@@ -179,7 +218,7 @@ def annual_report(req: AnnualRequest) -> dict:
     except Exception as e:  # noqa: BLE001
         log.exception("annual_failed")
         raise HTTPException(500, f"annual report failed / 年度報告失敗：{e}") from e
-    rep["interpretation"] = interpret_annual(rep, focus=req.focus)
+    rep["interpretation"] = interpret_annual(rep, focus=req.focus, lang=req.lang)
     return rep
 
 
@@ -193,7 +232,7 @@ def annual_overview(req: OverviewRequest) -> dict:
     except Exception as e:  # noqa: BLE001
         log.exception("overview_failed")
         raise HTTPException(500, f"overview failed / 多年概覽失敗：{e}") from e
-    ov["interpretation"] = interpret_overview(ov, focus=req.focus)
+    ov["interpretation"] = interpret_overview(ov, focus=req.focus, lang=req.lang)
     return ov
 
 
@@ -213,9 +252,16 @@ def reading_stream(system: str, req: ReadingRequest) -> StreamingResponse:
         log.exception("cast_failed", system=system)
         raise HTTPException(500, f"{system} cast failed / 排盤失敗：{e}") from e
 
+    if req.focus:                                            # surface the topic + extracted facts on the chart itself
+        topic = focus_mod.classify(req.focus)
+        fx = focus_mod.extract(chart, topic, {"male": True, "female": False}.get((req.birth.gender or "").lower()))
+        chart.readings["focus_topic"] = focus_mod.topic_label(topic)
+        chart.readings["focus_verdict"] = f"{fx['verdict']}（{fx['reason']}）"
+        chart.readings["focus_facts"] = json.dumps(fx["facts"], ensure_ascii=False)
+
     def gen():
         yield _sse("chart", chart.model_dump_json())
-        for delta in interpret_stream(chart, focus=req.focus):
+        for delta in interpret_stream(chart, focus=req.focus, lang=req.lang):
             yield _sse("delta", json.dumps({"t": delta}, ensure_ascii=False))
         yield _sse("done", "{}")
 

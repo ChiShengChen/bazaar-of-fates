@@ -119,3 +119,5 @@ th { color: var(--dim); font-weight: 500; }
 .lr-gen { font-size: 10px; color: var(--accent); }
 .ly-table td, .ly-table th { text-align: center; }
 .ly-moving td { background: #1c1530; }
+
+.syn-conflict td { background: #1a1416; }

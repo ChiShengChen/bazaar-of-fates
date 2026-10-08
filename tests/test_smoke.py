@@ -855,3 +855,51 @@ def test_oracle_swisseph_planets_and_houses():
             assert abs(((rows[name] - lon + 180) % 360) - 180) < 0.02, (b.dt, name)
         asc = swe.houses(jd, b.latitude, b.longitude, b"W")[1][0]
         assert abs(((AX.ascendant_lon(b) - asc + 180) % 360) - 180) < 0.02, b.dt
+
+
+# --- question-oriented readings, synthesis and language option ---------------------------------
+
+def test_focus_classify_and_extract_all_systems():
+    from fortune import focus as F
+    assert F.classify("明年事業會不會升遷") == "career" and F.classify("money and investments") == "wealth"
+    assert F.classify("感情什麼時候穩定") == "love" and F.classify("身體狀況") == "health" and F.classify(None) == "general"
+    charts = {k: casting.cast(k, BIRTH, transits=(k == "astrology")) for k in casting.REGISTRY}
+    for topic in ("career", "love", "wealth", "health", "study", "family", "general"):
+        for k, ch in charts.items():
+            e = F.extract(ch, topic, male=False)
+            assert e["verdict"] in ("favourable", "neutral", "unfavourable") and isinstance(e["facts"], dict) and e["reason"], (k, topic)
+    bz = F.extract(charts["bazi"], "career", male=False)
+    assert bz["facts"]["本題相關十神"] == ["正官", "七殺", "正印", "偏印"] and any("七殺" in w for w in bz["facts"]["出現位置"])
+    zw = F.extract(charts["ziwei"], "love")
+    assert zw["facts"]["本題宮位"].startswith("夫妻")
+    ly = F.extract(charts["liuyao"], "career")
+    assert ly["facts"]["用神"] == ["官鬼"]
+    syn = F.synthesize(charts, "career", False)
+    assert len(syn["systems"]) == 13 and sum(syn["tally"].values()) == 13 and syn["lean"] in ("favourable", "neutral", "unfavourable")
+    assert set(syn["consensus"]).isdisjoint(syn["conflicts"])
+
+
+def test_prompts_carry_focus_facts_and_language():
+    from fortune.interpret import _prompts, lang_instruction
+    chart = casting.cast("bazi", BIRTH)
+    sysm, user = _prompts(chart, "事業升遷", "zh")
+    assert "與本題直接相關的事實" in user and "本題相關十神" in user and "正官" in user
+    assert "只用繁體中文" in sysm and chart.readings["focus_topic"].startswith("事業")
+    _s, user_en = _prompts(casting.cast("bazi", BIRTH), None, "en")
+    assert "English only" in user_en and "與本題直接相關" not in user_en
+    assert "BILINGUALLY" in lang_instruction("both") and lang_instruction(None) == lang_instruction("both")
+
+
+def test_synthesis_endpoint():
+    from fastapi.testclient import TestClient
+    from fortune.api.main import app
+    c = TestClient(app)
+    body = {"birth": BIRTH.model_dump(mode="json"), "focus": "事業", "lang": "zh"}
+    r = c.post("/synthesis", json=body)
+    assert r.status_code == 200, r.text
+    j = r.json()
+    assert j["topic"] == "career" and len(j["systems"]) == 13 and j["interpretation"] and not j["errors"]
+    r2 = c.post("/synthesis", json={**body, "systems": ["bazi", "ziwei", "liuyao"]})
+    assert [s["system"] for s in r2.json()["systems"]] == ["bazi", "ziwei", "liuyao"]
+    r3 = c.post("/reading/bazi", json={"birth": BIRTH.model_dump(mode="json"), "focus": "財運", "lang": "en"})
+    assert r3.status_code == 200 and r3.json()["readings"]["focus_topic"].startswith("財運")

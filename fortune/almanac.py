@@ -9,6 +9,25 @@ from __future__ import annotations
 
 from datetime import datetime
 
+try:                                                   # lunar-python speaks 簡體; the rest of this app is 正體
+    from opencc import OpenCC
+    _CC = OpenCC("s2twp")
+except Exception:  # noqa: BLE001
+    _CC = None
+
+
+def t(x):
+    """Recursively convert 簡體 → 台灣正體 (words included: 软件→軟體 style) when OpenCC is available."""
+    if _CC is None:
+        return x
+    if isinstance(x, str):
+        return _CC.convert(x).replace("兇", "凶")     # OpenCC prefers 兇; 命理 writes 吉凶
+    if isinstance(x, list):
+        return [t(i) for i in x]
+    if isinstance(x, dict):
+        return {t(k): t(v) for k, v in x.items()}
+    return x
+
 
 def almanac(dt_local: datetime) -> dict | None:
     try:
@@ -17,7 +36,7 @@ def almanac(dt_local: datetime) -> dict | None:
         return None
     l = Solar.fromYmdHms(dt_local.year, dt_local.month, dt_local.day, dt_local.hour, dt_local.minute, 0).getLunar()
     ec = l.getEightChar()
-    return {
+    return t({
         "xiu": f"{l.getXiu()}{l.getZheng()}{l.getAnimal()}（{l.getXiuLuck()}）", "jianchu": l.getZhiXing(),
         "pengzu": [l.getPengZuGan(), l.getPengZuZhi()],
         "jishen": list(l.getDayJiShen()), "xiongsha": list(l.getDayXiongSha()),
@@ -25,5 +44,5 @@ def almanac(dt_local: datetime) -> dict | None:
         "positions": {"喜神": l.getDayPositionXiDesc(), "財神": l.getDayPositionCaiDesc(), "福神": l.getDayPositionFuDesc()},
         "liuyao": l.getLiuYao(), "wuhou": l.getWuHou(), "yuexiang": l.getYueXiang(),
         "shen_gong": ec.getShenGong(), "tai_xi": ec.getTaiXi(),
-        "source": "lunar-python (MIT) — 6tail/lunar",
-    }
+        "source": "lunar-python (MIT) — 6tail/lunar; 繁體 via OpenCC s2twp",
+    })

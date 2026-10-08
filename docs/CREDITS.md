@@ -12,6 +12,7 @@ consulted, no code was copied. Licences are those declared by each project at th
 | [kentang2017/kinliuren](https://github.com/kentang2017/kinliuren) | MIT | **Test oracle** for 大六壬 四課, 三傳, 課體 and 十二天將 (our `liuren_ext` is a native implementation of the same classical rules). |
 | [kentang2017/kinqimen](https://github.com/kentang2017/kinqimen) | MIT | **Test oracle** for 時家奇門 (拆補 / 置閏): 局數, 值符值使, 天盤 九星八門八神. |
 | [pyswisseph](https://pypi.org/project/pyswisseph/) / Swiss Ephemeris | AGPL-3.0 (dual) | **Dev-only test oracle** (never a runtime dependency): planet longitudes at the birth instant (ours agree to < 20″ with Moshier) and the six house systems (< 0.006°). |
+| [OpenCC](https://github.com/BYVoid/OpenCC) (opencc-python-reimplemented) | Apache-2.0 | **Imported (optional)** — 簡體 → 正體 conversion of the lunar-python almanac text. |
 | [ephem (PyEphem)](https://rhodesmill.org/pyephem/) | MIT | **Runtime** — all planetary positions, solar terms, transits and ascendant geometry. |
 | [lunardate](https://pypi.org/project/lunardate/) | GPL-3.0 (library) | **Runtime** — 公曆↔農曆 conversion (1900–2100). |
 | [ChesterRa/mingpan](https://github.com/ChesterRa/mingpan) | Apache-2.0 | **Rules consulted** for the 六爻 納甲 layer (六親, 六神, 伏神) and the 奇門 轉盤 conventions. No code copied. |
@@ -19,7 +20,7 @@ consulted, no code was copied. Licences are those declared by each project at th
 | [Renhuai123/ziwei-doushu](https://github.com/Renhuai123/ziwei-doushu) | MIT | **Reference** for 紫微 school conventions (閏月, 晚子時, brightness schools). |
 | 中央氣象署 / 台北市政府 曆象表, USNO | public data | Reference instants for 節氣 and equinox/solstice regression tests; Taiwan 日光節約時間 table. |
 
-Note: lunar-python returns 簡體 text for the almanac fields (宿名, 宜忌…); it is shown as returned.
+lunar-python returns 簡體 text for the almanac fields; it is converted to 台灣正體 with [OpenCC](https://github.com/BYVoid/OpenCC) (opencc-python-reimplemented, Apache-2.0).
 
 All engine code lives in this repo.
 

@@ -1,9 +1,10 @@
 "use client";
 import { useEffect, useState } from "react";
 import {
-  apiBase, getSystems, getTimeline, streamReading, getSynastry, getGroup, getCast, getAnnual, getOverview,
-  SystemInfo, Reading, Timeline, Synastry, GroupResult, AnnualReport, AnnualOverview,
+  apiBase, getSystems, getTimeline, streamReading, getSynastry, getGroup, getCast, getAnnual, getOverview, getSynthesis,
+  SystemInfo, Reading, Timeline, Synastry, GroupResult, AnnualReport, AnnualOverview, SynthesisResult, Lang,
 } from "@/lib/api";
+import { SynthesisView } from "./_components/SynthesisView";
 import { ChartView } from "./_components/ChartView";
 import { Houses } from "./_components/Houses";
 import { TimelineView } from "./_components/TimelineView";
@@ -22,7 +23,9 @@ const HOUSE_OPTS = [
 export default function Page() {
   const [systems, setSystems] = useState<SystemInfo[]>([]);
   const [sys, setSys] = useState("bazi");
-  const [mode, setMode] = useState<"single" | "synastry" | "group" | "annual">("single");
+  const [mode, setMode] = useState<"single" | "synthesis" | "synastry" | "group" | "annual">("single");
+  const [lang, setLang] = useState<Lang>("zh");
+  const [synthesis, setSynthesis] = useState<SynthesisResult | null>(null);
   const [houseSystem, setHouseSystem] = useState("whole_sign");
   const [overlay, setOverlay] = useState<"none" | "transits" | "progress" | "solar_return" | "lunar_return">("none");
   const [progMethod, setProgMethod] = useState("secondary");
@@ -72,7 +75,7 @@ export default function Page() {
         overlay === "progress", progMethod, overlay === "solar_return", overlay === "lunar_return",
         (chart) => setReading({ ...(chart as Reading), interpretation: "" }),
         (delta) => { acc += delta; setReading((r) => (r ? { ...r, interpretation: acc } : r)); },
-        { qimen_method: qimenMethod },
+        { qimen_method: qimenMethod, lang },
       );
     } catch (e: any) { setErr(String(e.message || e)); }
     finally { setBusy(false); }
@@ -106,7 +109,7 @@ export default function Page() {
   async function compare() {
     setBusy(true); setErr(null); setSynastry(null);
     try {
-      setSynastry(await getSynastry(toBirth(formA), toBirth(formB), focus || null, houseSystem));
+      setSynastry(await getSynastry(toBirth(formA), toBirth(formB), focus || null, houseSystem, lang));
     } catch (e: any) { setErr(String(e.message || e)); }
     finally { setBusy(false); }
   }
@@ -114,7 +117,7 @@ export default function Page() {
   async function compareGroup() {
     setBusy(true); setErr(null); setGroup(null);
     try {
-      setGroup(await getGroup(formsG.map(toBirth), focus || null, houseSystem));
+      setGroup(await getGroup(formsG.map(toBirth), focus || null, houseSystem, lang));
     } catch (e: any) { setErr(String(e.message || e)); }
     finally { setBusy(false); }
   }
@@ -122,7 +125,15 @@ export default function Page() {
   async function generateAnnual() {
     setBusy(true); setErr(null); setAnnual(null); setOverview(null); setCompareOv(null);
     try {
-      setAnnual(await getAnnual(toBirth(formA), annualYear, focus || null));
+      setAnnual(await getAnnual(toBirth(formA), annualYear, focus || null, lang));
+    } catch (e: any) { setErr(String(e.message || e)); }
+    finally { setBusy(false); }
+  }
+
+  async function synthesize() {
+    setBusy(true); setErr(null); setSynthesis(null);
+    try {
+      setSynthesis(await getSynthesis(toBirth(formA), focus || null, lang, houseSystem));
     } catch (e: any) { setErr(String(e.message || e)); }
     finally { setBusy(false); }
   }
@@ -132,12 +143,12 @@ export default function Page() {
     try {
       if (annualCompare) {
         const [a, b] = await Promise.all([
-          getOverview(toBirth(formA), annualYear, annualSpan, focus || null),
-          getOverview(toBirth(formB), annualYear, annualSpan, focus || null),
+          getOverview(toBirth(formA), annualYear, annualSpan, focus || null, lang),
+          getOverview(toBirth(formB), annualYear, annualSpan, focus || null, lang),
         ]);
         setCompareOv({ a, b });
       } else {
-        setOverview(await getOverview(toBirth(formA), annualYear, annualSpan, focus || null));
+        setOverview(await getOverview(toBirth(formA), annualYear, annualSpan, focus || null, lang));
       }
     } catch (e: any) { setErr(String(e.message || e)); }
     finally { setBusy(false); }
@@ -147,7 +158,7 @@ export default function Page() {
   async function openAnnualYear(year: number) {
     setBusy(true); setErr(null); setAnnualYear(year);
     try {
-      setAnnual(await getAnnual(toBirth(formA), year, focus || null));
+      setAnnual(await getAnnual(toBirth(formA), year, focus || null, lang));
     } catch (e: any) { setErr(String(e.message || e)); }
     finally { setBusy(false); }
   }
@@ -176,7 +187,7 @@ export default function Page() {
   }
 
   const hasSvgChart = mode === "synastry" || (mode === "single" && reading && ["astrology", "qizheng", "jyotish"].includes(reading.system));
-  const showResults = mode === "single" ? reading : mode === "synastry" ? synastry : mode === "group" ? group : (annual || overview || compareOv);
+  const showResults = mode === "single" ? reading : mode === "synthesis" ? synthesis : mode === "synastry" ? synastry : mode === "group" ? group : (annual || overview || compareOv);
 
   return (
     <div className="wrap">
@@ -189,6 +200,7 @@ export default function Page() {
       <div className="card">
         <div className="pills" style={{ marginBottom: 12 }}>
           <div className={`pill${mode === "single" ? " on" : ""}`} onClick={() => setMode("single")}>Single 單人</div>
+          <div className={`pill${mode === "synthesis" ? " on" : ""}`} onClick={() => setMode("synthesis")}>Synthesis 綜合</div>
           <div className={`pill${mode === "synastry" ? " on" : ""}`} onClick={() => setMode("synastry")}>Synastry 合盤</div>
           <div className={`pill${mode === "group" ? " on" : ""}`} onClick={() => setMode("group")}>Group 團體</div>
           <div className={`pill${mode === "annual" ? " on" : ""}`} onClick={() => setMode("annual")}>Annual 年度報告</div>
@@ -240,8 +252,13 @@ export default function Page() {
         )}
 
         <div className="row">
-          <div><label>Ask about (optional) 想問</label>
+          <div><label>{mode === "synthesis" ? "Question 想問的問題" : "Ask about (optional) 想問"}</label>
             <input value={focus} onChange={(e) => setFocus(e.target.value)} placeholder="career / love / health 事業 / 感情 / 健康" /></div>
+          <div style={{ flex: 0, minWidth: 130 }}><label>Reading 解讀語言</label>
+            <select value={lang} onChange={(e) => setLang(e.target.value as Lang)}>
+              <option value="zh">中文</option><option value="en">English</option><option value="both">中文 + English</option>
+            </select>
+          </div>
           {(mode === "synastry" || mode === "group" || (mode === "single" && sys === "astrology")) && (
             <div style={{ flex: 0, minWidth: 160 }}><label>Houses 宮位制</label>
               <select value={houseSystem} onChange={(e) => setHouseSystem(e.target.value)}>
@@ -294,6 +311,7 @@ export default function Page() {
           )}
           <div style={{ flex: 0 }}>
             {mode === "single" && <button onClick={cast} disabled={busy}>{busy ? "Casting… 排盤中" : "Cast + Read 排盤＋解讀"}</button>}
+            {mode === "synthesis" && <button onClick={synthesize} disabled={busy}>{busy ? "Casting 13… 排盤中" : "Synthesize 綜合會診"}</button>}
             {mode === "synastry" && <button onClick={compare} disabled={busy}>{busy ? "Comparing… 合盤中" : "Compare 合盤"}</button>}
             {mode === "group" && <button onClick={compareGroup} disabled={busy}>{busy ? "Comparing… 合盤中" : "Compare group 團體合盤"}</button>}
             {mode === "annual" && (
@@ -321,11 +339,12 @@ export default function Page() {
           <span className="muted">Share 分享：</span>
           {hasSvgChart && <button onClick={exportPng}>Download chart PNG 下載星盤</button>}
           <button onClick={() => window.print()} style={{ background: "#27272a", color: "var(--ink)" }}>Print / Save PDF 列印・存 PDF</button>
-          {mode !== "group" && <a href={`/report?${formToQuery(formA)}${focus ? `&focus=${encodeURIComponent(focus)}` : ""}`} target="_blank" rel="noreferrer"
+          {mode !== "group" && <a href={`/report?${formToQuery(formA)}&lang=${lang}${focus ? `&focus=${encodeURIComponent(focus)}` : ""}`} target="_blank" rel="noreferrer"
             style={{ fontSize: 13, color: "var(--accent)" }}>Full report (all 11 systems) 完整報告 ↗</a>}
         </div>
       )}
 
+      {mode === "synthesis" && synthesis && <SynthesisView s={synthesis} />}
       {mode === "synastry" && synastry && <SynastryView s={synastry} busy={busy} />}
       {mode === "group" && group && <GroupView g={group} />}
       {mode === "annual" && compareOv && <CompareView a={compareOv.a} b={compareOv.b} />}
@@ -337,6 +356,10 @@ export default function Page() {
           <div className="card">
             <h3>{reading.system_en} · {reading.system_zh} · {reading.subject}</h3>
             <div className="summary">{reading.summary}</div>
+            {reading.readings?.focus_topic && (
+              <div className="bz-note" style={{ marginBottom: 8 }}><span className="pill static on" style={{ marginRight: 8 }}>focus 主題：{reading.readings.focus_topic}</span>
+                <span className="muted">this system's rule 本門派規則判斷：</span>{reading.readings.focus_verdict}</div>
+            )}
             <div className={reading.system === "bazi" ? "" : "cols"}>
               <div id="chart-area"><ChartView r={reading} tightOnly={tightOnly} /></div>
               <div>
