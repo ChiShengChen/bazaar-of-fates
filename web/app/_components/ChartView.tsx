@@ -3,6 +3,7 @@ import { Chart } from "@/lib/api";
 import { StarChart } from "../_charts/StarChart";
 import { RashiChart } from "../_charts/RashiChart";
 import { QizhengChart } from "../_charts/QizhengChart";
+import { BaziBoard } from "./BaziBoard";
 
 // Dispatch each system to its richest available renderer; fall back to a clean
 // reasoning panel for the text-only divinations.
@@ -46,6 +47,7 @@ export function ChartView({ r, tightOnly = false }: { r: Chart; tightOnly?: bool
                          mingZhuSign={r.readings?.ming_zhu_sign || ""} />;
   }
 
+  if (r.system === "bazi" && c.dayun) return <BaziBoard c={c as any} name={r.subject.split(" · ")[0]} />;
   if (r.system === "bazi" || r.system === "suimei") return <PillarsTable pillars={c.pillars || []} />;
   if (r.system === "ziwei") return <ZiweiBoard palaces={c.palaces || []} readings={r.readings || {}} subject={r.subject} />;
   if (r.system === "iching") return <HexagramView hex={c.hexagram} diagram={c.diagram || []} />;

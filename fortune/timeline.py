@@ -64,60 +64,26 @@ def jyotish_dasha(birth: BirthInput, count: int = 9) -> Timeline:
 
 # --- BaZi 大運 (10-year luck pillars) ------------------------------------------
 
-_TERM_DATES = BZ._MONTH_TERMS   # (month, day, branch_idx, label)
+def bazi_dayun(birth: BirthInput, count: int = 9) -> Timeline:
+    """大運 from the exact-節氣 起運 in fortune/bazi_ext (三日折一年, to the hour)."""
+    from fortune import bazi_ext as X
 
-
-def _nearest_term_days(d: date, forward: bool) -> int:
-    """Approx days from d to the next (forward) / previous (backward) 節 boundary."""
-    cands: list[date] = []
-    for yr in (d.year - 1, d.year, d.year + 1):
-        for (mo, day, _bi, _t) in _TERM_DATES:
-            try:
-                cands.append(date(yr, mo, day))
-            except ValueError:
-                pass
-    if forward:
-        nxt = min((c for c in cands if c > d), default=d + timedelta(days=15))
-        return (nxt - d).days
-    prv = max((c for c in cands if c <= d), default=d - timedelta(days=15))
-    return (d - prv).days
-
-
-def bazi_dayun(birth: BirthInput, count: int = 8) -> Timeline:
-    d = birth.as_date
-    ys, _yb = BZ.year_pillar(d)
-    ms, mb = BZ.month_pillar(d)
-    year_yang = BZ.STEM_YINYANG[ys] == "陽"
-    male = _is_male(birth)
+    full = X.full_chart(birth, dayun_count=count, today=_today())
+    qy = full["qi_yun"]
     note = ""
-    if male is None:
-        male = True
+    if full["gender_assumed"]:
         note = "性別未填，大運方向以「陽年順、陰年逆」預設男命 / gender unset → assumed male"
-    forward = (year_yang and male) or (not year_yang and not male)   # 陽男陰女順, 陰男陽女逆
-
-    start_age = round(_nearest_term_days(d, forward) / 3.0, 1)        # 三日折一年
-    pillars = BZ.four_pillars(d, birth.hour)
-    fav = set(BZ.strength_and_favourable(pillars)["favourable"])
-    today = _today()
-
     periods: list[Period] = []
-    for i in range(count):
-        step = (i + 1) if forward else -(i + 1)
-        s = (ms + step) % 10
-        b = (mb + step) % 12
-        elem = BZ.STEM_ELEM[s]
-        age0 = start_age + 10 * i
-        start_d = d + timedelta(days=age0 * _DAYS_PER_YEAR)
-        end_d = d + timedelta(days=(age0 + 10) * _DAYS_PER_YEAR)
-        nature = "favourable" if elem in fav else "unfavourable"
+    for d in full["dayun"]:
         periods.append(Period(
-            index=i, label=BZ.STEMS[s] + BZ.BRANCHES[b],
-            detail=f"{elem}・age {age0:.0f}–{age0 + 10:.0f}",
-            start=start_d.isoformat(), end=end_d.isoformat(), start_age=age0,
-            nature=nature, current=start_d <= today < end_d,
+            index=d["index"], label=d["gz"],
+            detail=f"{d['stem_god']}・{d['changsheng']}・age {d['start_age']}–{d['start_age'] + 10}",
+            start=f"{d['start_year']}-01-01", end=f"{d['end_year']}-12-31", start_age=float(d["start_age"]),
+            nature=d["nature"], current=d["current"],
         ))
     return Timeline(system="bazi", system_en="BaZi · Four Pillars", system_zh="八字（四柱）",
-                    kind="dayun", kind_label=f"大運 · Luck Pillars（{'順行' if forward else '逆行'}）",
+                    kind="dayun",
+                    kind_label=f"大運 · Luck Pillars（{'順行' if qy['forward'] else '逆行'}・{qy['text']}）",
                     periods=periods, note=note)
 
 

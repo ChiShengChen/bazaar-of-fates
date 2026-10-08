@@ -73,3 +73,20 @@ th { color: var(--dim); font-weight: 500; }
 .zw-stars { line-height: 1.4; word-break: break-all; }
 .zw-name { color: var(--accent); margin-top: 3px; }
 .zw-center { grid-row: 2 / 4; grid-column: 2 / 4; border: 1px solid var(--line); border-radius: 8px; padding: 10px; display: flex; flex-direction: column; justify-content: center; gap: 4px; font-size: 12px; text-align: center; }
+
+/* 八字 almanac sheet (四柱 table + 大運/流年/流月 strips) */
+.bz { font-size: 13px; }
+.bz-head { display: flex; flex-direction: column; gap: 3px; margin-bottom: 10px; line-height: 1.6; }
+.bz-table td, .bz-table th { text-align: center; vertical-align: top; }
+.bz-table td:first-child { text-align: left; white-space: nowrap; }
+.bz-char { font-weight: 600; }
+.e-wood { color: #4ade80; } .e-fire { color: #f87171; } .e-earth { color: #fbbf24; } .e-metal { color: #e4e4e7; } .e-water { color: #60a5fa; }
+.bz-note { margin-top: 6px; line-height: 1.6; }
+.bz-strip { display: flex; gap: 4px; overflow-x: auto; margin: 10px 0; padding-bottom: 4px; }
+.bz-cell { flex: 1 0 72px; border: 1px solid var(--line); border-radius: 8px; padding: 6px 4px; text-align: center; cursor: pointer; font-size: 12px; line-height: 1.5; }
+.bz-cell.on { outline: 2px solid var(--accent); }
+.bz-cell.now { border-color: var(--accent); }
+.bz-cell.static { cursor: default; flex-basis: 56px; }
+.bz-cell .bz-gz { margin: 2px 0; }
+.bz-months .bz-cell { background: #0e0e14; }
+.bz-sub { border-top: 1px solid var(--line); padding: 8px 0 2px; line-height: 1.7; }

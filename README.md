@@ -10,7 +10,7 @@
 ![FastAPI](https://img.shields.io/badge/FastAPI-009688?logo=fastapi&logoColor=white)
 ![Next.js](https://img.shields.io/badge/Next.js-14-000000?logo=nextdotjs)
 ![systems](https://img.shields.io/badge/divination%20systems-11-a78bfa)
-![tests](https://img.shields.io/badge/tests-66%20passing-3fb950)
+![tests](https://img.shields.io/badge/tests-69%20passing-3fb950)
 ![bilingual](https://img.shields.io/badge/readings-EN%20%2B%20中文-ec4899)
 ![use](https://img.shields.io/badge/use-cultural%20%C2%B7%20educational%20%C2%B7%20fun-blue)
 
@@ -114,6 +114,7 @@ curl -s localhost:8000/cast/bazi -H 'content-type: application/json' -d '{
 
 ### Charts & houses 命盤與宮位
 - Each system renders its own visual: the circular **星盤** (astrology), 南印度 **rāśi chart** (Jyotiṣa), **七政星盤**, the **4×4 紫微 命盤**, **四柱** pillars, **hexagram** lines.
+- **八字** is a full almanac sheet: exact-節氣 pillars, **十神 · 藏干 · 納音 · 空亡 · 神煞 · 十二長生**, 胎元 / 命宮, 農曆, **起運 / 交運** to the hour, 天干地支 **刑沖合會** notes, 袁天罡 **稱骨**, and a clickable **大運 → 流年 → 流月** drill-down (with per-year 神煞 + relations).
 - Astrology supports six **house systems**: `whole_sign` (default) · `equal` · `placidus` · `koch` · `regiomontanus` · `campanus` — the four quadrant systems **validated against Swiss Ephemeris to <0.006°** (swisseph is a dev-only oracle, not a runtime dep).
 - The wheel draws house cusps as spokes (ASC/MC emphasised), planets on an inner ring, and **aspect lines graded by orb** (tight = thick & bright).
 
@@ -157,6 +158,7 @@ fortune/
   engines/<system>/   ← SYNCED 排盤 math from the parent monorepo (do NOT hand-edit)
   astro_ext.py        native: ascendant + 6 house systems (swisseph-validated)
   ziwei_ext.py        native: 紫微 with the real birth 時辰
+  bazi_ext.py         native: full 八字 sheet — exact 節氣, 十神/藏干/納音/空亡/神煞, 起運, 大運/流年/流月, 稱骨
   timeline.py         native: 大運 / Mahādaśā / 流年 / planet-return sequences
   casting/<system>.py per-system adapter: birth → engine fns → Chart
   synastry.py · group.py · annual.py   native: relationships / group / forecasts
@@ -172,7 +174,7 @@ The 排盤 math is synced from the parent quant monorepo (single source of truth
 ## ✅ Tests
 
 ```bash
-pytest -q     # 66 tests
+pytest -q     # 69 tests
 ```
 
 Every system casts · 6 house systems vs Swiss Ephemeris · transits (applying/separating, exact dates, major-transit highlights) · progressions (secondary & solar-arc, major progressions, directed-to-angles) · Solar & Lunar Returns · aspect ranking · planet-return & SR-year timelines · synastry / composite / Davison · group matrix & composite · annual report & multi-year overview.

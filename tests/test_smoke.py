@@ -438,3 +438,65 @@ def test_focus_reaches_the_prompt():
     from fortune.interpret import _prompts
     _sys, user = _prompts(casting.cast("bazi", BIRTH), "marriage 婚姻")
     assert "marriage 婚姻" in user
+
+
+# --- 八字 full 排盤 (fortune/bazi_ext) — checked against a 周易大學堂-style sheet -----------
+
+def test_bazi_ext_matches_reference_sheet():
+    """Reference sheet: 丙午 丁酉 乙卯 甲申, male — 十神/藏干/納音/空亡/胎元/命宮/稱骨/relations."""
+    from fortune import bazi_ext as X
+    S, B = X.STEMS, X.BRANCHES
+    dm = S.index("乙")
+    assert [X.ten_god(dm, S.index(c)) for c in "丙丁甲"] == ["傷官", "食神", "劫財"]
+    assert [h["god"] for h in X.hidden_gods(dm, B.index("申"))] == ["正官", "正印", "正財"]
+    assert [X.nayin(S.index(g[0]), B.index(g[1])) for g in ("丙午", "丁酉", "乙卯", "甲申")] == ["天河水", "山下火", "大溪水", "泉中水"]
+    assert [X.kong_wang(S.index(g[0]), B.index(g[1])) for g in ("丙午", "丁酉", "乙卯", "甲申")] == ["寅卯", "辰巳", "子丑", "午未"]
+    assert X.tai_yuan(S.index("丁"), B.index("酉")) == "戊子"
+    assert X.ming_gong(S.index("丁"), B.index("酉"), B.index("申")) == "庚子"
+    assert [X.changsheng(dm, B.index(b)) for b in "戌亥子丑寅卯辰巳午"] == ["墓", "死", "病", "衰", "帝旺", "臨官", "冠帶", "沐浴", "長生"]
+    cg = X.cheng_gu({"year": 2026, "month": 8, "day": 28}, B.index("申"))
+    assert cg["label"] == "四兩四錢" and cg["verdict"].startswith("來事由天莫苦求")
+    assert X.branch_relations([B.index(b) for b in "午酉卯申"]) == ["卯午相破", "卯酉相沖", "卯申暗合金"]
+    assert X.stem_relations([S.index(s) for s in "丙丁乙甲"]) == []
+    plus = X.branch_relations([B.index(b) for b in "午酉卯申戌午"])     # + 大運 戌 + 流年 午
+    assert {"卯戌合化火", "申酉戌會西方金", "午午自刑"} <= set(plus)
+    ss = X.shensha_for(None, B.index("午"), ys=S.index("丙"), ds=dm, yb=B.index("午"), db=B.index("卯"), mb=B.index("酉"))
+    assert {"將星", "文昌貴人", "天廚貴人", "太極貴人"} <= set(ss)
+
+
+def test_bazi_ext_exact_solar_terms_and_qiyun():
+    """寒露 2026 = 10-08 14:29 (UTC+8, 台北市政府曆象表); birth 11 min before it → 起運 22 h."""
+    from fortune import bazi_ext as X
+    terms = {name: at for at, name, _ in X.jie_terms(2026, 8)}
+    assert terms["寒露"].strftime("%m-%d %H:%M") == "10-08 14:29"
+    assert terms["立春"].strftime("%m-%d %H:%M") in ("02-04 04:01", "02-04 04:02")
+    b = BirthInput(birth_date=date(2026, 10, 8), birth_time=time(14, 18), gender="male", tz_offset_hours=8)
+    c = X.full_chart(b, today=date(2026, 10, 8))
+    assert [p["gz"] for p in c["pillars"]] == ["丙午", "丁酉", "乙卯", "癸未"]
+    qy = c["qi_yun"]
+    assert qy["forward"] and (qy["years"], qy["months"], qy["days"], qy["hours"]) == (0, 0, 0, 22)
+    assert qy["jiao_yun"] == "2026-10-09T12:18" and qy["huan_yun_digit"] == 6
+    assert [d["gz"] for d in c["dayun"]][:3] == ["戊戌", "己亥", "庚子"]
+    assert c["dayun"][0]["start_year"] == 2026 and c["dayun"][0]["changsheng"] == "墓" and "華蓋" in c["dayun"][0]["shensha"]
+    ln = c["dayun"][0]["liunian"]
+    assert [l["gz"] for l in ln] == ["丙午", "丁未", "戊申", "己酉", "庚戌", "辛亥", "壬子", "癸丑", "甲寅", "乙卯"]
+    assert [m["gz"] for m in ln[0]["liuyue"]][:3] == ["庚寅", "辛卯", "壬辰"]
+    assert c["lunar"]["text"] == "2026年（馬）八月廿八未時" and c["ming_gong"] == "辛丑"
+    # 11 minutes later the 節 has passed: month pillar rolls to 戊戌, 起運 ≈ 10 yr (next 節 = 立冬)
+    c2 = X.full_chart(BirthInput(birth_date=date(2026, 10, 8), birth_time=time(15, 57), gender="male"), today=date(2026, 10, 8))
+    assert c2["pillars"][1]["gz"] == "戊戌" and c2["qi_yun"]["years"] == 10
+
+
+def test_bazi_cast_carries_full_sheet_and_timeline_agrees():
+    chart = casting.cast("bazi", BIRTH)
+    c = chart.chart
+    assert len(c["dayun"]) == 9 and all(len(d["liunian"]) == 10 for d in c["dayun"])
+    assert all(len(l["liuyue"]) == 12 for d in c["dayun"] for l in d["liunian"])
+    assert c["pillars"][2]["stem_god"] in ("元男", "元女")
+    for k in ("ten_gods", "hidden_stems", "nayin", "kong_wang", "shensha", "tai_yuan", "ming_gong", "qi_yun", "cheng_gu", "relations"):
+        assert chart.readings[k]
+    assert any(s.startswith("稱骨") for s in chart.reasoning_chain)
+    from fortune import timeline as tl
+    t = tl.timeline("bazi", BIRTH)
+    assert [p.label for p in t.periods] == [d["gz"] for d in c["dayun"]]
+    assert t.periods[0].start_age == c["dayun"][0]["start_age"]

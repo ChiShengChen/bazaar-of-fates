@@ -10,6 +10,7 @@ import { TimelineView } from "./_components/TimelineView";
 import { SynastryView } from "./_components/SynastryView";
 import { GroupView } from "./_components/GroupView";
 import { AnnualView, OverviewView, CompareView } from "./_components/AnnualView";
+import { BaziLuck } from "./_components/BaziBoard";
 import { BirthFields, FormState, emptyForm, toBirth } from "./_components/BirthFields";
 
 const HOUSE_OPTS = [
@@ -323,7 +324,7 @@ export default function Page() {
           <div className="card">
             <h3>{reading.system_en} · {reading.system_zh} · {reading.subject}</h3>
             <div className="summary">{reading.summary}</div>
-            <div className="cols">
+            <div className={reading.system === "bazi" ? "" : "cols"}>
               <div id="chart-area"><ChartView r={reading} tightOnly={tightOnly} /></div>
               <div>
                 <h3>Casting steps 排盤步驟</h3>
@@ -334,6 +335,10 @@ export default function Page() {
 
           {["astrology", "qizheng", "jyotish"].includes(reading.system) && (
             <div className="card"><h3>Ascendant & Houses 上升與宮位</h3><Houses asc={reading.ascendant} /></div>
+          )}
+
+          {reading.system === "bazi" && reading.chart?.dayun && (
+            <div className="card"><BaziLuck c={reading.chart as any} /></div>
           )}
 
           {timeline && timeline.kind !== "none" && <div className="card"><TimelineView t={timeline} /></div>}
