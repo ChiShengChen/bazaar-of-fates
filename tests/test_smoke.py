@@ -819,6 +819,9 @@ def test_oracle_kinqimen_hour_chart():
     sys.path.insert(0, os.path.dirname(_kq.__file__))
     from kinqimen import kinqimen as KQ
     from fortune import qimen_ext as Q
+    import inspect
+    if "minute" not in inspect.signature(KQ.Qimen.__init__).parameters:
+        pytest.skip("kinqimen < 0.0.6 (no minute argument) — pip downgraded it; the oracle needs 0.0.6.6")
     pal = {"坎": 1, "坤": 2, "震": 3, "巽": 4, "中": 5, "乾": 6, "兌": 7, "艮": 8, "離": 9}
     n = 0
     for b in _births(40, seed=13):
