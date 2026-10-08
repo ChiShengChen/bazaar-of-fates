@@ -9,7 +9,8 @@
 ![PyPI](https://img.shields.io/pypi/v/bazaar-of-fates?color=3776AB&logo=pypi&logoColor=white)
 ![Python](https://img.shields.io/badge/Python-3.10–3.13-3776AB?logo=python&logoColor=white)
 ![systems](https://img.shields.io/badge/divination%20systems-13-a78bfa)
-![tests](https://img.shields.io/badge/tests-165%20passing-3fb950)
+![CI](https://github.com/ChiShengChen/bazaar-of-fates/actions/workflows/ci.yml/badge.svg)
+![tests](https://img.shields.io/badge/tests-194%20passing-3fb950)
 ![readings](https://img.shields.io/badge/readings-中文%20%C2%B7%20EN%20%C2%B7%20both-ec4899)
 ![MCP](https://img.shields.io/badge/MCP-server-8b5cf6)
 ![license](https://img.shields.io/badge/license-MIT-green)
@@ -170,6 +171,7 @@ Tools: `list_systems` · `geo_lookup` · `cast` · `reading` · `synthesis` · `
 
 - **Live demo**: [https://ms57rd-bazaar-of-fates.hf.space](https://ms57rd-bazaar-of-fates.hf.space) — a Gradio Space (files in [deploy/hf-space/](deploy/hf-space/)) with the API at `/docs` and the static page at `/web/`.
 - **Docker** (any host): `docker build -t bazaar . && docker run -p 7860:7860 bazaar` → API + static page on :7860, mock reader, no key. See [deploy/hf-space-README.md](deploy/hf-space-README.md).
+- **Protection built in**: responses of deterministic endpoints are cached (`CACHE_TTL_SECONDS`, header `X-Cache`), every client IP is rate-limited in two tiers (`RATE_LIMIT_PER_MINUTE` general, `LLM_RATE_LIMIT_PER_MINUTE` for endpoints that may call the LLM → `429` + `Retry-After`), and concurrent LLM calls are capped server-wide (`LLM_MAX_CONCURRENCY`; the report page queues its readings two at a time). `GET /health` shows the counters. See [.env.example](.env.example).
 - Set `LLM_BACKEND=anthropic` + `ANTHROPIC_API_KEY` for AI readings.
 
 ## 🔌 API
@@ -223,7 +225,7 @@ skills/               Claude Code skill
 ## ✅ Tests
 
 ```bash
-pytest -q     # 165 tests
+pytest -q     # 194 tests
 ```
 
 Every system casts · reference 節氣 instants (USNO, 台北市曆象表) · planets and six house systems vs Swiss Ephemeris · the 八字 sheet vs a published 排盤 · 旺衰/起運/真太陽時/geo-DST · 紫微 placement, 長生/博士, 大限 vs x-iztro · 六壬 四課/天將/課體 vs kinliuren · 奇門 局/值符值使/盤 vs kinqimen · 四柱/節氣/大運 vs lunar-python · transits, progressions, returns, synastry, group, annual · focus extraction, synthesis, 擇日, CLI, MCP. Cross-validation tests skip when the optional packages are absent.

@@ -20,21 +20,37 @@ function ReportInner() {
   const [timelines, setTimelines] = useState<Record<string, Timeline>>({});
   const [annual, setAnnual] = useState<AnnualReport | null>(null);
   const [errs, setErrs] = useState<string[]>([]);
+  const [active, setActive] = useState<string[]>([]);
   const started = useRef(false);
   const done = Object.keys(readings).length;
+  const CONCURRENCY = 2;                       // LLM readings are queued: at most two in flight (server also caps LLM_MAX_CONCURRENCY)
 
   useEffect(() => {
     if (started.current) return;                 // React strict-mode double-invokes effects in dev
     started.current = true;
     const b = toBirth(f);
     const focus = q.get("focus") || null;
-    ORDER.forEach((s) => {
-      getReading(s, b, focus, "whole_sign", (q.get("lang") as any) || "zh").then((r) => setReadings((m) => ({ ...m, [s]: r })))
-        .catch((e) => setErrs((x) => [...x, `${s}: ${e.message || e}`]));
-      if (["bazi", "ziwei", "jyotish", "astrology"].includes(s))
-        getTimeline(s, b).then((t) => setTimelines((m) => ({ ...m, [s]: t }))).catch(() => {});
-    });
-    getAnnual(b, new Date().getFullYear(), focus, (q.get("lang") as any) || "zh").then(setAnnual).catch((e) => setErrs((x) => [...x, `annual: ${e.message || e}`]));
+    const lang = (q.get("lang") as any) || "zh";
+    // deterministic timelines go out immediately (no LLM)
+    ORDER.filter((s) => ["bazi", "ziwei", "jyotish", "astrology"].includes(s))
+      .forEach((s) => getTimeline(s, b).then((t) => setTimelines((m) => ({ ...m, [s]: t }))).catch(() => {}));
+    // LLM work is a queue: the 11 readings then the annual report, CONCURRENCY at a time, in display order
+    const jobs: { key: string; run: () => Promise<void> }[] = ORDER.map((s) => ({
+      key: s,
+      run: () => getReading(s, b, focus, "whole_sign", lang).then((r) => setReadings((m) => ({ ...m, [s]: r })))
+        .catch((e) => setErrs((x) => [...x, `${s}: ${e.message || e}`])),
+    }));
+    jobs.push({ key: "annual", run: () => getAnnual(b, new Date().getFullYear(), focus, lang).then(setAnnual).catch((e) => setErrs((x) => [...x, `annual: ${e.message || e}`])) });
+    let next = 0;
+    const worker = async () => {
+      while (next < jobs.length) {
+        const job = jobs[next++];
+        setActive((a) => [...a, job.key]);
+        await job.run();
+        setActive((a) => a.filter((k) => k !== job.key));
+      }
+    };
+    for (let i = 0; i < CONCURRENCY; i++) worker();
   }, []);  // eslint-disable-line react-hooks/exhaustive-deps
 
   const subject = Object.values(readings)[0]?.subject || `${f.name || "命主"} · ${f.date} ${f.time}`;
@@ -42,7 +58,7 @@ function ReportInner() {
     <div className="wrap report">
       <div className="noprint" style={{ display: "flex", gap: 10, alignItems: "center", marginBottom: 12 }}>
         <button onClick={() => window.print()}>Print / Save PDF 列印・存 PDF</button>
-        <span className="muted">{done}/{ORDER.length} systems ready 已完成</span>
+        <span className="muted">{done}/{ORDER.length} systems ready 已完成{active.length ? ` · ${active.join("、")} 解讀中` : ""}</span>
       </div>
       <h1>Bazaar of Fates · 完整命盤報告</h1>
       <div className="sub">{subject}{f.tst === "1" ? " · 真太陽時" : ""} · generated {new Date().toISOString().slice(0, 10)}</div>
@@ -50,7 +66,7 @@ function ReportInner() {
 
       {ORDER.map((s) => {
         const r = readings[s];
-        if (!r) return <div key={s} className="card muted">{s}… casting 排盤中</div>;
+        if (!r) return <div key={s} className="card muted">{s}… {active.includes(s) ? "reading 解讀中" : "queued 排隊中"}</div>;
         const t = timelines[s];
         return (
           <section key={s} className="rp-section">

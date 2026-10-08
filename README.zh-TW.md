@@ -12,7 +12,8 @@
 
 ![Python](https://img.shields.io/badge/Python-3.10–3.13-3776AB?logo=python&logoColor=white)
 ![systems](https://img.shields.io/badge/命理系統-13-a78bfa)
-![tests](https://img.shields.io/badge/tests-165%20passing-3fb950)
+![CI](https://github.com/ChiShengChen/bazaar-of-fates/actions/workflows/ci.yml/badge.svg)
+![tests](https://img.shields.io/badge/tests-194%20passing-3fb950)
 ![license](https://img.shields.io/badge/license-MIT-green)
 
 <table>
@@ -116,6 +117,8 @@ pip install "bazaar-of-fates[mcp]"
 
 `Dockerfile` 一個容器同時提供 API 與靜態頁（port 7860），可直接放 Hugging Face Docker Space，免金鑰即可試玩；見 [deploy/hf-space-README.md](deploy/hf-space-README.md)。
 
+- **內建防線**：確定性端點的回應會快取（`CACHE_TTL_SECONDS`，回應標頭 `X-Cache`）；每個 IP 分兩層限流（`RATE_LIMIT_PER_MINUTE` 一般、`LLM_RATE_LIMIT_PER_MINUTE` 會呼叫 LLM 的端點 → `429` 與 `Retry-After`）；LLM 同時呼叫數全站上限（`LLM_MAX_CONCURRENCY`；報告頁一次只排兩個解讀）。`GET /health` 可看計數。設定見 [.env.example](.env.example)。
+
 ## 📖 文件
 
 每套系統一篇圖解指南（[docs/](docs/README.md)），另有[擇日規則](docs/zeri.md)、[引用與致謝](docs/CREDITS.md)（x-iztro、lunar-python、kinliuren、kinqimen、Swiss Ephemeris 等交叉驗證來源與授權）、[發布素材](docs/LAUNCH.md)。
@@ -123,7 +126,7 @@ pip install "bazaar-of-fates[mcp]"
 ## ✅ 測試
 
 ```bash
-pytest -q     # 165 tests，其中多個對外部引擎交叉驗證（安裝 oracles extra 時啟用）
+pytest -q     # 194 tests，其中多個對外部引擎交叉驗證（安裝 oracles extra 時啟用）
 ```
 
 ## 📜 授權

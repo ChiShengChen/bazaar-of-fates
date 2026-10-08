@@ -41,6 +41,14 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+from fortune.shared.throttle import CacheMiddleware, RateLimiter, RateLimitMiddleware, TTLCache  # noqa: E402
+
+app.state.cache = TTLCache(max_entries=settings.cache_max_entries, ttl=settings.cache_ttl_seconds)
+app.state.limiter = RateLimiter(per_minute=settings.rate_limit_per_minute, llm_per_minute=settings.llm_rate_limit_per_minute)
+if settings.cache_enabled:
+    app.add_middleware(CacheMiddleware, cache=app.state.cache)          # inner: serves hits before the handler runs
+if settings.rate_limit_enabled:
+    app.add_middleware(RateLimitMiddleware, limiter=app.state.limiter)  # outer: counts every request, hits included
 
 
 class ReadingRequest(BaseModel):
@@ -123,8 +131,12 @@ class LoveRequest(BaseModel):
 
 
 @app.get("/health")
-def health() -> dict[str, str]:
-    return {"status": "ok"}
+def health() -> dict:
+    from fortune.shared.llm import llm_stats
+    return {"status": "ok", "llm_backend": settings.llm_backend, "systems": len(casting.REGISTRY),
+            "cache": {"enabled": settings.cache_enabled, "entries": len(app.state.cache), "hits": app.state.cache.hits, "misses": app.state.cache.misses, "ttl_seconds": settings.cache_ttl_seconds},
+            "rate_limit": {"enabled": settings.rate_limit_enabled, "per_minute": app.state.limiter.per_minute, "llm_per_minute": app.state.limiter.llm_per_minute, "rejected": app.state.limiter.rejected},
+            "llm": llm_stats()}
 
 
 @app.get("/systems")
