@@ -9,7 +9,7 @@
 ![PyPI](https://img.shields.io/pypi/v/bazaar-of-fates?color=3776AB&logo=pypi&logoColor=white)
 ![Python](https://img.shields.io/badge/Python-3.10–3.13-3776AB?logo=python&logoColor=white)
 ![systems](https://img.shields.io/badge/divination%20systems-13-a78bfa)
-![tests](https://img.shields.io/badge/tests-99%20passing-3fb950)
+![tests](https://img.shields.io/badge/tests-165%20passing-3fb950)
 ![readings](https://img.shields.io/badge/readings-中文%20%C2%B7%20EN%20%C2%B7%20both-ec4899)
 ![MCP](https://img.shields.io/badge/MCP-server-8b5cf6)
 ![license](https://img.shields.io/badge/license-MIT-green)
@@ -49,6 +49,7 @@ pip install bazaar-of-fates && bazaar bazi 1990-06-15 14:30 --place 台北 --gen
 | 🪐 **Western stack** | 6 house systems · transits · secondary & solar-arc progressions · Solar & Lunar Returns · planet-return timelines. |
 | 💞 **Relationships & forecasts** | Synastry bi-wheel · composite · Davison · 2–8-person matrix · cross-tradition annual report · multi-year heatmap with turning points · two-person arc. |
 | 💘 **Love-specialist reader 感情專科** | One question type, read deeply: natal love disposition (八字 配偶星・夫妻宮, 紫微 夫妻宮, 西洋 金星・七宮, Jyotiṣa 七宮), a **桃花年／婚緣年** scan with every +/− listed, **合婚** (八字 日柱干支 + synastry) when a partner is given, and a reading that answers the sub-question (何時有緣／合不合／復合／該不該分開／婚姻／第三者) first. Rules: [docs/love.md](docs/love.md). |
+| 🩺 **Specialist readers 專科** | Five more one-topic readers on the same skeleton — **career 事業** (官殺・提綱, 官祿宮, 十宮・土星, 第十 bhāva + a 事業方向 sheet), **wealth 財運** (財星・財庫 opened by 流年沖, 財帛宮, 二宮・木星 + 財性 sheet), **health 健康** (五行分布→臟腑, 疾厄宮, 六宮 + 體質 sheet; never medical advice), **study 學業** (印星・文昌學堂, 父母宮・昌曲, 九宮・水星 + 學習型態／科系 sheet), **family 家庭** (年柱父母宮・時柱子女宮・子女星, 田宅宮, 四宮・月亮 + 六親 sheet). Each: natal, this year, a yearly scan with every +/− listed, sub-question first. Rules: [docs/specialists.md](docs/specialists.md). |
 | 🤖 **CLI · API · MCP** | `bazaar` in the terminal, FastAPI with SSE streaming, `bazaar-mcp` for Claude / Cursor, a Claude Code skill, a one-page printable report. |
 | 🗃️ **Datasets** | One command enumerates the entire 紫微 input space (518,400 charts, with 7-topic rule verdicts) or 八字 by date range. |
 
@@ -88,6 +89,7 @@ bazaar synthesis 1990-06-15 14:30 --gender female --ask "明年事業"      # 13
 bazaar zeri 1990-06-15 14:30 --purpose wedding --from 2026-11-01 --to 2026-12-31   # 擇日
 bazaar today 1990-06-15 14:30                    # 今日運勢
 bazaar love 1990-06-15 14:30 --gender female --ask "何時有正緣" --years 8        # 感情專科：命・桃花年・(合婚 with --partner-date)
+bazaar career 1990-06-15 14:30 --gender female --ask "該不該轉職"                 # 專科：career | wealth | health | study | family
 bazaar all 1990-06-15 14:30 --json               # everything as JSON; add --read for a reading
 ```
 
@@ -178,6 +180,7 @@ Tools: `list_systems` · `geo_lookup` · `cast` · `reading` · `synthesis` · `
 | `POST` | `/synthesis` | one question across all (or chosen) systems: verdicts + facts, tally, consensus/conflicts, panel reading |
 | `POST` | `/zeri` · `/day` | date picking for a purpose (scored days, best/avoid, 吉時, 吉方) · one day's outlook with 12 時辰 |
 | `POST` | `/love` | love-specialist sitting: natal disposition, this year's 13-system lean, 桃花年／婚緣年 scan, 合婚 with a partner, reading |
+| `POST` | `/consult/{topic}` · `GET /consult` | specialist sitting for career / wealth / health / study / family (`auto` routes by the question): natal, this year, yearly scan, the topic sheet, reading |
 | `POST` | `/timeline/{system}` | 大運 / Mahādaśā / 流年 / planet returns → `Timeline` |
 | `POST` | `/synastry` · `/group` | relationship / group charts + readings |
 | `POST` | `/annual-report` · `/annual-overview` | one-year report / multi-year arc |
@@ -217,7 +220,7 @@ skills/               Claude Code skill
 ## ✅ Tests
 
 ```bash
-pytest -q     # 99 tests
+pytest -q     # 165 tests
 ```
 
 Every system casts · reference 節氣 instants (USNO, 台北市曆象表) · planets and six house systems vs Swiss Ephemeris · the 八字 sheet vs a published 排盤 · 旺衰/起運/真太陽時/geo-DST · 紫微 placement, 長生/博士, 大限 vs x-iztro · 六壬 四課/天將/課體 vs kinliuren · 奇門 局/值符值使/盤 vs kinqimen · 四柱/節氣/大運 vs lunar-python · transits, progressions, returns, synastry, group, annual · focus extraction, synthesis, 擇日, CLI, MCP. Cross-validation tests skip when the optional packages are absent.

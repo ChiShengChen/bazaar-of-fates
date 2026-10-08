@@ -1,6 +1,6 @@
 """`bazaar-mcp` — Bazaar of Fates as a Model Context Protocol server (stdio by default).
 
-Tools: list_systems · cast · reading · synthesis · zeri · day · synastry · love · geo
+Tools: list_systems · cast · reading · synthesis · zeri · day · synastry · love · consult · geo
 Every tool is deterministic except `reading` / `synthesis` prose (mock digest unless LLM_BACKEND is set).
 
 Claude Desktop / Claude Code:  {"mcpServers": {"bazaar-of-fates": {"command": "bazaar-mcp"}}}
@@ -27,7 +27,8 @@ INSTRUCTIONS = (
     "七政四餘, 鐵板神數, 奇門遁甲, 大六壬, 太乙神數, Jyotiṣa) from one birth moment with real astronomy. Start with "
     "`cast` for the deterministic chart facts (reasoning_chain + readings are the audit trail), use `synthesis` to put "
     "all systems on one question, `zeri` to pick dates, `day` for today's outlook, and `love` for any romance / marriage "
-    "question (natal love disposition, 桃花年／婚緣年 timeline, 合婚 with a partner). Never present a chart as a basis "
+    "question (natal love disposition, 桃花年／婚緣年 timeline, 合婚 with a partner), and `consult` for the other 專科 — career 事業, "
+    "wealth 財運, health 健康, study 學業, family 家庭 (natal disposition, yearly scan, the topic's own sheet). Never present a chart as a basis "
     "for medical, financial or legal decisions."
 )
 server = _Server(name="bazaar-of-fates", instructions=INSTRUCTIONS)
@@ -156,6 +157,29 @@ def love(birth_date: str, question: str | None = None, birth_time: str | None = 
     p = _birth(partner_birth_date, partner_birth_time, partner_gender, partner_place, None, None, None, False, partner_name) if partner_birth_date else None
     out = L.consult(b, question, partner=p, start_year=start_year, years=max(1, min(years, 20)), read=with_reading, lang=lang)
     for y in out["timing"]["years"]:                     # keep the payload small: the context dicts are in the reasons already
+        y.pop("context", None)
+    return out
+
+
+@server.tool()
+def consult(topic: str, birth_date: str, question: str | None = None, birth_time: str | None = None, gender: str | None = None,
+            place: str | None = None, start_year: int | None = None, years: int = 8, with_reading: bool = False, lang: str = "zh",
+            name: str | None = None) -> dict[str, Any]:
+    """專科 — one specialist sitting. `topic` is career 事業 / wealth 財運 / health 健康 / study 學業 / family 家庭 (or `auto` to pick from
+    the question; love questions → the `love` tool). Classifies the sub-question (e.g. career: 轉職／升遷／創業／方向／考試；wealth: 投資／收入／
+    破財／買房／合夥；health: 某病／慢性／壓力／哪年注意；study: 考試／升學／選系／專注；family: 父母／子女／搬家／手足／和睦), then returns `natal`
+    (命 — 八字 本題十神與宮位、紫微 本題宮三方四正、西洋 本題宮位主星、Jyotiṣa bhāva, each scored with listed reasons), `this_year` (all 13 systems),
+    `timing` (every year from `start_year` scored with every +/− term; `best` / `caution`; `sign` marks 升遷轉換年／進財年／注意年／考運年／家運年),
+    and `extra` (the topic sheet: 事業方向 / 財性與財庫 / 體質與臟腑 / 學習傾向與科系 / 六親宮位). Present years as a ranked list with reasons.
+    Health output is never medical advice; wealth output never names assets."""
+    from fortune import specialist as SP
+    b = _birth(birth_date, birth_time, gender, place, None, None, None, False, name)
+    if topic == "auto":
+        topic = SP.route(question)
+    if topic == "love":
+        return love(birth_date, question, birth_time, gender, place, start_year=start_year, years=years, with_reading=with_reading, lang=lang, name=name)
+    out = SP.consult(topic, b, question, start_year=start_year, years=max(1, min(years, 20)), read=with_reading, lang=lang)
+    for y in out["timing"]["years"]:
         y.pop("context", None)
     return out
 

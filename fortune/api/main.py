@@ -206,6 +206,50 @@ def synthesis(req: SynthesisRequest) -> dict:
     return syn
 
 
+class ConsultRequest(BaseModel):
+    birth: BirthInput
+    question: str | None = None
+    start_year: int | None = None
+    years: int = 8                      # 1–20
+    read: bool = True
+    lang: str = "zh"
+    house_system: str = "whole_sign"
+
+
+@app.get("/consult")
+def consult_topics() -> list[dict]:
+    """The 專科 readers: love + career / wealth / health / study / family, with their sub-intents."""
+    from fortune import love as love_mod
+    from fortune import specialist as sp
+    rows = [{"topic": "love", "zh": "感情", "en": "love", "intents": {k: v["zh"] for k, v in love_mod.INTENTS.items()}}]
+    rows += [{"topic": t, "zh": s["zh"], "en": s["en"], "intents": {k: v["zh"] for k, v in s["intents"].items()}} for t, s in sp.SPECS.items()]
+    return rows
+
+
+@app.post("/consult/{topic}")
+def consult(topic: str, req: ConsultRequest) -> dict:
+    """專科 sitting for one topic (career 事業 / wealth 財運 / health 健康 / study 學業 / family 家庭; `love` routes to /love without a partner;
+    `auto` picks the 專科 from the question). Natal disposition, this year's 13-system lean, a yearly scan with every +/− listed,
+    the topic's own sheet (事業方向 / 財性財庫 / 體質臟腑 / 學習傾向科系 / 六親宮位), and one reading that answers the sub-question first."""
+    from fortune import specialist as sp
+    if not 1 <= req.years <= 20:
+        raise HTTPException(400, "years must be 1–20 / 年數需 1–20")
+    if topic == "auto":
+        topic = sp.route(req.question)
+    try:
+        if topic == "love":
+            from fortune import love as love_mod
+            return love_mod.consult(req.birth, req.question, start_year=req.start_year, years=req.years, read=req.read, lang=req.lang, house_system=req.house_system)
+        if topic not in sp.SPECS:
+            raise HTTPException(404, f"unknown topic {topic!r}; one of love, {', '.join(sp.TOPICS)}, auto")
+        return sp.consult(topic, req.birth, req.question, start_year=req.start_year, years=req.years, read=req.read, lang=req.lang, house_system=req.house_system)
+    except HTTPException:
+        raise
+    except Exception as e:  # noqa: BLE001
+        log.exception("consult_failed")
+        raise HTTPException(500, f"consult failed / 專科排盤失敗：{e}") from e
+
+
 @app.post("/love")
 def love_consult(req: LoveRequest) -> dict:
     """感情專科 / Love-specialist sitting: natal love disposition (八字 配偶星・夫妻宮, 紫微 夫妻宮, 西洋 金星・七宮, Jyotiṣa 七宮),

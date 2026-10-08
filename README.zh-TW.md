@@ -12,7 +12,7 @@
 
 ![Python](https://img.shields.io/badge/Python-3.10–3.13-3776AB?logo=python&logoColor=white)
 ![systems](https://img.shields.io/badge/命理系統-13-a78bfa)
-![tests](https://img.shields.io/badge/tests-99%20passing-3fb950)
+![tests](https://img.shields.io/badge/tests-165%20passing-3fb950)
 ![license](https://img.shields.io/badge/license-MIT-green)
 
 <table>
@@ -35,6 +35,7 @@ bazaar synthesis 1990-06-15 14:30 --gender female --ask "明年事業"   # 十�
 bazaar zeri 1990-06-15 14:30 --purpose wedding --from 2026-11-01 --to 2026-12-31   # 擇日
 bazaar today 1990-06-15 14:30                                    # 今日運勢
 bazaar love 1990-06-15 14:30 --gender female --ask "何時有正緣"      # 感情專科（加 --partner-date 合婚）
+bazaar career 1990-06-15 14:30 --gender female --ask "該不該轉職"    # 專科：career | wealth | health | study | family
 ```
 
 完整網頁版（Next.js）：
@@ -61,6 +62,7 @@ cd web && npm install && npm run dev             # 完整 UI → :3000
 | 📅 **擇日・今日運勢** | 黃曆宜忌＋八字流日（沖日柱、歲破、月破、空亡、神煞）＋紫微流日四化＋奇門值使吉方＋小六壬，逐日打分、月曆呈現、每日吉時。 |
 | 💞 **合盤與預測** | 西占合盤雙輪、組合盤、Davison、團體矩陣；跨系統年度報告與多年熱力圖。 |
 | 💘 **感情專科** | 專看感情的命理師：命（八字配偶星與夫妻宮、紫微夫妻宮、西洋金星七宮、Jyotiṣa 七宮）、運（逐年**桃花年／婚緣年**評分，每一分列依據）、合（填對方生辰即**合婚**：八字日柱干支關係＋西占合盤），解讀先回答子題（何時有緣／合不合／復合／該不該分開／婚姻／第三者）。規則見 [docs/love.md](docs/love.md)。 |
+| 🩺 **五科專科** | 同一骨架再開五科：**事業**（官殺與提綱、官祿宮、十宮土星、第十 bhāva＋事業方向表）、**財運**（財星與財庫、流年沖庫、財帛宮、二宮木星＋財性表）、**健康**（五行分布→臟腑、疾厄宮、六宮＋體質表；明說非醫療建議）、**學業**（印星文昌學堂、父母宮昌曲、九宮水星＋學習型態與科系表）、**家庭**（年柱父母宮、時柱子女宮與子女星、田宅宮、四宮月亮＋六親表）。每科：命、今年、逐年評分（每一分列依據）、先答子題。規則：[docs/specialists.md](docs/specialists.md)。 |
 | 🤖 **CLI・API・MCP** | `bazaar` 指令列、FastAPI、`bazaar-mcp` 讓 Claude／Cursor 直接排盤，附 Claude Code skill。 |
 | 🗃️ **資料集** | 一行指令窮舉紫微全部 518,400 張命盤（含七個主題的規則判斷），八字依日期區間產出。 |
 
@@ -94,6 +96,7 @@ cd web && npm install && npm run dev             # 完整 UI → :3000
 | `POST` | `/synthesis` | 綜合會診 |
 | `POST` | `/zeri` · `/day` | 擇日・今日運勢 |
 | `POST` | `/love` | 感情專科：命・今年・桃花年婚緣年・合婚・解讀 |
+| `POST` | `/consult/{topic}` · `GET /consult` | 五科專科（career／wealth／health／study／family，`auto` 依問題分科）：命・今年・逐年・專科表・解讀 |
 | `POST` | `/timeline/{system}` · `/synastry` · `/group` · `/annual-report` · `/annual-overview` | 時間軸、合盤、團體、年度、多年 |
 
 ## 🤖 MCP server
@@ -117,7 +120,7 @@ pip install "bazaar-of-fates[mcp]"
 ## ✅ 測試
 
 ```bash
-pytest -q     # 99 tests，其中多個對外部引擎交叉驗證（安裝 oracles extra 時啟用）
+pytest -q     # 165 tests，其中多個對外部引擎交叉驗證（安裝 oracles extra 時啟用）
 ```
 
 ## 📜 授權
