@@ -19,8 +19,22 @@ _XING = {0: 3, 3: 0, 1: 10, 10: 7, 7: 1, 2: 5, 5: 8, 8: 2}          # 三刑; �
 _YIMA = {0: 2, 4: 2, 8: 2, 2: 8, 6: 8, 10: 8, 5: 11, 9: 11, 1: 11, 11: 5, 3: 5, 7: 5}
 _HE_STEM = {0: 5, 5: 0, 1: 6, 6: 1, 2: 7, 7: 2, 3: 8, 8: 3, 4: 9, 9: 4}   # 五合
 _SANHE_NEXT = {8: 0, 0: 4, 4: 8, 2: 6, 6: 10, 10: 2, 5: 9, 9: 1, 1: 5, 11: 3, 3: 7, 7: 11}
+_JI_STEMS = {2: ["甲"], 4: ["乙"], 5: ["丙", "戊"], 7: ["丁", "己"], 8: ["庚"], 10: ["辛"], 11: ["壬"], 1: ["癸"]}   # 天干寄宮
 _MENG = {2, 5, 8, 11}
 _ZHONG = {0, 3, 6, 9}
+GENERALS = ["貴人", "螣蛇", "朱雀", "六合", "勾陳", "青龍", "天空", "白虎", "太常", "玄武", "太陰", "天后"]
+GENERAL_SHORT = ["貴", "蛇", "雀", "合", "勾", "龍", "空", "虎", "常", "玄", "陰", "后"]
+_GUIREN = [(1, 7), (0, 8), (11, 9), (11, 9), (1, 7), (0, 8), (1, 7), (6, 2), (5, 3), (5, 3)]   # (晝貴, 夜貴) by 日干: 甲戊庚牛羊 乙己鼠猴 丙丁豬雞 辛馬虎 壬癸蛇兔(晝巳夜卯)
+
+
+def generals(ds: int, hb: int, shift: int) -> dict[int, str]:
+    """十二天將 on the 天盤: 貴人 = 晝貴 (占時 卯–申) or 夜貴; it sits on a 地盤 branch — 亥…辰 → 順布,
+    巳…戌 → 逆布 (貴人順治逆亂). Returns {天盤 branch: general}."""
+    day_time = 3 <= hb <= 8
+    gui = _GUIREN[ds][0 if day_time else 1]
+    ground = (gui - shift) % 12                      # the 地盤 branch under 貴人
+    forward = ground in (11, 0, 1, 2, 3, 4)
+    return {(gui + (k if forward else -k)) % 12: GENERALS[k] for k in range(12)}
 
 
 def _ke(a: str, b: str) -> bool:
@@ -45,7 +59,7 @@ def cast(ds: int, db: int, hb: int, yj: int) -> dict:
     zhong: int | None = None
     mo: int | None = None
 
-    zei = [c for c in courses if _ke(c[3], BE[c[2]])]          # 下賊上
+    zei = [c for c in courses if _ke(c[3], BE[c[2]])]          # 下賊上 (all four courses, duplicates included)
     ke_ = [c for c in courses if _ke(BE[c[2]], c[3])]          # 上克下
 
     def resolve(cands, lower_attacks: bool):
@@ -58,19 +72,22 @@ def cast(ds: int, db: int, hb: int, yj: int) -> dict:
             kind = "知一課（比用）"
             return bi[0][2]
         pool = bi if bi else cands
-        # 涉害: depth = number of 地盤 branches, from the branch the 上神 sits on back to its 本家,
-        # that 剋 the 上神 (下賊上) / are 剋ed by it (上克下)
+        # 涉害: each candidate 上神 walks BACKWARDS (逆數) over the 地盤 from the branch it sits on to
+        # its 本家; count the branches (and the 天干 lodged there, 寄宮) that 剋 it (下賊上) / that it
+        # 剋 (上克下). The deeper count wins.
         scored = []
         for c in pool:
             u = c[2]
             b = down(u)
             depth = 0
             while True:
-                if (lower_attacks and _ke(BE[b], BE[u])) or (not lower_attacks and _ke(BE[u], BE[b])):
-                    depth += 1
+                elems = [BE[b]] + [SE[STEMS.index(st)] for st in _JI_STEMS.get(b, [])]
+                for e in elems:
+                    if (lower_attacks and _ke(e, BE[u])) or (not lower_attacks and _ke(BE[u], e)):
+                        depth += 1
                 if b == u:
                     break
-                b = (b + 1) % 12
+                b = (b - 1) % 12
             scored.append((depth, u))
         best = max(d for d, _u in scored)
         tops = [u for d, u in scored if d == best]
@@ -149,11 +166,16 @@ def cast(ds: int, db: int, hb: int, yj: int) -> dict:
             else:
                 kind = "昴星課（冬蛇掩目）"
                 chu, zhong, mo = down(9), k1, k3
+    gen = generals(ds, hb, shift)
     return {
         "yang_day": yang, "shift": shift,
+        "generals": {BRANCHES[b]: g for b, g in gen.items()},
+        "transmission_generals": [gen[chu], gen[zhong], gen[mo]],
+        "course_generals": [gen[u] for _n, _l, u, _e, _s in courses],
+        "guiren_day": 3 <= hb <= 8,
         "courses": [{"name": n, "lower": (STEMS[ds] if is_stem else BRANCHES[l]), "lower_branch": BRANCHES[l], "upper": BRANCHES[u]}
                     for n, l, u, _e, is_stem in courses],
         "kind": kind, "notes": notes,
         "transmissions": [BRANCHES[chu], BRANCHES[zhong], BRANCHES[mo]],
-        "chu": chu, "heaven_plate": [{"ground": BRANCHES[i], "sky": BRANCHES[up(i)]} for i in range(12)],
+        "chu": chu, "heaven_plate": [{"ground": BRANCHES[i], "sky": BRANCHES[up(i)], "general": gen[up(i)]} for i in range(12)],
     }

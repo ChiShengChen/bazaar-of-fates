@@ -113,3 +113,9 @@ th { color: var(--dim); font-weight: 500; }
   .card { border-color: #ccc; break-inside: avoid; }
   .noprint { display: none !important; }
 }
+
+.zw-br { font-size: 8px; color: var(--accent); margin-left: 1px; }
+.zw-adj { font-size: 9px; color: #6b6b75; line-height: 1.3; margin-top: 2px; }
+.lr-gen { font-size: 10px; color: var(--accent); }
+.ly-table td, .ly-table th { text-align: center; }
+.ly-moving td { background: #1c1530; }

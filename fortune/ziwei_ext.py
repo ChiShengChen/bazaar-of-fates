@@ -30,6 +30,8 @@ SUIQIAN = ["太歲", "晦氣", "喪門", "貫索", "官符", "小耗", "大耗",
 JIANGQIAN = ["將星", "攀鞍", "歲驛", "息神", "華蓋", "劫煞", "災煞", "天煞", "指背", "咸池", "月煞", "亡神"]
 _JIANGXING = [0, 6, 9, 3]                                            # 將星 by 三合 group (申子辰/寅午戌/巳酉丑/亥卯未)
 _LIUCHANG = [5, 6, 8, 9, 8, 9, 11, 0, 2, 3]                          # 流年文昌 by 年干
+# 身主 by 年支 — the synced core's table has 鈴星 at 午; iztro (and the classical 子午 火星 rule) has 火星
+_SHEN_ZHU = ["火星", "天相", "天梁", "天同", "文昌", "天機", "火星", "天相", "天梁", "天同", "文昌", "天機"]
 
 STEMS, BRANCHES = ZC.STEMS, ZC.BRANCHES
 _LUCUN = [2, 3, 5, 6, 5, 6, 8, 9, 11, 0]               # 祿存 by 年干 甲…癸
@@ -114,7 +116,7 @@ def build_chart(listing: date, hour_branch: int, clock_hour: int | None = None) 
                         "stem": STEMS[ZC.life_palace_stem(lunar_year, b)],
                         "is_body": b == body_b, "stars": stars})
     return {
-        "soul": ZC._MING_ZHU[life_b], "body": ZC._SHEN_ZHU[year_branch],
+        "soul": ZC._MING_ZHU[life_b], "body": _SHEN_ZHU[year_branch],
         "five_elements_class": f"{elem}{'二三四五六'[juju - 2]}局",
         "palaces": palaces, "star_palace": star_palace,
         "life_branch": ZC.BRANCHES[life_b], "ziwei_branch": ZC.BRANCHES[zw],
@@ -214,3 +216,39 @@ def luck(natal: dict, male: bool, today: date, count_years: int = 10) -> dict:
             "liunian": liunian,
         })
     return {"start_age": start, "forward": forward, "age_now": age_now, "daxian": daxian}
+
+
+def iztro_enrich(d: date, hour_branch: int, male: bool, today: date) -> dict | None:
+    """Optional richer layer from x-iztro (MIT, a Rust port of iztro): star brightness (廟旺利陷),
+    the 雜曜 (adjective stars), 格局 pattern hits and the current 流月. Returns None when the
+    package is not installed. Positions of the 14 主星 / 輔星 are cross-checked against our
+    native placement in tests, so this only ADDS fields."""
+    try:
+        from x_iztro import Astro
+    except Exception:  # noqa: BLE001
+        return None
+    try:
+        chart = Astro().by_solar(f"{d.year}-{d.month}-{d.day}", hour_branch, "male" if male else "female", language="zh-TW")
+    except TypeError:
+        chart = Astro().by_solar(f"{d.year}-{d.month}-{d.day}", hour_branch, "male" if male else "female")
+    palaces = {}
+    for pal in chart.palaces:
+        palaces[pal.earthly_branch] = {
+            "name": pal.name, "brightness": {st.name: (st.brightness or "") for st in pal.major_stars + pal.minor_stars},
+            "adjective_stars": [st.name for st in pal.adjective_stars],
+        }
+    patterns = []
+    try:
+        for h in chart.patterns():
+            patterns.append({"name": h.name, "palace": h.palace_name, "broken": bool(h.broken),
+                             "stars": [st.name for st in h.stars], "variant": h.variant})
+    except Exception:  # noqa: BLE001
+        pass
+    monthly = None
+    try:
+        hs = chart.horoscope(f"{today.year}-{today.month}-{today.day}", 0)
+        monthly = {"stem": hs.monthly.heavenly_stem, "branch": hs.monthly.earthly_branch,
+                   "mutagen": list(getattr(hs.monthly, "mutagen", []) or [])}
+    except Exception:  # noqa: BLE001
+        pass
+    return {"palaces": palaces, "patterns": patterns, "monthly": monthly, "source": "x-iztro (MIT) — iztro port"}

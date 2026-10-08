@@ -1,5 +1,5 @@
-"""Registry of the 11 命理 systems → their cast(birth) adapter.
-十一套命理系統 → 各自的 cast(birth) 轉接器。
+"""Registry of the 13 命理 systems → their cast(birth) adapter.
+十三套命理系統 → 各自的 cast(birth) 轉接器。
 
 Each value is (English name, 中文名, "module:function"). Imports are lazy so a
 half-wired engine never breaks the whole service — `systems()` reports which
@@ -27,6 +27,8 @@ REGISTRY: dict[str, tuple[str, str, str]] = {
     "liuren": ("Da Liu Ren", "大六壬", "fortune.casting.liuren:cast"),
     "taiyi": ("Tai Yi Shen Shu", "太乙神數", "fortune.casting.taiyi:cast"),
     "jyotish": ("Jyotiṣa · Vedic Astrology", "Jyotiṣa（吠陀占星）", "fortune.casting.jyotish:cast"),
+    "liuyao": ("Liu Yao · Six Lines", "六爻（納甲）", "fortune.casting.liuyao:cast"),
+    "xiaoliuren": ("Xiao Liu Ren", "小六壬", "fortune.casting.xiaoliuren:cast"),
 }
 
 

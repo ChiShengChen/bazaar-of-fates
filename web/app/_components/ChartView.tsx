@@ -53,6 +53,8 @@ export function ChartView({ r, tightOnly = false }: { r: Chart; tightOnly?: bool
   if (r.system === "iching") return <HexagramView hex={c.hexagram} diagram={c.diagram || []} />;
   if (r.system === "qimen" && c.palaces) return <QimenBoard palaces={c.palaces} ju={c.ju} zhifu={c.zhifu} zhishi={c.zhishi} />;
   if (r.system === "liuren" && c.courses) return <LiurenView c={c} />;
+  if (r.system === "liuyao" && c.hexagram?.lines) return <LiuyaoView g={c.hexagram} />;
+  if (r.system === "xiaoliuren" && c.result) return <XiaoLiurenView c={c} />;
 
   return <p className="muted">See the casting steps & elements below. / 詳見下方排盤步驟與命盤要素。</p>;
 }
@@ -93,9 +95,12 @@ function ZiweiBoard({ palaces, readings, subject }: { palaces: any[]; readings: 
           <div key={i} className={`zw-cell${p.is_body ? " body" : ""}`} style={{ gridRow: row, gridColumn: col }}>
             <div className="zw-stars">
               {(p.stars || []).map((s: string) => {
-                const major = MAJOR.has(s.replace(/\(.*\)/, ""));
-                return <span key={s} className={major ? "zw-major" : "zw-minor"}>{s} </span>;
+                const bare = s.replace(/\(.*\)/, "");
+                const major = MAJOR.has(bare);
+                const br = p.brightness?.[bare];
+                return <span key={s} className={major ? "zw-major" : "zw-minor"}>{s}{br ? <sup className="zw-br">{br}</sup> : null} </span>;
               })}
+              {(p.adjective_stars || []).length > 0 && <div className="zw-adj">{p.adjective_stars.join(" ")}</div>}
             </div>
             <div className="zw-name"><b>{p.name}</b> <span className="muted">{p.stem}{p.branch}</span>{p.changsheng ? <span className="muted" style={{ float: "right" }}>{p.changsheng}·{p.boshi}</span> : null}</div>
           </div>
@@ -154,17 +159,55 @@ function LiurenView({ c }: { c: any }) {
       <div className="muted" style={{ marginBottom: 6 }}>{c.yue_jiang}將加{c.occupy}時 · 天盤／地盤</div>
       <div className="lr-plate">
         {(c.heaven_plate || []).map((x: any) => (
-          <div key={x.ground} className="lr-cell"><b>{x.sky}</b><span className="muted">{x.ground}</span></div>
+          <div key={x.ground} className="lr-cell"><span className="lr-gen">{x.general ? x.general.slice(0, 1) : ""}</span><b>{x.sky}</b><span className="muted">{x.ground}</span></div>
         ))}
       </div>
       <table style={{ marginTop: 10 }}>
         <thead><tr>{(c.courses || []).map((k: any) => <th key={k.name}>{k.name}</th>)}</tr></thead>
         <tbody>
           <tr>{(c.courses || []).map((k: any) => <td key={k.name} style={{ fontSize: 20 }}>{k.upper}</td>)}</tr>
-          <tr>{(c.courses || []).map((k: any) => <td key={k.name} className="muted">{k.lower}</td>)}</tr>
+          <tr>{(c.courses || []).map((k: any) => <td key={k.name} className="muted">{k.lower}{k.general ? ` · ${k.general}` : ""}</td>)}</tr>
         </tbody>
       </table>
-      <p style={{ marginTop: 8 }}>{c.kind ? <span className="muted">{c.kind} · </span> : null}三傳：{(c.transmissions || []).map((t: string, i: number) => <b key={i} style={{ marginRight: 10 }}>{["初", "中", "末"][i]} {t}</b>)}</p>
+      <p style={{ marginTop: 8 }}>{c.kind ? <span className="muted">{c.kind} · </span> : null}三傳：{(c.transmissions || []).map((t: string, i: number) => <b key={i} style={{ marginRight: 10 }}>{["初", "中", "末"][i]} {t}{c.transmission_generals?.[i] ? <span className="muted">（{c.transmission_generals[i]}）</span> : null}</b>)}</p>
+    </div>
+  );
+}
+
+// 六爻 納甲表: top line first — 六神 · 六親 · 干支 · 爻 · 世應 · 伏神 · 旺衰
+function LiuyaoView({ g }: { g: any }) {
+  const rows = [...(g.lines || [])].reverse();
+  return (
+    <div>
+      <div className="muted" style={{ marginBottom: 6 }}>{g.name}（{g.palace}宮{g.palace_elem}）· 世{g.shi}應{g.ying} · 月建 {g.month_branch} · 日辰 {g.day_gz} · 旬空 {g.kong_wang}{g.changed ? ` · 變卦 ${g.changed.name}` : ""}</div>
+      <table className="ly-table">
+        <thead><tr><th>爻</th><th>六神</th><th>六親</th><th>干支</th><th></th><th>世應</th><th>伏神</th><th>旺衰</th>{g.changed && <th>變</th>}</tr></thead>
+        <tbody>
+          {rows.map((r: any) => (
+            <tr key={r.pos} className={r.moving ? "ly-moving" : ""}>
+              <td className="muted">{r.pos}</td><td>{r.god}</td><td><b>{r.relative}</b></td><td>{r.stem}{r.branch}</td>
+              <td className="hex" style={{ fontSize: 14 }}>{r.yang ? "▅▅▅▅▅" : "▅▅　▅▅"}{r.moving ? " ●" : ""}</td>
+              <td>{r.shi ? "世" : r.ying ? "應" : ""}</td><td className="muted">{r.hidden || ""}</td>
+              <td className="muted">{(r.notes || []).join("/")}</td>
+              {g.changed && <td>{r.moving ? `${g.changed.line.relative}${g.changed.line.stem}${g.changed.line.branch}（${g.changed.relation}）` : ""}</td>}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+// 小六壬: the six palaces, the month→day→hour path highlighted
+const XLR = ["大安", "留連", "速喜", "赤口", "小吉", "空亡"];
+function XiaoLiurenView({ c }: { c: any }) {
+  const path: string[] = c.path || [];
+  return (
+    <div>
+      <div className="pills">
+        {XLR.map((n) => <span key={n} className={`pill static${n === c.result ? " on" : ""}`}>{n}{path.includes(n) ? ` ${["月", "日", "時"].filter((_, i) => path[i] === n).join("")}` : ""}</span>)}
+      </div>
+      <p style={{ marginTop: 10 }}><b>{c.result}</b>（{c.luck}・{c.elem}・{c.direction}）— {c.text}</p>
     </div>
   );
 }

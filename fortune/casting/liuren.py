@@ -40,22 +40,25 @@ def cast(birth: BirthInput) -> Chart:
         "liuren_regime": "supported" if good else "afflicted",
         "day_master": f"{day_stem}（{dm_elem}）・{'陽' if k['yang_day'] else '陰'}日", "day_pillar": p["day"]["gz"],
         "yue_jiang": f"{B[yj]}（{_YUEJIANG_NAME[yj]}）", "occupy_hour": B[hb] + ("（時辰未知，以午時計）" if not birth.birth_time else ""),
-        "four_courses": "　".join(f"{c['name']} {c['upper']}/{c['lower']}" for c in k["courses"]),
+        "four_courses": "　".join(f"{c['name']} {c['upper']}/{c['lower']}（{g}）" for c, g in zip(k["courses"], k["course_generals"])),
         "course_type": k["kind"] + (f"；{'；'.join(k['notes'])}" if k["notes"] else ""),
-        "three_transmissions": f"初傳 {tr[0]}・中傳 {tr[1]}・末傳 {tr[2]}",
+        "three_transmissions": "・".join(f"{n}傳 {b}（{g}）" for n, b, g in zip("初中末", tr, k["transmission_generals"])),
+        "generals": f"{'晝' if k['guiren_day'] else '夜'}貴　" + "　".join(f"{b}{g}" for b, g in k["generals"].items()),
         "yong_branch": f"{tr[0]}（{BE[chu]}）", "relation": rel,
     }
     chain = [
         f"命課（{cdt.isoformat(timespec='minutes')}{' 真太陽時' if cdt != birth.dt else ' 本地時'}）：日干 {day_stem}（{'陽' if k['yang_day'] else '陰'}日），日支 {B[db]}，占時 {B[hb]}。",
         f"月將：太陽躔 {AX.sign_zh(sun_sign * 30)}宮 → {B[yj]}將（{_YUEJIANG_NAME[yj]}）；月將加占時 {B[hb]} 起天地盤。",
         "四課：" + "、".join(f"{c['name']} {c['upper']}／{c['lower']}" + ("（寄" + c['lower_branch'] + "）" if i == 0 else "") for i, c in enumerate(k["courses"])) + "。",
-        f"課體：{k['kind']}" + (f"（{'；'.join(k['notes'])}）" if k["notes"] else "") + f"；三傳：初 {tr[0]}、中 {tr[1]}、末 {tr[2]}。",
+        f"課體：{k['kind']}" + (f"（{'；'.join(k['notes'])}）" if k["notes"] else "") + "；三傳：" + "、".join(f"{n} {b}（{g}）" for n, b, g in zip("初中末", tr, k["transmission_generals"])) + "。",
+        f"天將：{'晝' if k['guiren_day'] else '夜'}貴人起於 {next(b for b, g in k['generals'].items() if g == '貴人')}，" + "、".join(f"{b}{LX.GENERAL_SHORT[LX.GENERALS.index(g)]}" for b, g in k["generals"].items()) + "。",
         f"初傳 {tr[0]}（{BE[chu]}）與日主 {day_stem}（{dm_elem}）：{rel} → {'吉' if good else '凶'}。",
     ]
     summary = f"日干 {day_stem}（{dm_elem}）・{B[yj]}將加{B[hb]}時・{k['kind'].split('（')[0]}・三傳 {''.join(tr)}・{rel}"
     return Chart(
         system=KEY, system_en=EN, system_zh=ZH, subject=birth.label(), cast_at=birth.dt,
         chart={"day_stem": day_stem, "day_stem_elem": dm_elem, "yue_jiang": B[yj], "occupy": B[hb],
-               "heaven_plate": k["heaven_plate"], "courses": k["courses"], "kind": k["kind"], "transmissions": tr},
+               "heaven_plate": k["heaven_plate"], "courses": [dict(c, general=g) for c, g in zip(k["courses"], k["course_generals"])],
+               "kind": k["kind"], "transmissions": tr, "transmission_generals": k["transmission_generals"]},
         reasoning_chain=chain, readings=readings, summary=summary,
     )

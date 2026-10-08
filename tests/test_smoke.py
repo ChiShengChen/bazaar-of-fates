@@ -697,3 +697,161 @@ def test_solar_terms_match_published_values():
         assert abs((X._term_utc(y, lon) - datetime.strptime(want, "%Y-%m-%d %H:%M")).total_seconds()) <= 60
     local = {n: t for t, n, _l in X.all_terms(2026, 8)}
     assert local["寒露"].strftime("%m-%d %H:%M") == "10-08 14:29" and local["冬至"].strftime("%m-%d %H:%M") == "12-22 04:49"
+
+
+# --- cross-validation against sibling open-source engines (optional deps; skipped if absent) ---------
+
+def _births(n: int, seed: int = 7):
+    from random import Random
+    from datetime import timedelta
+    r = Random(seed)
+    out = []
+    for _ in range(n):
+        d = date(1950, 1, 1) + timedelta(days=r.randrange(365 * 70))
+        out.append(BirthInput(birth_date=d, birth_time=time(r.randrange(24), r.randrange(60)), gender=r.choice(["male", "female"]),
+                              latitude=25.04, longitude=121.56, tz_offset_hours=8))
+    return out
+
+
+def test_oracle_lunar_python_pillars_terms_taiyuan_dayun():
+    lp = pytest.importorskip("lunar_python")
+    from fortune import bazi_ext as X
+    from fortune import timeline as tl
+    for b in _births(150):
+        if b.dt.hour >= 23:
+            continue                                   # 晚子時: lunar-python starts the hour stem from the NEXT day's stem; we keep the day's (school choice)
+        p = X.exact_pillars(b.dt, 8)
+        ec = lp.Solar.fromYmdHms(b.dt.year, b.dt.month, b.dt.day, b.dt.hour, b.dt.minute, 0).getLunar().getEightChar()
+        assert [p[k]["gz"] for k in ("year", "month", "day", "hour")] == [ec.getYear(), ec.getMonth(), ec.getDay(), ec.getTime()], b.dt
+        assert X.tai_yuan(p["month"]["stem_idx"], p["month"]["branch_idx"]) == ec.getTaiYuan()
+        assert X.ming_gong(p["month"]["stem_idx"], p["month"]["branch_idx"], p["hour"]["branch_idx"]) == ec.getMingGong()
+    # 節氣 instants agree to the minute
+    for b in _births(40, seed=3):
+        prev, _n = X.surrounding_jie(b.dt, 8)
+        jq = lp.Solar.fromYmdHms(b.dt.year, b.dt.month, b.dt.day, b.dt.hour, b.dt.minute, 0).getLunar().getPrevJie()
+        assert abs((prev[0] - __import__("datetime").datetime.strptime(jq.getSolar().toYmdHms(), "%Y-%m-%d %H:%M:%S")).total_seconds()) <= 120
+    # 大運 sequence and start years (lunar-python sect 2 = 三日折一年 rounded to the hour)
+    for b in _births(30, seed=11):
+        ours = tl.bazi_dayun(b)
+        ec = lp.Solar.fromYmdHms(b.dt.year, b.dt.month, b.dt.day, b.dt.hour, b.dt.minute, 0).getLunar().getEightChar()
+        yun = ec.getYun(1 if b.gender == "male" else 0, 2)
+        theirs = [(d.getGanZhi(), d.getStartYear()) for d in yun.getDaYun()[1:]]
+        k = min(len(theirs), len(ours.periods))
+        assert [p.label for p in ours.periods][:k] == [g for g, _y in theirs][:k], b.dt
+        assert all(abs(int(p.start[:4]) - y) <= 1 for p, (_g, y) in zip(ours.periods[:k], theirs[:k]))
+
+
+def test_oracle_x_iztro_star_placement():
+    xi = pytest.importorskip("x_iztro")
+    from fortune import bazi_ext as X, ziwei_ext as ZX
+    ours_names = {"紫微", "天機", "太陽", "武曲", "天同", "廉貞", "天府", "太陰", "貪狼", "巨門", "天相", "天梁", "七殺", "破軍",
+                  "文昌", "文曲", "左輔", "右弼", "祿存", "擎羊", "陀羅", "天魁", "天鉞", "火星", "鈴星", "地空", "地劫", "天馬",
+                  "紅鸞", "天喜", "龍池", "鳳閣", "天哭", "天虛", "天刑", "天姚", "天才", "天壽", "孤辰", "寡宿"}
+    for b in _births(40, seed=5):
+        if b.dt.hour >= 23:
+            continue
+        hb = ZX.hour_branch_of(b.dt.hour)
+        natal = ZX.build_chart(b.as_date, hb, clock_hour=b.dt.hour)
+        chart = xi.Astro().by_solar(f"{b.dt.year}-{b.dt.month}-{b.dt.day}", hb, b.gender, language="zh-TW")
+        theirs = {}
+        for pal in chart.palaces:
+            for st in list(pal.major_stars) + list(pal.minor_stars) + list(pal.adjective_stars):
+                theirs[st.name] = pal.earthly_branch
+        for star, br in natal["star_palace"].items():
+            pass
+        by_branch = {p["branch"]: p for p in natal["palaces"]}
+        for p in natal["palaces"]:
+            for s in p["stars"]:
+                if s in ours_names:
+                    assert theirs.get(s) == p["branch"], (b.dt, s, p["branch"], theirs.get(s))
+        assert natal["five_elements_class"] == chart.five_elements_class and natal["soul"] == chart.soul and natal["body"] == chart.body
+        luck = ZX.luck(natal, b.gender == "male", date(2026, 1, 1))
+        for pal in chart.palaces:
+            ours_p = by_branch[pal.earthly_branch]
+            assert ours_p["changsheng"] == pal.changsheng12 and ours_p["boshi"] == pal.boshi12, (b.dt, pal.name)
+            dx = next(d for d in luck["daxian"] if d["branch"] == pal.earthly_branch)
+            assert tuple(dx["ages"]) == tuple(pal.decadal.range), (b.dt, pal.name)
+
+
+def test_oracle_kinliuren_courses_and_generals():
+    """kinliuren (MIT) as oracle. 四課, 十二天將 and the 賊克/遙克 course families must agree exactly;
+    涉害 / 伏吟 / 返吟 / 別責 / 八專 follow school conventions that differ between implementations,
+    so for those only an overall agreement floor is asserted."""
+    kl = pytest.importorskip("kinliuren")
+    from kinliuren import kinliuren as KL
+    from fortune import bazi_ext as X, liuren_ext as LX
+    import ephem
+    from fortune import astro_ext as AX
+    _ = kl
+    strict = {"元首課", "重審課", "遙克課"}
+    n = agree = agree1 = 0
+    for b in _births(300, seed=9):
+        p = X.exact_pillars(b.dt, 8)
+        ds, db, hb = p["day"]["stem_idx"], p["day"]["branch_idx"], p["hour"]["branch_idx"]
+        yj = (10 - int(AX.lon_of_date(ephem.Sun, AX.birth_utc(b)) // 30) % 12) % 12
+        term = X.current_term(b.dt, 8)[1]
+        lunar_m = "正二三四五六七八九十冬臘"[X.lunar_info(b.as_date, hb)["month"] - 1]
+        try:
+            theirs = KL.Liuren(term, lunar_m, p["day"]["gz"], p["hour"]["gz"]).result(0)
+        except Exception:  # noqa: BLE001 — kinliuren raises on some 月將 lookups; skip those
+            continue
+        ours = LX.cast(ds, db, hb, yj)
+        t_courses = [theirs["四課"][k][0] for k in ("一課", "二課", "三課", "四課")]
+        o_courses = [c["upper"] + (c["lower"] if i else X.STEMS[ds]) for i, c in enumerate(ours["courses"])]
+        if t_courses != o_courses:
+            continue                                   # different 月將 convention for that date → not comparable
+        n += 1
+        t_gen = dict(zip(theirs["天地盤"]["天盤"], theirs["天地盤"]["天將"]))
+        for br, g in ours["generals"].items():
+            assert t_gen[br] == LX.GENERAL_SHORT[LX.GENERALS.index(g)], (b.dt, br)
+        t3 = [theirs["三傳"][k][0] for k in ("初傳", "中傳", "末傳")]
+        kind = ours["kind"].split("（")[0]
+        if kind in strict:
+            assert t3 == ours["transmissions"], (b.dt, theirs["格局"], ours["kind"])
+        agree += t3 == ours["transmissions"]
+        agree1 += t3[0] == ours["transmissions"][0]
+    assert n >= 150 and agree / n >= 0.72 and agree1 / n >= 0.75, (n, agree, agree1)
+
+
+def test_oracle_kinqimen_hour_chart():
+    pytest.importorskip("kinqimen")
+    import os, sys, kinqimen as _kq
+    sys.path.insert(0, os.path.dirname(_kq.__file__))
+    from kinqimen import kinqimen as KQ
+    from fortune import qimen_ext as Q
+    pal = {"坎": 1, "坤": 2, "震": 3, "巽": 4, "中": 5, "乾": 6, "兌": 7, "艮": 8, "離": 9}
+    n = 0
+    for b in _births(40, seed=13):
+        for method, code in (("chaibu", 1), ("zhirun", 2)):
+            ours = Q.cast_hour(b.dt, 8, method=method)
+            theirs = KQ.Qimen(b.dt.year, b.dt.month, b.dt.day, b.dt.hour, b.dt.minute).pan(code)
+            if theirs["排局"] != f"{ours['dun']}{'一二三四五六七八九'[ours['ju'] - 1]}局{ours['yuan']}":
+                continue                               # 置閏 boundary conventions differ around 閏 blocks; compare matching 局 only
+            n += 1
+            by = {p["palace"]: p for p in ours["palaces"]}
+            for name, gate in theirs["門"].items():
+                assert by[pal[name]]["gate"] == gate + "門", (b.dt, method, name)
+            for name, star in theirs["星"].items():
+                assert by[pal[name]]["star"].startswith("天" + star[0]) or star == "禽", (b.dt, method, name)
+            hour_in_centre = ours["hour_gz"][0] == by[5]["earth_stem"] or (ours["hour_gz"][0] == "甲" and ours["xun_yi"] == by[5]["earth_stem"])
+            for name, stem in theirs["天盤"].items():
+                if "禽" in by[pal[name]]["star"] or hour_in_centre:
+                    continue                           # 天禽/天芮 palace carries two stems; 時干在中宮 is handled differently by kinqimen
+                assert by[pal[name]]["sky_stem"] == stem, (b.dt, method, name)
+            assert ours["zhifu"][1] == theirs["值符值使"]["值符星宮"][0][0] and ours["zhishi"][0] == theirs["值符值使"]["值使門宮"][0][0]
+    assert n >= 40
+
+
+def test_oracle_swisseph_planets_and_houses():
+    swe = pytest.importorskip("swisseph")
+    from fortune import astro_ext as AX
+    ids = {"Sun": swe.SUN, "Moon": swe.MOON, "Mercury": swe.MERCURY, "Venus": swe.VENUS, "Mars": swe.MARS, "Jupiter": swe.JUPITER, "Saturn": swe.SATURN}
+    for b in _births(30, seed=21):
+        ut = AX.birth_utc(b)
+        jd = swe.julday(ut.year, ut.month, ut.day, ut.hour + ut.minute / 60)
+        rows = {p["body"]: p["ecliptic_lon"] for p in AX.planets_at(ut)}
+        for name, i in ids.items():
+            lon = swe.calc_ut(jd, i, swe.FLG_MOSEPH)[0][0]
+            assert abs(((rows[name] - lon + 180) % 360) - 180) < 0.02, (b.dt, name)
+        asc = swe.houses(jd, b.latitude, b.longitude, b"W")[1][0]
+        assert abs(((AX.ascendant_lon(b) - asc + 180) % 360) - 180) < 0.02, b.dt

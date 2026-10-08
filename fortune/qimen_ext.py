@@ -127,7 +127,7 @@ def cast_hour(dt_local: datetime, tz: float, method: str = "chaibu") -> dict:
         sky_stem[dest] = earth[home]
     # 天盤 gates: 值使 moves with the 時支, counted from the 旬首 branch, 陽順陰逆 through 1–9
     steps = (hb - xun_branch) % 12
-    shi_palace = _step(fu_palace_eff, steps if yang else -steps)
+    shi_palace = _step(fu_palace, steps if yang else -steps)          # counts from the real palace (中五 included)
     shi_palace_eff = 2 if shi_palace == 5 else shi_palace
     gate_rot = (RING.index(shi_palace_eff) - RING.index(fu_palace_eff)) % 8
     sky_gate: dict[int, str] = {}
@@ -141,7 +141,7 @@ def cast_hour(dt_local: datetime, tz: float, method: str = "chaibu") -> dict:
 
     palaces = [{
         "palace": p, "name": PALACE_NAME[p], "direction": PALACE_DIR[p],
-        "earth_stem": earth.get(p, ""), "sky_stem": sky_stem.get(p, ""),
+        "earth_stem": earth.get(p, ""), "sky_stem": sky_stem.get(p, earth.get(p, "") if p == 5 else ""),   # 中宮 does not rotate
         "star": sky_star.get(p, "天禽" if p == 5 else ""), "gate": sky_gate.get(p, ""), "god": gods.get(p, ""),
         "gate_cls": "吉" if sky_gate.get(p) in GOOD_GATES else "凶" if sky_gate.get(p) in BAD_GATES else "平" if sky_gate.get(p) else "",
     } for p in range(1, 10)]

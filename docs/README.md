@@ -16,6 +16,9 @@ Plain-language guides — what each divination system is and how to read its cha
 | 大六壬 Da Liu Ren | [liuren.md](liuren.md) — 四課三傳、日干 |
 | 太乙神數 Tai Yi Shen Shu | [taiyi.md](taiyi.md) — 太乙九宮、主客 |
 | Jyotiṣa 吠陀占星 | [jyotish.md](jyotish.md) — rāśi 盤、月宿、Daśā 大運 |
+| 六爻（納甲）Liu Yao | [liuyao.md](liuyao.md) — 納甲、六親、六神、世應、伏神、旺衰 |
+| 小六壬 Xiao Liu Ren | [xiaoliuren.md](xiaoliuren.md) — 月日時三數、六宮 |
+| 引用與致謝 Credits | [CREDITS.md](CREDITS.md) — 使用與交叉驗證的開源專案、授權 |
 
 ## 年度報告 / Annual outlook
 

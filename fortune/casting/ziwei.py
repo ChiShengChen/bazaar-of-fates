@@ -38,6 +38,16 @@ def cast(birth: BirthInput) -> Chart:
     if cur_ln:
         readings["current_liunian"] = (f"{cur_ln['year']} {cur_ln['gz']}（虛歲 {cur_ln['age']}）太歲在{cur_ln['taisui_palace']}宮；"
                                        f"流年四化 {'、'.join(cur_ln['sihua'])}；" + "、".join(f"{k}{v}" for k, v in cur_ln["flow_stars"].items()))
+    extra = ziwei_ext.iztro_enrich(cdt.date() if cdt.hour < 23 else cdt.date() + __import__("datetime").timedelta(days=1), hb, True if male is None else male, today)
+    if extra:
+        for p in natal["palaces"]:
+            e = extra["palaces"].get(p["branch"], {})
+            p["brightness"] = e.get("brightness", {})
+            p["adjective_stars"] = e.get("adjective_stars", [])
+        readings["brightness"] = "　".join(f"{p['name']}:" + "、".join(f"{st}{b}" for st, b in (p.get("brightness") or {}).items() if b) for p in natal["palaces"])
+        readings["patterns"] = "、".join(f"{x['name']}（{x['palace']}{'，破' if x['broken'] else ''}）" for x in extra["patterns"]) or "—"
+        if extra["monthly"]:
+            readings["current_liuyue"] = f"{extra['monthly']['stem']}{extra['monthly']['branch']} 四化 {'、'.join(extra['monthly']['mutagen'])}"
     readings["daxian_sequence"] = "　".join(f"{d['ages'][0]}–{d['ages'][1]}歲 {d['palace']}({d['gz']})" for d in luck["daxian"])
     if gender_assumed:
         readings["note"] = "性別未填，大限方向以男命推算 / gender unset → assumed male"
@@ -82,6 +92,7 @@ def cast(birth: BirthInput) -> Chart:
     )
     return Chart(
         system=KEY, system_en=EN, system_zh=ZH, subject=birth.label(), cast_at=birth.dt,
-        chart={"palaces": natal.get("palaces", []), "star_palace": natal.get("star_palace", {}), "lunar": natal["lunar"], "luck": luck},
+        chart={"palaces": natal.get("palaces", []), "star_palace": natal.get("star_palace", {}), "lunar": natal["lunar"], "luck": luck,
+               "patterns": (extra or {}).get("patterns", []), "enriched_by": (extra or {}).get("source")},
         reasoning_chain=chain, readings=readings, summary=summary,
     )

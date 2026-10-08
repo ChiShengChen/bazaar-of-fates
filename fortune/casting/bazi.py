@@ -54,6 +54,12 @@ def cast(birth: BirthInput) -> Chart:
         chain.append(f"現行大運 {cur_dy['gz']}（{cur_dy['stem_god']}・{cur_dy['changsheng']}・{cur_dy['start_year']}–{cur_dy['end_year']}）"
                      + (f"・流年 {cur_ln['year']} {cur_ln['gz']}（{cur_ln['stem_god']}）" if cur_ln else ""))
     chain.append(f"稱骨 {full['cheng_gu']['label']}：{full['cheng_gu']['verdict']}")
+    from fortune.almanac import almanac
+    alm = almanac(X.cast_dt(birth))
+    if alm:
+        full["almanac"] = alm
+        chain.append(f"黃曆：{alm['xiu']}・{alm['jianchu']}日・吉神 {'、'.join(alm['jishen'][:4]) or '—'}・凶煞 {'、'.join(alm['xiongsha'][:4]) or '—'}"
+                     f"・身宮 {alm['shen_gong']}・胎息 {alm['tai_xi']}（{alm['source']}）")
 
     summary = (
         f"日主 {fav['day_master']}{fav['dm_elem']}・{fav['label']}・"
@@ -85,6 +91,10 @@ def cast(birth: BirthInput) -> Chart:
     if cur_ln:
         readings["current_liunian"] = f"{cur_ln['year']} {cur_ln['gz']}（{cur_ln['stem_god']}）神煞 {'、'.join(cur_ln['shensha']) or '—'}"
         readings["current_liunian_relations"] = "；".join(cur_ln["stem_notes"] + cur_ln["branch_notes"]) or "—"
+    if alm:
+        readings["almanac"] = (f"{alm['xiu']}・建除 {alm['jianchu']}・吉神 {'、'.join(alm['jishen'])}・凶煞 {'、'.join(alm['xiongsha'])}"
+                               f"・宜 {'、'.join(alm['yi'])}・忌 {'、'.join(alm['ji'])}・喜神{alm['positions']['喜神']} 財神{alm['positions']['財神']} 福神{alm['positions']['福神']}")
+        readings["shen_gong_taixi"] = f"身宮 {alm['shen_gong']}・胎息 {alm['tai_xi']}"
     if full["gender_assumed"]:
         readings["note"] = "性別未填，起運方向以男命推算 / gender unset → assumed male for 大運 direction"
 

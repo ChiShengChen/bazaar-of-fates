@@ -15,7 +15,11 @@ dependencies = [
 
 [project.optional-dependencies]
 llm = ["anthropic>=0.39"]   # 解讀 backend; the service runs fully without it (mock)
-dev = ["pytest>=8.0", "httpx>=0.27"]
+# Optional sibling engines (all MIT) — richer 紫微 (x-iztro: 100+ stars, brightness, patterns),
+# 黃曆 almanac (lunar-python), and reference implementations we cross-check against in tests.
+# The service runs without them; see docs/CREDITS.md.
+oracles = ["lunar_python>=1.4", "x-iztro>=0.6", "kinliuren>=0.1.2", "kinqimen>=0.0.6", "sxtwl>=2.0"]
+dev = ["pytest>=8.0", "httpx>=0.27", "pyswisseph>=2.10"]   # pyswisseph is AGPL: test oracle only, never a runtime dep
 
 [build-system]
 requires = ["setuptools>=68"]
