@@ -14,8 +14,8 @@ Copy-paste listings for the MCP / skill directories, plus the Space and PyPI ste
   "name": "io.github.ChiShengChen/bazaar-of-fates",
   "description": "13 divination systems (Western astrology, BaZi, Zi Wei Dou Shu, I Ching, Jyotisha, Qi Men, Da Liu Ren...) from one birth moment: deterministic charts, question-oriented readings, cross-tradition synthesis, date picking.",
   "repository": {"url": "https://github.com/ChiShengChen/bazaar-of-fates", "source": "github"},
-  "version": "0.2.0",
-  "packages": [{"registry_type": "pypi", "identifier": "bazaar-of-fates", "version": "0.2.0", "transport": {"type": "stdio"}, "runtime_hint": "uvx", "package_arguments": [{"type": "positional", "value": "bazaar-mcp"}]}]
+  "version": "0.2.1",
+  "packages": [{"registry_type": "pypi", "identifier": "bazaar-of-fates", "version": "0.2.1", "transport": {"type": "stdio"}, "runtime_hint": "uvx", "package_arguments": [{"type": "positional", "value": "bazaar-mcp"}]}]
 }
 ```
 
