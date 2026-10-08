@@ -1,0 +1,5 @@
+bazaar-of-fates>=0.2.1
+gradio>=5.0
+x-iztro>=0.6
+lunar_python>=1.4
+opencc-python-reimplemented>=0.1.7

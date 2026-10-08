@@ -16,4 +16,4 @@ Thirteen traditional divination systems (西洋占星 · 八字 · 紫微斗數 
 
 Source & docs: https://github.com/ChiShengChen/bazaar-of-fates
 
-**To deploy:** create a Docker Space, copy this file to its `README.md`, add the repo's `Dockerfile` and source (or point the Space at the GitHub repo), optionally set `LLM_BACKEND=anthropic` and `ANTHROPIC_API_KEY` as Space secrets for real readings.
+**Gradio Space (free CPU):** upload `deploy/hf-space/app.py`, `deploy/hf-space/requirements.txt` and `deploy/hf-space/README.md` (as the Space README) to a Gradio Space. **Docker:** the repo `Dockerfile` (paid tier on HF, free anywhere else).

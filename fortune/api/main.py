@@ -324,7 +324,9 @@ def reading_stream(system: str, req: ReadingRequest) -> StreamingResponse:
                              headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
 
 
-# Serve the no-build static page at / when the web/ folder is present (Hugging Face Space, Docker, `uvicorn` alone).
+# Serve the no-build static page when the web/ folder is present (Docker, `uvicorn` alone). Mounted at
+# BAZAAR_STATIC_PATH (default "/"); a host that owns "/" itself (the Gradio Space) sets it to "/web".
+import os as _os
 _WEB = _Path(__file__).resolve().parent.parent.parent / "web"
 if (_WEB / "index.html").exists():
-    app.mount("/", StaticFiles(directory=str(_WEB), html=True), name="static")
+    app.mount(_os.environ.get("BAZAAR_STATIC_PATH", "/"), StaticFiles(directory=str(_WEB), html=True), name="static")
