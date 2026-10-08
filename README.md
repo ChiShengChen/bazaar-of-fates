@@ -24,6 +24,13 @@
 
 </div>
 
+> ### 📰 News / 更新
+> **2026-10-08** — three commits, one audit:
+> - **Accuracy fixes 演算法修正** — planets are now computed at the **exact birth instant on the true equinox of date** (the old date-only J2000 positions put ~11% of Moon signs and ~25% of Jyotiṣa nakṣatras in the wrong place, and skewed Solar/Lunar Returns); 大六壬 月將 mapping corrected; 四柱推命 / 鐵板 use the real hour and exact 節氣.
+> - **八字 full almanac sheet 完整排盤** — 十神 · 藏干 · 納音 · 空亡 · 神煞 · 胎元命宮 · 起運交運 · 稱骨, an auditable **旺衰 / 用神 / 調候 / 格局** analysis, and a clickable 大運 → 流年 → 流月 drill-down. All 24 節氣 to the minute.
+> - **More of each tradition** — 紫微: 36 stars, 閏月/晚子時 conventions, **大限 → 流年** panel; 梅花: classical 年月日時起卦; 奇門: 時家轉盤 **拆補 / 置閏**; 六壬: all **nine course types**.
+> - **Input & output** — type a city and lat/lon/time zone fill in (Taiwan historical DST applied), optional **true solar time**, and a one-page **full report** (`/report`) for all 11 systems → PDF.
+
 > ### 🃏 The twist / 緣起
 > These eleven engines began life as **placebo controls** in a quantitative-finance project — divination cast as date-keyed trading signals, run through a lookahead-free backtest to *prove they were statistical noise*. We lifted out the chart math, stripped the trading, and gave them back their day job: **telling fortunes**.
 > So yes — this fortune-teller is powered by signals we mathematically demonstrated are worthless. The astronomy underneath, though, is real (Swiss-Ephemeris-validated). Enjoy responsibly. 🔮
