@@ -10,9 +10,14 @@
 ![FastAPI](https://img.shields.io/badge/FastAPI-009688?logo=fastapi&logoColor=white)
 ![Next.js](https://img.shields.io/badge/Next.js-14-000000?logo=nextdotjs)
 ![systems](https://img.shields.io/badge/divination%20systems-13-a78bfa)
-![tests](https://img.shields.io/badge/tests-96%20passing-3fb950)
+![tests](https://img.shields.io/badge/tests-99%20passing-3fb950)
 ![bilingual](https://img.shields.io/badge/readings-EN%20%2B%20中文-ec4899)
 ![use](https://img.shields.io/badge/use-cultural%20%C2%B7%20educational%20%C2%B7%20fun-blue)
+![license](https://img.shields.io/badge/license-MIT-green)
+
+**English** · [繁體中文](README.zh-TW.md) · [简体中文](README.zh-CN.md)
+
+<img src="docs/img/demo.gif" width="860" alt="demo: birth → charts → synthesis"/>
 
 <table>
   <tr>
@@ -30,6 +35,7 @@
 > - **八字 full almanac sheet 完整排盤** — 十神 · 藏干 · 納音 · 空亡 · 神煞 · 胎元命宮 · 起運交運 · 稱骨, an auditable **旺衰 / 用神 / 調候 / 格局** analysis, and a clickable 大運 → 流年 → 流月 drill-down. All 24 節氣 to the minute.
 > - **More of each tradition** — 紫微: 36 stars, 閏月/晚子時 conventions, **大限 → 流年** panel; 梅花: classical 年月日時起卦; 奇門: 時家轉盤 **拆補 / 置閏**; 六壬: all **nine course types**.
 > - **2026-10-08 (later)** — **13 systems**: 六爻（納甲）and 小六壬 added; 紫微 gains star brightness / 雜曜 / 格局 from **x-iztro**, 八字 gains a 黃曆 block from **lunar-python**, 六壬 gains 十二天將. Every native engine is now **cross-validated in tests** against lunar-python, x-iztro, kinliuren, kinqimen and Swiss Ephemeris — see [docs/CREDITS.md](docs/CREDITS.md).
+> - **2026-10-09** — `pip install bazaar-of-fates`: a terminal **CLI** (`bazaar bazi 1990-06-15 14:30 --place 台北`), an **MCP server** (`bazaar-mcp`) + Claude Code skill, a one-container **Docker / Hugging Face Space** deploy, **MIT** licence, 繁中／简中 READMEs, and a **518,400-chart 紫微 dataset** builder (full input space, cross-checked against iztro — which also caught three wrong month lengths in `lunardate`, now replaced by 壽星萬年曆).
 > - **2026-10-08 (dates)** — **擇日 / 今日運勢**: a purpose + a date range → every day scored from 黃曆, 八字 流日, 紫微 流日四化, 奇門 and 小六壬 (rules listed per day), calendar view, best 時辰 and 吉方; 八字 流日/流時 added.
 > - **2026-10-08 (readings)** — question-oriented prompts (the facts that bear on what you asked lead the prompt, with each tradition's own rule-based verdict), a **Synthesis 綜合** mode that puts all 13 systems' verdicts on one question side by side with agreement/conflict, and a reading **language** switch (中文 / English / both).
 > - **Input & output** — type a city and lat/lon/time zone fill in (Taiwan historical DST applied), optional **true solar time**, and a one-page **full report** (`/report`) for all 11 systems → PDF.
@@ -75,6 +81,14 @@
 > 🧾 **Full report** — every system on one printable page: [`/report`](docs/img/full-report.png)
 
 ## ⚡ Quickstart
+
+```bash
+pip install bazaar-of-fates            # or: uvx bazaar-of-fates ziwei 1990-06-15 14:30 --place 台北
+bazaar bazi 1990-06-15 14:30 --place 台北 --gender female     # a chart in your terminal, no API key
+bazaar synthesis 1990-06-15 14:30 --ask "明年事業"            # all 13 systems on one question
+bazaar zeri 1990-06-15 14:30 --purpose wedding --from 2026-11-01 --to 2026-12-31
+```
+
 
 ```bash
 python3.11 -m venv .venv && source .venv/bin/activate   # 3.10–3.13 (ephem wheels); 3.14 untested
@@ -146,6 +160,24 @@ An **Overlay** selector adds a second ring; a **time slider** scrubs ±5 years, 
 - **`/annual-overview`** — a multi-year **heatmap**: per-year favourability colour blocks, a score **trend line** with hover nodes, **typed turning markers** (♄ Saturn return · ♃ Jupiter · 運 大運 · ↻ daśā · ☯ 八字 flip), **click a year** to expand it, and **drag to zoom**.
 - **Two-person comparison** — overlay both arcs, flag **契合年 ✦** (best shared years), drag-to-zoom.
 
+## 🤖 MCP server & Claude Code skill
+
+```bash
+pip install "bazaar-of-fates[mcp]"
+# Claude Desktop / Claude Code / Cursor:
+# {"mcpServers": {"bazaar-of-fates": {"command": "bazaar-mcp"}}}
+```
+
+Tools: `list_systems` · `geo_lookup` · `cast` · `reading` · `synthesis` · `zeri` · `day` · `synastry` — every result carries the chart's `reasoning_chain`, so the model reads from facts. A ready-made skill lives in [`skills/bazaar-of-fates/SKILL.md`](skills/bazaar-of-fates/SKILL.md). Listing copy for the MCP directories: [docs/LAUNCH.md](docs/LAUNCH.md).
+
+## 🐳 Deploy (Hugging Face Space / Docker)
+
+```bash
+docker build -t bazaar . && docker run -p 7860:7860 bazaar     # API + static page at http://localhost:7860, mock reader, no key
+```
+
+The `Dockerfile` is what a free **Docker Space** needs; see [deploy/hf-space-README.md](deploy/hf-space-README.md). Set `LLM_BACKEND=anthropic` + `ANTHROPIC_API_KEY` for real readings.
+
 ## 🔌 API
 
 | method | path | |
@@ -180,6 +212,7 @@ fortune/
   timeline.py         native: 大運 / Mahādaśā / 流年 / planet-return sequences
   casting/<system>.py per-system adapter: birth → engine fns → Chart
   synastry.py · group.py · annual.py   native: relationships / group / forecasts
+  cli.py              `bazaar` terminal CLI · mcp_server.py  `bazaar-mcp` MCP server · lunar.py  農曆 (sxtwl → lunar-python → lunardate)
   zeri.py             擇日 scorer (黃曆 + 八字流日 + 紫微流日 + 奇門 + 小六壬) and the daily outlook
   focus.py            question → topic; per-system relevant facts + rule-based verdict; cross-system tally
   interpret.py        chart facts + tradition prompt → reading (zh / en / both, sync + stream), synthesis prompt
@@ -194,10 +227,20 @@ scripts/              screenshots.py (doc screenshots via Playwright)
 ## ✅ Tests
 
 ```bash
-pytest -q     # 96 tests (5 cross-validate against sibling engines when installed)
+pytest -q     # 99 tests (5 cross-validate against sibling engines when installed)
 ```
 
 Every system casts · 6 house systems vs Swiss Ephemeris · transits (applying/separating, exact dates, major-transit highlights) · progressions (secondary & solar-arc, major progressions, directed-to-angles) · Solar & Lunar Returns · aspect ranking · planet-return & SR-year timelines · synastry / composite / Davison · group matrix & composite · annual report & multi-year overview.
+
+## 🗃️ Datasets / 資料集（no LLM needed）
+
+```bash
+python scripts/ziwei_fullspace_check.py                 # native 紫微 vs x-iztro over all 518,400 charts (≈6 min) — 0 mismatches
+python scripts/build_dataset.py ziwei --out data/ziwei.jsonl.gz          # the whole 紫微 input space: 60 年干支 × 12 月 × 30 日 × 12 時辰 × 2 → 518,400 rows
+python scripts/build_dataset.py bazi  --out data/bazi.jsonl.gz --years 1960-2030   # 八字 by solar date × 12 時辰 × 2 → ~622k rows
+```
+
+Each row is a full deterministic chart (紫微: palaces with brightness/雜曜, 命主身主局, 生年四化, 12 大限; 八字: exact-節氣 四柱 with 十神/藏干/納音/空亡/神煞, 胎元命宮, 旺衰/用神/格局, 起運, 9 大運, 稱骨) plus a rule-based verdict + facts for seven topics (career / love / wealth / health / study / family / general) — a reading skeleton you can fine-tune on, use as RAG context, or diff against another engine. `--liunian` adds the per-year lists (≈10× larger); `--asof` fixes the "today" used for current-period flags. Output is gzipped JSONL under `data/` (git-ignored).
 
 ## 🙏 Acknowledgements / 引用
 
@@ -205,5 +248,5 @@ Built on **PyEphem** and **lunardate**; optionally enriched by **x-iztro** (iztr
 
 ## 📜 License
 
-For cultural, educational, and entertainment purposes. Divination is **not** a basis for financial, medical, or legal decisions.
+[MIT](LICENSE). For cultural, educational, and entertainment purposes. Divination is **not** a basis for financial, medical, or legal decisions.
 僅供文化、教育與娛樂用途；命理不應作為財務、醫療或法律決策的依據。

@@ -47,13 +47,12 @@ def hour_branch_of(hour: int) -> int:
 
 def lunar_for_ziwei(d: date, hour: int) -> tuple[int, int, int, bool]:
     """(lunar_year, lunar_month, lunar_day, note) with the 晚子時 and 閏月 conventions applied."""
-    from lunardate import LunarDate
+    from fortune.lunar import to_lunar
     if hour >= 23:                                      # 晚子時 → next day
         d = d + timedelta(days=1)
-    ld = LunarDate.from_solar_date(d.year, d.month, d.day)
-    year, month, day = ld.year, ld.month, ld.day
+    year, month, day, is_leap = to_lunar(d)
     leap_shift = False
-    if ld.is_leap_month and day > 15:                   # 閏月下半月 → 次月
+    if is_leap and day > 15:                            # 閏月下半月 → 次月
         month += 1
         leap_shift = True
         if month == 13:
@@ -87,6 +86,15 @@ def build_chart(listing: date, hour_branch: int, clock_hour: int | None = None) 
     """ziwei_core.build_chart, but with the birth 時支 instead of the hardcoded 巳時,
     閏月/晚子時 conventions, and the auxiliary + 煞 stars."""
     lunar_year, lunar_month, lunar_day, leap_shift = lunar_for_ziwei(listing, clock_hour if clock_hour is not None else hour_branch * 2)
+    natal = build_chart_lunar(lunar_year, lunar_month, lunar_day, hour_branch)
+    natal["lunar"]["leap_shifted"] = leap_shift
+    natal["lunar"]["late_zi"] = bool(clock_hour is not None and clock_hour >= 23)
+    return natal
+
+
+def build_chart_lunar(lunar_year: int, lunar_month: int, lunar_day: int, hour_branch: int) -> dict:
+    """The chart from 農曆 inputs directly — the whole 紫微 input space is (年干支 × 月 × 日 × 時支)."""
+    leap_shift = False
 
     life_b = ZC.life_palace_branch(lunar_month, hour_branch)
     body_b = (((2 + (lunar_month - 1)) % 12) + hour_branch) % 12
@@ -119,7 +127,7 @@ def build_chart(listing: date, hour_branch: int, clock_hour: int | None = None) 
         "life_branch": ZC.BRANCHES[life_b], "ziwei_branch": ZC.BRANCHES[zw],
         "hour_branch": ZC.BRANCHES[hour_branch],
         "lunar": {"year": lunar_year, "month": lunar_month, "day": lunar_day, "year_gz": STEMS[year_stem] + BRANCHES[year_branch],
-                  "leap_shifted": leap_shift, "late_zi": bool(clock_hour is not None and clock_hour >= 23)},
+                  "leap_shifted": leap_shift, "late_zi": False},
     }
 
 
@@ -136,8 +144,8 @@ def build_natal(listing: date, hour_branch: int, clock_hour: int | None = None) 
 
 def liunian_sihua_lunar(d: date) -> tuple[str, list[str]]:
     """(年干, [祿,權,科,忌]) for the 農曆 year containing date d — same calendar as the natal 年干."""
-    from lunardate import LunarDate
-    ly = LunarDate.from_solar_date(d.year, d.month, d.day).year
+    from fortune.lunar import to_lunar
+    ly = to_lunar(d)[0]
     stem = STEMS[(ly - 4) % 10]
     return stem, ZW.SIHUA[stem]
 

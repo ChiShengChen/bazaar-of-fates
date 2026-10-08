@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "Bazaar of Fates · 算命",
-  description: "Eleven traditional divination systems · one birth input · deterministic charts + bilingual AI readings.",
+  description: "Thirteen traditional divination systems · one birth input · deterministic charts + bilingual AI readings.",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

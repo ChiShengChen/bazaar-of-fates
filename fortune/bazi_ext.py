@@ -417,13 +417,13 @@ _CN_NUM = "零一二三四五六七八九"
 
 
 def lunar_info(d: date, hb: int) -> dict:
-    from lunardate import LunarDate
-    ld = LunarDate.from_solar_date(d.year, d.month, d.day)
-    ly = (ld.year - 4) % 60
+    from fortune.lunar import to_lunar
+    year, month, day, leap = to_lunar(d)
+    ly = (year - 4) % 60
     return {
-        "year": ld.year, "month": ld.month, "day": ld.day, "leap": bool(ld.is_leap_month),
-        "year_gz": STEMS[ly % 10] + BRANCHES[ly % 12], "zodiac": ZODIAC[(ld.year - 4) % 12],
-        "text": f"{ld.year}年（{ZODIAC[(ld.year - 4) % 12]}）{'閏' if ld.is_leap_month else ''}{LUNAR_MONTH[ld.month - 1]}{LUNAR_DAY[ld.day - 1]}{BRANCHES[hb]}時",
+        "year": year, "month": month, "day": day, "leap": leap,
+        "year_gz": STEMS[ly % 10] + BRANCHES[ly % 12], "zodiac": ZODIAC[(year - 4) % 12],
+        "text": f"{year}年（{ZODIAC[(year - 4) % 12]}）{'閏' if leap else ''}{LUNAR_MONTH[month - 1]}{LUNAR_DAY[day - 1]}{BRANCHES[hb]}時",
     }
 
 

@@ -19,6 +19,7 @@ Plain-language guides — what each divination system is and how to read its cha
 | 六爻（納甲）Liu Yao | [liuyao.md](liuyao.md) — 納甲、六親、六神、世應、伏神、旺衰 |
 | 小六壬 Xiao Liu Ren | [xiaoliuren.md](xiaoliuren.md) — 月日時三數、六宮 |
 | 擇日・今日運勢 Dates | [zeri.md](zeri.md) — 逐日評分規則、吉時、吉方、流日 |
+| 發布素材 Launch kit | [LAUNCH.md](LAUNCH.md) — MCP／skill 目錄文案、Space、PyPI、GIF、發文管道 |
 | 引用與致謝 Credits | [CREDITS.md](CREDITS.md) — 使用與交叉驗證的開源專案、授權 |
 
 ## 問題導向解讀與綜合會診 / Ask a question · Synthesis

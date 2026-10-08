@@ -14,7 +14,8 @@ consulted, no code was copied. Licences are those declared by each project at th
 | [pyswisseph](https://pypi.org/project/pyswisseph/) / Swiss Ephemeris | AGPL-3.0 (dual) | **Dev-only test oracle** (never a runtime dependency): planet longitudes at the birth instant (ours agree to < 20″ with Moshier) and the six house systems (< 0.006°). |
 | [OpenCC](https://github.com/BYVoid/OpenCC) (opencc-python-reimplemented) | Apache-2.0 | **Imported (optional)** — 簡體 → 正體 conversion of the lunar-python almanac text. |
 | [ephem (PyEphem)](https://rhodesmill.org/pyephem/) | MIT | **Runtime** — all planetary positions, solar terms, transits and ascendant geometry. |
-| [lunardate](https://pypi.org/project/lunardate/) | GPL-3.0 (library) | **Runtime** — 公曆↔農曆 conversion (1900–2100). |
+| [sxtwl 壽星萬年曆](https://github.com/yuangu/sxtwl_cpp) | MIT | **Runtime** — 公曆↔農曆 conversion (the authoritative table). |
+| [lunardate](https://pypi.org/project/lunardate/) | GPL-3.0 (library) | **Runtime fallback** — 公曆↔農曆 when sxtwl / lunar-python are absent (note: three wrong month lengths in 1933, 1954, 1978). |
 | [ChesterRa/mingpan](https://github.com/ChesterRa/mingpan) | Apache-2.0 | **Rules consulted** for the 六爻 納甲 layer (六親, 六神, 伏神) and the 奇門 轉盤 conventions. No code copied. |
 | [chxb/jishiyu](https://github.com/chxb/jishiyu) | AGPL-3.0 | **Rules consulted** (小六壬 起課, 六爻 旺衰 labels, 奇門 置閏 conventions). No code copied — AGPL code is not included in this repository. |
 | [Renhuai123/ziwei-doushu](https://github.com/Renhuai123/ziwei-doushu) | MIT | **Reference** for 紫微 school conventions (閏月, 晚子時, brightness schools). |

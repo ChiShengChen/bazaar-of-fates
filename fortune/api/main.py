@@ -13,6 +13,8 @@ import json
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
+from fastapi.staticfiles import StaticFiles
+from pathlib import Path as _Path
 from pydantic import BaseModel
 
 from fortune import annual as annual_mod, casting, geo, group as grp_mod, synastry as syn_mod, timeline as tl
@@ -320,3 +322,9 @@ def reading_stream(system: str, req: ReadingRequest) -> StreamingResponse:
 
     return StreamingResponse(gen(), media_type="text/event-stream",
                              headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
+
+
+# Serve the no-build static page at / when the web/ folder is present (Hugging Face Space, Docker, `uvicorn` alone).
+_WEB = _Path(__file__).resolve().parent.parent.parent / "web"
+if (_WEB / "index.html").exists():
+    app.mount("/", StaticFiles(directory=str(_WEB), html=True), name="static")

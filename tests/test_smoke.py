@@ -950,3 +950,41 @@ def test_zeri_and_day_endpoints():
     assert c.post("/zeri", json={"birth": b, "start": "2026-01-01", "end": "2026-01-02", "purpose": "nope"}).status_code == 400
     d = c.post("/day", json={"birth": b, "date": "2026-10-08"})
     assert d.status_code == 200 and d.json()["gz"]["day"] == "乙卯" and len(d.json()["hours"]) == 12
+
+
+# --- calendar backend, CLI, MCP ------------------------------------------------------------------
+
+def test_lunar_backend_fixes_lunardate_month_errors():
+    from fortune import lunar
+    assert lunar.to_lunar(date(1933, 7, 22)) == (1933, 5, 30, True)       # lunardate says 六月初一
+    assert lunar.to_lunar(date(1933, 8, 20)) == (1933, 6, 29, False)
+    assert lunar.to_solar(1990, 5, 23) == date(1990, 6, 15) and lunar.to_lunar(date(1990, 6, 15)) == (1990, 5, 23, False)
+    from fortune import ziwei_ext as ZX
+    assert ZX.lunar_for_ziwei(date(1933, 7, 22), 10)[:3] == (1933, 6, 30)   # 閏五月三十 → 下半月歸次月
+
+
+def test_cli_runs():
+    import io, contextlib
+    from fortune.cli import main
+    buf = io.StringIO()
+    with contextlib.redirect_stdout(buf):
+        assert main(["bazi", "1990-06-15", "14:30", "--place", "台北", "--gender", "female"]) == 0
+        assert main(["ziwei", "1990-06-15", "14:30", "--gender", "female"]) == 0
+        assert main(["synthesis", "1990-06-15", "14:30", "--gender", "female", "--ask", "money"]) == 0
+        assert main(["zeri", "1990-06-15", "14:30", "--purpose", "moving", "--from", "2026-11-01", "--to", "2026-11-10"]) == 0
+        assert main(["systems"]) == 0
+    out = buf.getvalue()
+    assert "辛" in out and "命宮" in out and "財運" in out and "擇日" in out and "xiaoliuren" in out
+
+
+def test_mcp_server_tools():
+    pytest.importorskip("mcp")
+    import asyncio, json
+    from fortune import mcp_server as M
+    async def go():
+        names = [t.name for t in await M.server.list_tools()]
+        assert {"cast", "reading", "synthesis", "zeri", "day", "synastry", "list_systems", "geo_lookup"} <= set(names)
+        r = await M.server.call_tool("cast", {"system": "liuyao", "birth_date": "1990-06-15", "birth_time": "14:30"})
+        payload = json.loads(r.content[0].text) if hasattr(r, "content") else json.loads(r[0].text)
+        assert payload["system"] == "liuyao" and payload["chart"]["hexagram"]["name"]
+    asyncio.run(go())

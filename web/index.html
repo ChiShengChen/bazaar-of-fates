@@ -32,7 +32,7 @@
 <body>
 <div class="wrap">
   <h1>Bazaar of Fates · 算命</h1>
-  <div class="sub">Eleven divination engines · one birth input · deterministic chart + AI reading<br/>十一套傳統命理排盤引擎 · 一個生辰輸入 · 確定性命盤 + AI 解讀</div>
+  <div class="sub">Thirteen divination engines · one birth input · deterministic chart + AI reading<br/>十三套傳統命理排盤引擎 · 一個生辰輸入 · 確定性命盤 + AI 解讀</div>
 
   <div class="card">
     <div class="grid">
@@ -54,7 +54,7 @@
 </div>
 
 <script>
-const API = localStorage.getItem("FORTUNE_API") || "http://localhost:8000";
+const API = localStorage.getItem("FORTUNE_API") || (location.port === "8000" || location.port === "7860" || location.hostname.endsWith(".hf.space") ? "" : "http://localhost:8000");   // same-origin when served by the API
 document.getElementById("api").textContent = "API: " + API + "  ·  change via localStorage.FORTUNE_API";
 let SYSTEMS = [], current = "bazi";
 const $ = id => document.getElementById(id);

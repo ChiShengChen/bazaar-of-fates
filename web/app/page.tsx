@@ -213,8 +213,8 @@ export default function Page() {
     <div className="wrap">
       <h1>Bazaar of Fates · 算命</h1>
       <div className="sub">
-        Eleven divination engines · one birth input · deterministic chart + bilingual AI reading<br />
-        十一套傳統命理排盤引擎 · 一個生辰 · 確定性命盤 + 雙語 AI 解讀
+        Thirteen divination systems · one birth input · deterministic charts + AI readings (中文 / English)<br />
+        十三套傳統命理 · 一個生辰 · 確定性命盤 + AI 解讀 · 綜合會診 · 擇日
       </div>
 
       <div className="card">
@@ -379,7 +379,7 @@ export default function Page() {
           {hasSvgChart && <button onClick={exportPng}>Download chart PNG 下載星盤</button>}
           <button onClick={() => window.print()} style={{ background: "#27272a", color: "var(--ink)" }}>Print / Save PDF 列印・存 PDF</button>
           {mode !== "group" && <a href={`/report?${formToQuery(formA)}&lang=${lang}${focus ? `&focus=${encodeURIComponent(focus)}` : ""}`} target="_blank" rel="noreferrer"
-            style={{ fontSize: 13, color: "var(--accent)" }}>Full report (all 11 systems) 完整報告 ↗</a>}
+            style={{ fontSize: 13, color: "var(--accent)" }}>Full report (all 13 systems) 完整報告 ↗</a>}
         </div>
       )}
 

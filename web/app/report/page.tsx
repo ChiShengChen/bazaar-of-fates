@@ -10,7 +10,7 @@ import { ZiweiLuck } from "../_components/ZiweiLuck";
 import { AnnualView } from "../_components/AnnualView";
 import { formFromQuery, toBirth } from "../_components/BirthFields";
 
-// One-page full report: all 11 systems (chart + reading) + this year's annual report. Print → PDF.
+// One-page full report: all 13 systems (chart + reading) + this year's annual report. Print → PDF.
 const ORDER = ["bazi", "ziwei", "astrology", "jyotish", "qizheng", "iching", "suimei", "qimen", "liuren", "taiyi", "tieban"];
 
 function ReportInner() {
