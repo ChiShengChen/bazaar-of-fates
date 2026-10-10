@@ -158,6 +158,23 @@ def readings_html(readings: dict) -> str:
     return "<div class='paper'><div class='kv'>" + "".join(rows) + "</div></div>"
 
 
+def xingming(c: dict) -> str:
+    chars = "".join(f"<div class='cell'><div class='ch big'>{_e(x['char'])}</div><div class='muted' style='font-size:11px'>{_e(x['role'])}</div><div><b>{x['strokes']}</b> 畫</div></div>" for x in c.get("chars", []))
+    rows = "".join(f"<tr><td style='text-align:left'><b>{_e(g['name'])}</b><div class='muted' style='font-size:11px'>{_e(g['role'])}</div></td><td class='nw'><b>{g['number']}</b>{('<div class=muted style=font-size:11px>數理 ' + str(g['shuli']) + '</div>') if g['shuli'] != g['number'] else ''}</td>"
+                   f"<td class='nw'><span class='ch e-{ {'木':'wood','火':'fire','土':'earth','金':'metal','水':'water'}[g['element']] }'>{_e(g['element'])}</span>{_e(g['yinyang'])}</td>"
+                   f"<td class='nw {'v-fav' if g['luck'] == '吉' else 'v-unf' if g['luck'] == '凶' else 'v-neu'}'>{_e(g['luck'])}</td><td class='nw'>{_e(g.get('bazi') or '—')}</td>"
+                   f"<td style='text-align:left;font-size:11.5px'>{_e(g['formula'])}</td></tr>" for g in c.get("grids", []))
+    rel = c.get("relations", {})
+    rl = "　".join(f"<span class='muted'>{_e(k)}</span> {_e(v.get('text', ''))}（{_e(v.get('kind', ''))}）" for k, v in rel.items())
+    bz = c.get("bazi") or {}
+    bz_line = (f"<div class='note'><span class='muted'>八字喜用</span> {_e('、'.join(bz.get('favourable', [])))}　<span class='muted'>忌</span> {_e('、'.join(bz.get('avoid', [])) or '無')}　"
+               f"<span class='muted'>日主</span> {_e(bz.get('day_master', ''))}{_e(bz.get('dm_elem', ''))} {_e(bz.get('strength', ''))}</div>") if bz and "error" not in bz else ""
+    warn = "".join(f"<div class='note muted'>{_e(w)}</div>" for w in c.get("warnings", []))
+    return (f"<div class='paper'><div class='title'>姓名學 <span class='seal'>五格</span></div><div class='head'>{_e(c.get('surname', ''))} {_e(c.get('given', ''))}　<span class='muted'>{_e(c.get('split_note', ''))}</span></div>"
+            f"<div class='strip'>{chars}</div><div class='tw'><table><tr><th style='text-align:left'>格</th><th>數</th><th>五行</th><th>數理</th><th>對八字</th><th style='text-align:left'>算法</th></tr>{rows}</table></div>"
+            f"<div class='note'><span class='muted'>三才</span> <b>{_e(c.get('sancai', ''))}</b>　{rl}</div>{bz_line}{warn}</div>")
+
+
 def chart_html(chart) -> str:
     c, s = chart.chart or {}, chart.system
     try:
@@ -171,6 +188,8 @@ def chart_html(chart) -> str:
             return qimen(c)
         if s == "liuren" and c.get("courses"):
             return liuren(c)
+        if s == "xingming" and c.get("grids"):
+            return xingming(c)
     except Exception as e:  # noqa: BLE001
         return f"<div class='muted'>render error: {_e(e)}</div>"
     return ""

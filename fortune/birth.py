@@ -15,6 +15,7 @@ from pydantic import BaseModel, Field, field_validator
 
 class BirthInput(BaseModel):
     name: str | None = Field(default=None, description="Name, display only / 稱呼（可選）")
+    full_name: str | None = Field(default=None, description="Chinese full name for 姓名學 / 中文全名（姓名學用；複姓或冠夫姓以空白分隔）")
     birth_date: date = Field(..., description="Birth date / 出生日期")
     birth_time: time | None = Field(
         default=None, description="Birth time / 出生時刻（時辰）；unknown → noon 時柱以正午估算"

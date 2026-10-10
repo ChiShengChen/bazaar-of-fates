@@ -13,7 +13,7 @@
 ![Python](https://img.shields.io/badge/Python-3.10–3.13-3776AB?logo=python&logoColor=white)
 ![systems](https://img.shields.io/badge/命理系統-13-a78bfa)
 ![CI](https://github.com/ChiShengChen/bazaar-of-fates/actions/workflows/ci.yml/badge.svg)
-![tests](https://img.shields.io/badge/tests-208%20passing-3fb950)
+![tests](https://img.shields.io/badge/tests-379%20passing-3fb950)
 ![license](https://img.shields.io/badge/license-MIT-green)
 
 <table>
@@ -38,6 +38,7 @@ bazaar today 1990-06-15 14:30                                    # 今日運勢
 bazaar love 1990-06-15 14:30 --gender female --ask "何時有正緣"      # 感情專科（加 --partner-date 合婚）
 bazaar career 1990-06-15 14:30 --gender female --ask "該不該轉職"    # 專科：career | wealth | health | study | family
 bazaar ask qimen "明天面試會順利嗎"                              # 問事：qimen | liuren | iching（--numbers／--text）| liuyao（--coins）| xiaoliuren
+bazaar xingming 1990-06-15 14:30 --full-name 陳美玲 --gender female   # 姓名學：五格、三才、配八字
 ```
 
 完整網頁版（Next.js）：
@@ -66,6 +67,7 @@ cd web && npm install && npm run dev             # 完整 UI → :3000
 | 💘 **感情專科** | 專看感情的命理師：命（八字配偶星與夫妻宮、紫微夫妻宮、西洋金星七宮、Jyotiṣa 七宮）、運（逐年**桃花年／婚緣年**評分，每一分列依據）、合（填對方生辰即**合婚**：八字日柱干支關係＋西占合盤），解讀先回答子題（何時有緣／合不合／復合／該不該分開／婚姻／第三者）。規則見 [docs/love.md](docs/love.md)。 |
 | 🩺 **五科專科** | 同一骨架再開五科：**事業**（官殺與提綱、官祿宮、十宮土星、第十 bhāva＋事業方向表）、**財運**（財星與財庫、流年沖庫、財帛宮、二宮木星＋財性表）、**健康**（五行分布→臟腑、疾厄宮、六宮＋體質表；明說非醫療建議）、**學業**（印星文昌學堂、父母宮昌曲、九宮水星＋學習型態與科系表）、**家庭**（年柱父母宮、時柱子女宮與子女星、田宅宮、四宮月亮＋六親表）。每科：命、今年、逐年評分（每一分列依據）、先答子題。規則：[docs/specialists.md](docs/specialists.md)。 |
 | 🎲 **問事** | 不用生辰：奇門／六壬／梅花／六爻／小六壬以問事的那一刻起局——奇門時盤看日干宮（人）、時干宮（事）、依題用神、門迫空亡三奇、吉方；六壬時課看類神入傳、末傳與日干、課體；梅花**數字起卦**（1–3 數）與**字占**；六爻**金錢卦**（六次擲錢）；每一分列依據，附應期。規則：[docs/ask.md](docs/ask.md)。 |
+| 🈷️ **姓名學** | 熊崎式五格：康熙筆畫（每字標部首與 Unihan 出處）、天人地外總五格、81 數理、三才生剋，再把每格五行對到本人八字喜用；沒有生辰也能排。`POST /name`、`bazaar xingming`、MCP `name`。說明：[docs/xingming.md](docs/xingming.md)。 |
 | 🤖 **CLI・API・MCP** | `bazaar` 指令列、FastAPI、`bazaar-mcp` 讓 Claude／Cursor 直接排盤，附 Claude Code skill。 |
 | 🗃️ **資料集** | 一行指令窮舉紫微全部 518,400 張命盤（含七個主題的規則判斷），八字依日期區間產出。 |
 
@@ -85,6 +87,7 @@ cd web && npm install && npm run dev             # 完整 UI → :3000
 | `qimen` | 奇門遁甲 | 時家轉盤，拆補／置閏 | ✅ | — |
 | `liuren` | 大六壬 | 月將加時、四課三傳、九宗門（8,640 課與 kinliuren 比對）、十二天將 | ✅ | — |
 | `taiyi` | 太乙神數 | 年計：統宗積年、七十二局、太乙／文昌／始擊／計神、主客算與大將參將、十六神、八門、斷例（與 kintaiyi 對照） | — | — |
+| `xingming` | 姓名學 | 熊崎式五格、康熙筆畫（Unihan）、81 數理、三才、配八字喜用（需中文姓名） | — | — |
 | `jyotish` | Jyotiṣa 吠陀占星 | 恆星黃道、Vimśottarī daśā | ✅ | ✅ |
 
 > 時辰或出生地缺漏時，依賴上升的系統會自動退回只看日期並標註。
@@ -101,6 +104,7 @@ cd web && npm install && npm run dev             # 完整 UI → :3000
 | `POST` | `/love` | 感情專科：命・今年・桃花年婚緣年・合婚・解讀 |
 | `POST` | `/consult/{topic}` · `GET /consult` | 五科專科（career／wealth／health／study／family，`auto` 依問題分科）：命・今年・逐年・專科表・解讀 |
 | `POST` | `/ask/{system}` | 問事：奇門／六壬／梅花／六爻／小六壬以問事時刻（或數字／字句／擲錢）起局，判斷與依據、應期 |
+| `POST` | `/name` | 姓名學：五格、81 數理、三才、配八字（`birth` 可省） |
 | `POST` | `/timeline/{system}` · `/synastry` · `/group` · `/annual-report` · `/annual-overview` | 時間軸、合盤、團體、年度、多年 |
 
 ## 🤖 MCP server
@@ -126,7 +130,7 @@ pip install "bazaar-of-fates[mcp]"
 ## ✅ 測試
 
 ```bash
-pytest -q     # 208 tests，其中多個對外部引擎交叉驗證（安裝 oracles extra 時啟用）
+pytest -q     # 379 tests，其中多個對外部引擎交叉驗證（安裝 oracles extra 時啟用）
 ```
 
 ## 📜 授權

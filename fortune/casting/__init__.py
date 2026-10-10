@@ -32,6 +32,13 @@ REGISTRY: dict[str, tuple[str, str, str]] = {
 }
 
 
+# Systems that need more than the birth moment (a Chinese full name); listed by systems() with needs_name=True,
+# castable through cast(), but not part of the 13-system loops (synthesis / specialists / `all`).
+EXTRA: dict[str, tuple[str, str, str]] = {
+    "xingming": ("Xing Ming · Name Numerology", "姓名學", "fortune.casting.xingming:cast"),
+}
+
+
 def _resolve(spec: str):
     mod, fn = spec.split(":")
     return getattr(importlib.import_module(mod), fn)
@@ -40,9 +47,10 @@ def _resolve(spec: str):
 def cast(system: str, birth: BirthInput, **opts) -> Chart:
     """Cast `system` for `birth`. Extra options (e.g. house_system="placidus") are
     forwarded only to casters whose signature accepts them; others ignore them."""
-    if system not in REGISTRY:
-        raise KeyError(f"unknown system: {system!r}. known: {', '.join(REGISTRY)}")
-    fn = _resolve(REGISTRY[system][2])
+    spec = REGISTRY.get(system) or EXTRA.get(system)
+    if not spec:
+        raise KeyError(f"unknown system: {system!r}. known: {', '.join(list(REGISTRY) + list(EXTRA))}")
+    fn = _resolve(spec[2])
     accepted = inspect.signature(fn).parameters
     kw = {k: v for k, v in opts.items() if k in accepted}
     return fn(birth, **kw)
@@ -51,11 +59,14 @@ def cast(system: str, birth: BirthInput, **opts) -> Chart:
 def systems() -> list[dict[str, object]]:
     """[{key, en, zh, available}] for the UI menu. / 給前端選單用。"""
     out: list[dict[str, object]] = []
-    for key, (en, zh, spec) in REGISTRY.items():
+    for key, (en, zh, spec) in list(REGISTRY.items()) + list(EXTRA.items()):
         try:
             _resolve(spec)
             ok = True
         except Exception:  # noqa: BLE001
             ok = False
-        out.append({"key": key, "en": en, "zh": zh, "available": ok})
+        row = {"key": key, "en": en, "zh": zh, "available": ok}
+        if key in EXTRA:
+            row["needs_name"] = True
+        out.append(row)
     return out

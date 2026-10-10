@@ -10,7 +10,7 @@
 ![Python](https://img.shields.io/badge/Python-3.10–3.13-3776AB?logo=python&logoColor=white)
 ![systems](https://img.shields.io/badge/divination%20systems-13-a78bfa)
 ![CI](https://github.com/ChiShengChen/bazaar-of-fates/actions/workflows/ci.yml/badge.svg)
-![tests](https://img.shields.io/badge/tests-208%20passing-3fb950)
+![tests](https://img.shields.io/badge/tests-379%20passing-3fb950)
 ![readings](https://img.shields.io/badge/readings-中文%20%C2%B7%20EN%20%C2%B7%20both-ec4899)
 ![MCP](https://img.shields.io/badge/MCP-server-8b5cf6)
 ![license](https://img.shields.io/badge/license-MIT-green)
@@ -52,6 +52,7 @@ pip install bazaar-of-fates && bazaar bazi 1990-06-15 14:30 --place 台北 --gen
 | 💘 **Love-specialist reader 感情專科** | One question type, read deeply: natal love disposition (八字 配偶星・夫妻宮, 紫微 夫妻宮, 西洋 金星・七宮, Jyotiṣa 七宮), a **桃花年／婚緣年** scan with every +/− listed, **合婚** (八字 日柱干支 + synastry) when a partner is given, and a reading that answers the sub-question (何時有緣／合不合／復合／該不該分開／婚姻／第三者) first. Rules: [docs/love.md](docs/love.md). |
 | 🩺 **Specialist readers 專科** | Five more one-topic readers on the same skeleton — **career 事業** (官殺・提綱, 官祿宮, 十宮・土星, 第十 bhāva + a 事業方向 sheet), **wealth 財運** (財星・財庫 opened by 流年沖, 財帛宮, 二宮・木星 + 財性 sheet), **health 健康** (五行分布→臟腑, 疾厄宮, 六宮 + 體質 sheet; never medical advice), **study 學業** (印星・文昌學堂, 父母宮・昌曲, 九宮・水星 + 學習型態／科系 sheet), **family 家庭** (年柱父母宮・時柱子女宮・子女星, 田宅宮, 四宮・月亮 + 六親 sheet). Each: natal, this year, a yearly scan with every +/− listed, sub-question first. Rules: [docs/specialists.md](docs/specialists.md). |
 | 🎲 **Ask 問事** | No birth needed: 奇門 / 六壬 / 梅花 / 六爻 / 小六壬 cast for the moment of the question — 奇門 時盤 with 日干宮 (asker), 時干宮 (the matter), 用神 by topic, 門迫／空亡／三奇, 吉方; 六壬 時課 with 類神 in the 三傳, 末傳 vs 日干, 課體; 梅花 **數字起卦** (1–3 numbers) and **字占**; 六爻 **金錢卦** from six coin throws; every term scored and listed, 應期 hint. Rules: [docs/ask.md](docs/ask.md). |
+| 🈷️ **Name numerology 姓名學** | 熊崎式五格 from the Chinese name: 康熙筆畫 (every character traced to its Unihan radical), 天人地外總 five grids, 81 數理, 三才 relations, and each grid's element against the person's 八字 喜用. Works without a birth too. `POST /name`, `bazaar xingming`, MCP `name`. Guide: [docs/xingming.md](docs/xingming.md). |
 | 🤖 **CLI · API · MCP** | `bazaar` in the terminal, FastAPI with SSE streaming, `bazaar-mcp` for Claude / Cursor, a Claude Code skill, a one-page printable report. |
 | 🗃️ **Datasets** | One command enumerates the entire 紫微 input space (518,400 charts, with 7-topic rule verdicts) or 八字 by date range. |
 
@@ -93,6 +94,7 @@ bazaar today 1990-06-15 14:30                    # 今日運勢
 bazaar love 1990-06-15 14:30 --gender female --ask "何時有正緣" --years 8        # 感情專科：命・桃花年・(合婚 with --partner-date)
 bazaar career 1990-06-15 14:30 --gender female --ask "該不該轉職"                 # 專科：career | wealth | health | study | family
 bazaar ask qimen "明天面試會順利嗎"                                           # 問事 ask: qimen | liuren | iching (--numbers / --text) | liuyao (--coins) | xiaoliuren
+bazaar xingming 1990-06-15 14:30 --full-name 陳美玲 --gender female     # 姓名學 name numerology (五格 · 三才 · 配八字)
 bazaar all 1990-06-15 14:30 --json               # everything as JSON; add --read for a reading
 ```
 
@@ -131,6 +133,7 @@ curl -s localhost:8000/cast/bazi -H 'content-type: application/json' \
 | `qimen` | Qi Men Dun Jia | 奇門遁甲 | 時家轉盤, 拆補法 / 置閏法 | ✅ | — |
 | `liuren` | Da Liu Ren | 大六壬 | 月將加時 · 四課三傳 · 九宗門 (8,640-course check vs kinliuren) · 十二天將 | ✅ | — |
 | `taiyi` | Tai Yi Shen Shu | 太乙神數 | 年計 board: 統宗 積年 · 七十二局 · 太乙／文昌／始擊／計神 · 主客算與大將參將 · 十六神 · 八門 · 斷例 (cross-checked with kintaiyi) | — | — |
+| `xingming` | Xing Ming · Name Numerology | 姓名學 | 熊崎式五格 · 康熙筆畫 (Unihan) · 81 數理 · 三才 · 八字 link (needs a Chinese name) | — | — |
 | `jyotish` | Jyotiṣa (Vedic) | 吠陀占星 | sidereal (Lahiri) at the birth instant; Vimśottarī daśā | ✅ | ✅ |
 
 > Missing birth time or place → ascendant-based systems fall back to date-only and say so. / 缺時辰或出生地時自動退回並標註。
@@ -186,6 +189,7 @@ Tools: `list_systems` · `geo_lookup` · `cast` · `reading` · `synthesis` · `
 | `POST` | `/love` | love-specialist sitting: natal disposition, this year's 13-system lean, 桃花年／婚緣年 scan, 合婚 with a partner, reading |
 | `POST` | `/consult/{topic}` · `GET /consult` | specialist sitting for career / wealth / health / study / family (`auto` routes by the question): natal, this year, yearly scan, the topic sheet, reading |
 | `POST` | `/ask/{system}` | 問事: qimen / liuren / iching / liuyao / xiaoliuren cast for the moment of the question (or numbers / text / coins), verdict with listed reasons, 應期 |
+| `POST` | `/name` | 姓名學: five grids, 81 數理, 三才, 八字 link (`birth` optional) |
 | `POST` | `/timeline/{system}` | 大運 / Mahādaśā / 流年 / planet returns → `Timeline` |
 | `POST` | `/synastry` · `/group` | relationship / group charts + readings |
 | `POST` | `/annual-report` · `/annual-overview` | one-year report / multi-year arc |
@@ -225,7 +229,7 @@ skills/               Claude Code skill
 ## ✅ Tests
 
 ```bash
-pytest -q     # 208 tests
+pytest -q     # 379 tests
 ```
 
 Every system casts · reference 節氣 instants (USNO, 台北市曆象表) · planets and six house systems vs Swiss Ephemeris · the 八字 sheet vs a published 排盤 · 旺衰/起運/真太陽時/geo-DST · 紫微 placement, 長生/博士, 大限 vs x-iztro · 六壬 四課/天將/課體 vs kinliuren · 奇門 局/值符值使/盤 vs kinqimen · 四柱/節氣/大運 vs lunar-python · transits, progressions, returns, synastry, group, annual · focus extraction, synthesis, 擇日, CLI, MCP. Cross-validation tests skip when the optional packages are absent.
@@ -242,6 +246,7 @@ Each row is a complete deterministic chart (紫微: palaces with brightness/雜�
 
 ## 📰 Changelog
 
+- **2026-10-11** — **0.3.3**: 姓名學 name numerology (熊崎式五格; engine ported from the course edition): 康熙筆畫 from Unihan with every character's radical traced, 天人地外總 five grids, 81 數理, 三才 relations, each grid's element read against the person's 八字 喜用; works with or without a birth. `birth.full_name`, `POST /name`, `/cast/xingming`, `bazaar xingming`, MCP `name`, Space sheet; 14th system listed with `needs_name`.
 - **2026-10-10** — **0.3.2** accuracy round: 大六壬 九宗門 aligned against an 8,640-course full-space check (duplicate courses no longer fake a 涉害, 綴瑕 tie rule, 伏吟 mutual-刑 末傳, 遙克 before 別責／八專; `scripts/liuren_fullspace_check.py`); 八字 神煞 full table (福星／天官／天福／金輿／流霞／血刃／詞館／災煞／太歲十二神／元辰勾絞／天羅地網／日柱格 十惡大敗 陰差陽錯 孤鸞 日德 日貴 十靈 六秀 八專 九醜／三奇 拱祿); 紫微 brightness schools (`brightness_school`: 全書七級 · 中州派四級 · 三級, 祿存 廟); 太乙 rewritten as the classical 年計 board (太乙統宗 積年, 七十二局, 太乙／文昌／始擊／計神／合神／定目, 主客定算與大將參將, 十六神, 八門, 三門五將與主客斷例; cross-checked with kintaiyi; `taiyi_method`).
 - **2026-10-10** — **0.3.1**: 問事 — `bazaar ask` / `POST /ask/{system}` / MCP `ask` / Space tab: 奇門 時盤 and 六壬 時課 for the moment of a question (用神・類神 by topic, 門迫／空亡／三奇, 課體, 應期), 梅花 數字起卦 and 字占, 六爻 金錢卦, 小六壬.
 - **2026-10-10** — **0.3.0**: specialist readers — 感情專科 love (natal disposition, 桃花年／婚緣年 scan, 合婚) and five more on the same skeleton: career 事業, wealth 財運, health 健康, study 學業, family 家庭 (natal, this year, yearly scan with every +/− listed, the topic's own sheet, sub-question-first readings); `bazaar love|career|wealth|health|study|family`, `POST /love`, `POST /consult/{topic}`, MCP `love` / `consult`; Space tabs; prompts now ship inside the wheel; phone layouts, share links and PNG download in the Space.

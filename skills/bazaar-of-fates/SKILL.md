@@ -31,6 +31,7 @@ bazaar zeri 1990-06-15 14:30 --purpose wedding --from 2026-11-01 --to 2026-12-31
 5. For anything about love / romance / marriage (何時有緣, 合不合, 復合, 該不該分開, 婚姻, 第三者): `love` — pass gender (男命財星為妻、女命官殺為夫) and the partner's birth for 合婚. Present `timing.years` as a ranked list of 桃花年／婚緣年 with their reasons, `natal` as how this person loves, and `match` as the biggest + and − terms; never pronounce fate or decide a breakup for them.
 6. For career 事業 / wealth 財運 / health 健康 / study 學業 / family 家庭 questions: `consult(topic=…)` (or `topic="auto"`). Lead with the sub-question answer, then the ranked years with their reasons, then the topic sheet (事業方向／財性／體質／學習型態／六親). Health is never medical advice; wealth never names assets.
 7. For a yes/no or how-will-it-go question with no birth data (會不會順利、能不能做、他會不會回): `ask` — qimen / liuren / iching / liuyao / xiaoliuren for the moment of asking; pass `numbers` or `text` for 梅花, `coins` for 六爻. Report the verdict, its listed reasons and the 應期 hint; the reasoning_chain is the 起局 audit trail.
+8. For a Chinese name (改名、這個名字好不好、五格): `name` with `full_name` (space between a compound surname and the given name) and the birth date when known, so each grid is read against the 八字 喜用. Lead with 人格 and 三才; the reasoning_chain lists every stroke count.
 6. Always keep the disclaimer: cultural / educational / entertainment; not a basis for medical, financial or legal decisions.
 
 ## Reading the payloads

@@ -162,14 +162,16 @@ def cast(system: str, birth: BirthInput, house_system: str = "whole_sign",
          transits: bool = False, transit_date: str | None = None,
          progress: bool = False, progress_method: str = "secondary",
          solar_return: bool = False, lunar_return: bool = False, qimen_method: str = "chaibu",
-         brightness_school: str = "quanshu", taiyi_method: str = "tongzong") -> Chart:
+         brightness_school: str = "quanshu", taiyi_method: str = "tongzong", stroke_basis: str = "kangxi", numeral_strokes: str = "value", jiashu: str = "on") -> Chart:
     """`brightness_school` (紫微 亮度流派): quanshu 全書七級 · zhongzhou 中州派四級 · simple 三級. `taiyi_method` (太乙 積年): tongzong · jinjing · taojinge."""
     try:
         return casting.cast(system, birth, house_system=house_system,
                             transits=transits, transit_date=transit_date, progress=progress, progress_method=progress_method, solar_return=solar_return, lunar_return=lunar_return, qimen_method=qimen_method,
-                            brightness_school=brightness_school, taiyi_method=taiyi_method)
+                            brightness_school=brightness_school, taiyi_method=taiyi_method, stroke_basis=stroke_basis, numeral_strokes=numeral_strokes, jiashu=jiashu)
     except KeyError as e:
         raise HTTPException(404, str(e)) from e
+    except ValueError as e:                      # e.g. 姓名學 NameInputError: needs a Chinese full name
+        raise HTTPException(422 if getattr(e, "code", "") == "needs_full_name" else 400, str(e)) from e
     except Exception as e:  # noqa: BLE001
         log.exception("cast_failed", system=system)
         raise HTTPException(500, f"{system} cast failed / 排盤失敗：{e}") from e
@@ -294,6 +296,35 @@ def ask(system: str, req: AskRequest) -> dict:
     except Exception as e:  # noqa: BLE001
         log.exception("ask_failed")
         raise HTTPException(500, f"ask failed / 問事失敗：{e}") from e
+
+
+class NameRequest(BaseModel):
+    full_name: str                      # 中文全名；複姓或冠夫姓以空白分隔（歐陽 娜娜）
+    birth: BirthInput | None = None     # optional: adds the 八字 link (每格五行對喜用)
+    stroke_basis: str = "kangxi"        # kangxi | modern
+    numeral_strokes: str = "value"      # value | shape
+    jiashu: str = "on"                  # on | off
+    read: bool = False
+    lang: str = "zh"
+    focus: str | None = None
+
+
+@app.post("/name")
+def name_numerology(req: NameRequest) -> dict:
+    """姓名學 (熊崎式五格): 康熙筆畫 (Unihan 部首原形), 天人地外總, 三才, 81 數理; with `birth` the sheet also maps every 格 to the 八字 喜用."""
+    from fortune.casting import xingming as xm
+    from fortune.xingming import NameInputError
+    try:
+        chart = xm.build(req.full_name, req.birth, stroke_basis=req.stroke_basis, numeral_strokes=req.numeral_strokes, jiashu=req.jiashu)
+    except NameInputError as e:
+        raise HTTPException(422 if e.code == "needs_full_name" else 400, f"{e.code}: {e}") from e
+    except Exception as e:  # noqa: BLE001
+        log.exception("name_failed")
+        raise HTTPException(500, f"name numerology failed / 姓名學排盤失敗：{e}") from e
+    out = chart.model_dump(mode="json")
+    if req.read:
+        out["interpretation"] = interpret(chart, focus=req.focus, lang=req.lang).interpretation
+    return out
 
 
 @app.post("/love")

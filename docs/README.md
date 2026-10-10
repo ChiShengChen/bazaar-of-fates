@@ -22,6 +22,7 @@ Plain-language guides — what each divination system is and how to read its cha
 | 感情專科 Love reader | [love.md](love.md) — 配偶星／夫妻宮、桃花年婚緣年評分、合婚規則、命理師人設 |
 | 五科專科 Specialist readers | [specialists.md](specialists.md) — 事業／財運／健康／學業／家庭：各科看什麼、逐年評分規則、子題、專科表 |
 | 問事 Ask | [ask.md](ask.md) — 奇門時盤／六壬時課／梅花數字起卦與字占／六爻金錢卦／小六壬：起局方式、判斷規則、應期 |
+| 姓名學 Name numerology | [xingming.md](xingming.md) — 康熙筆畫、五格、81 數理、三才、配八字喜用、流派開關 |
 | 發布素材 Launch kit | [LAUNCH.md](LAUNCH.md) — MCP／skill 目錄文案、Space、PyPI、GIF、發文管道 |
 | 引用與致謝 Credits | [CREDITS.md](CREDITS.md) — 使用與交叉驗證的開源專案、授權 |
 

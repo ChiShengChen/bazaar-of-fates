@@ -65,7 +65,9 @@ def _birth(name, d, t, gender, place, tst) -> BirthInput:
     hit = geo.lookup(place, d) if place else None
     if hit:
         lat, lon, tz = hit["latitude"], hit["longitude"], hit["tz_offset_hours"]
-    return BirthInput(name=name or None, birth_date=d, birth_time=tt, gender=gender or None, place=place or None,
+    import re as _re
+    full = name.strip() if name and _re.match(r'^[\u3400-\u9fff\uf900-\ufaff　 ]{2,7}$', name.strip()) else None
+    return BirthInput(full_name=full, name=name or None, birth_date=d, birth_time=tt, gender=gender or None, place=place or None,
                       latitude=lat, longitude=lon, tz_offset_hours=tz, true_solar_time=bool(tst))
 
 

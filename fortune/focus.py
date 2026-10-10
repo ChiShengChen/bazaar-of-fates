@@ -342,6 +342,20 @@ def extract(ch: Chart, topic: str, male: bool | None = None) -> dict:
         reg = r.get("tieban_regime", "neutral")
         return {"facts": {"命數": r.get("ming_number"), "流年條文": r.get("liunian_verse_no"), "斷": r.get("liunian_verdict")},
                 "verdict": "favourable" if reg == "auspicious" else "unfavourable" if reg == "inauspicious" else "neutral", "reason": f"流年條文 {r.get('liunian_verdict')}"}
+    if s == "xingming":
+        grids = {g["name"]: g for g in c.get("grids", [])}
+        ren = grids.get("人格", {})
+        rel = c.get("relations", {})
+        sc = c.get("score", 0)
+        facts = {"人格": f"{ren.get('number')}・{ren.get('element')}・{ren.get('luck')}", "三才": c.get("sancai"), "總格": f"{grids.get('總格', {}).get('number')}・{grids.get('總格', {}).get('luck')}",
+                 "成功運／基礎運／社交運": "、".join(rel.get(k, {}).get("kind", "") for k in ("成功運", "基礎運", "社交運")), "人格對八字": ren.get("bazi") or "—"}
+        if topic in ("career", "wealth"):
+            facts["本題"] = f"成功運 {rel.get('成功運', {}).get('text', '')}；總格（後運）{grids.get('總格', {}).get('luck')}"
+        elif topic in ("love", "family"):
+            facts["本題"] = f"基礎運 {rel.get('基礎運', {}).get('text', '')}（家庭、子女）；社交運 {rel.get('社交運', {}).get('text', '')}"
+        elif topic == "health":
+            facts["本題"] = f"人格數理 {ren.get('luck')}；三才{'相剋' if any(rel.get(k, {}).get('kind') == '相剋' for k in ('成功運', '基礎運')) else '無剋'}"
+        return {"facts": facts, "verdict": "favourable" if sc >= 1.5 else "unfavourable" if sc <= -1 else "neutral", "reason": f"人格{ren.get('luck')}・三才生剋合計 {sc:+}"}
     if s == "taiyi":
         return {"facts": {"流年": r.get("liunian_host_guest"), "命局": r.get("natal_host_guest")}, "verdict": "favourable" if r.get("verdict") == "主勝" else "unfavourable", "reason": f"流年{r.get('verdict')}"}
     return {"facts": {"summary": ch.summary}, "verdict": "neutral", "reason": "無專項規則"}

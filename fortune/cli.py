@@ -15,6 +15,7 @@
   bazaar ask liuren "這筆投資能做嗎" --place 台北 --read
   bazaar ask iching "他會回我嗎" --numbers 3,7,9        # 梅花數字起卦（1–3 個數）；--text 字占；不給則時間起卦
   bazaar ask liuyao "合約能簽嗎" --coins 7,8,9,8,6,7     # 六爻金錢卦（自初爻起，6/9 動）
+  bazaar xingming 1990-06-15 14:30 --full-name 陳美玲 --gender female   # 姓名學：康熙筆畫、五格、三才、81 數理、配八字喜用
   add --read for the reading (mock digest unless LLM_BACKEND/ANTHROPIC_API_KEY are set), --json for raw JSON.
 """
 
@@ -44,7 +45,7 @@ def _birth(a) -> BirthInput:
     if a.time:
         h, m = a.time.split(":")[:2]
         t = time(int(h), int(m))
-    return BirthInput(name=a.name, birth_date=date.fromisoformat(a.date), birth_time=t, gender=a.gender, place=a.place,
+    return BirthInput(name=a.name, full_name=getattr(a, "full_name", None), birth_date=date.fromisoformat(a.date), birth_time=t, gender=a.gender, place=a.place,
                       latitude=lat, longitude=lon, tz_offset_hours=8.0 if tz is None else tz, true_solar_time=a.tst)
 
 
@@ -88,10 +89,10 @@ def _print_ziwei(c: dict) -> None:
 
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(prog="bazaar", description="Bazaar of Fates · 算命 — 13 divination systems in your terminal")
-    ap.add_argument("system", help="bazi | ziwei | astrology | jyotish | iching | liuyao | xiaoliuren | suimei | qizheng | tieban | qimen | liuren | taiyi | all | synthesis | zeri | today | love | career | wealth | health | study | family | ask | systems")
+    ap.add_argument("system", help="bazi | ziwei | astrology | jyotish | iching | liuyao | xiaoliuren | suimei | qizheng | tieban | qimen | liuren | taiyi | all | synthesis | zeri | today | love | career | wealth | health | study | family | ask | xingming | systems")
     ap.add_argument("date", nargs="?", help="birth date YYYY-MM-DD （ask: the system qimen|liuren|iching|liuyao|xiaoliuren）")
     ap.add_argument("time", nargs="?", help="birth time HH:MM (default noon) （ask: the question）")
-    ap.add_argument("--name"); ap.add_argument("--gender", choices=["male", "female"]); ap.add_argument("--place")
+    ap.add_argument("--name"); ap.add_argument("--full-name", help="中文全名（姓名學）"); ap.add_argument("--gender", choices=["male", "female"]); ap.add_argument("--place")
     ap.add_argument("--lat", type=float); ap.add_argument("--lon", type=float); ap.add_argument("--tz", type=float)
     ap.add_argument("--tst", action="store_true", help="true solar time for the 干支 systems")
     ap.add_argument("--read", action="store_true", help="also print the reading"); ap.add_argument("--lang", default="zh", choices=["zh", "en", "both"])
@@ -241,7 +242,7 @@ def main(argv: list[str] | None = None) -> int:
 
     keys = list(casting.REGISTRY) if a.system == "all" else [a.system]
     for k in keys:
-        if k not in casting.REGISTRY:
+        if k not in casting.REGISTRY and k not in casting.EXTRA:
             ap.error(f"unknown system {k}")
         chart = casting.cast(k, b, house_system=a.house_system, qimen_method=a.qimen_method, brightness_school=a.brightness, taiyi_method=a.taiyi_method, transits=False)
         if a.json:

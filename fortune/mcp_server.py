@@ -1,6 +1,6 @@
 """`bazaar-mcp` — Bazaar of Fates as a Model Context Protocol server (stdio by default).
 
-Tools: list_systems · cast · reading · synthesis · zeri · day · synastry · love · consult · ask · geo
+Tools: list_systems · cast · reading · synthesis · zeri · day · synastry · love · consult · ask · name · geo
 Every tool is deterministic except `reading` / `synthesis` prose (mock digest unless LLM_BACKEND is set).
 
 Claude Desktop / Claude Code:  {"mcpServers": {"bazaar-of-fates": {"command": "bazaar-mcp"}}}
@@ -36,14 +36,14 @@ server = _Server(name="bazaar-of-fates", instructions=INSTRUCTIONS)
 
 
 def _birth(birth_date: str, birth_time: str | None, gender: str | None, place: str | None, latitude: float | None,
-           longitude: float | None, tz_offset_hours: float | None, true_solar_time: bool, name: str | None = None) -> BirthInput:
+           longitude: float | None, tz_offset_hours: float | None, true_solar_time: bool, name: str | None = None, full_name: str | None = None) -> BirthInput:
     lat, lon, tz = latitude, longitude, tz_offset_hours
     if place and (lat is None or lon is None):
         hit = geo.lookup(place, _date.fromisoformat(birth_date))
         if hit:
             lat, lon = hit["latitude"], hit["longitude"]
             tz = hit["tz_offset_hours"] if tz is None else tz
-    return BirthInput(name=name, birth_date=_date.fromisoformat(birth_date), birth_time=birth_time, gender=gender, place=place,
+    return BirthInput(name=name, full_name=full_name, birth_date=_date.fromisoformat(birth_date), birth_time=birth_time, gender=gender, place=place,
                       latitude=lat, longitude=lon, tz_offset_hours=8.0 if tz is None else tz, true_solar_time=true_solar_time)
 
 
@@ -197,6 +197,18 @@ def ask(system: str, question: str | None = None, at: str | None = None, tz_offs
     from fortune import ask as AK
     return AK.ask(system, question, at=_dt.fromisoformat(at) if at else None, tz=tz_offset_hours, place=place, numbers=numbers, text=text,
                   coins=coins, read=with_reading, lang=lang)
+
+
+@server.tool()
+def name(full_name: str, birth_date: str | None = None, birth_time: str | None = None, gender: str | None = None, place: str | None = None,
+         stroke_basis: str = "kangxi", jiashu: str = "on") -> dict[str, Any]:
+    """姓名學 (熊崎式五格): 康熙筆畫 (every character's 部首 and Unihan source listed), 天格 人格 地格 外格 總格, 三才 (成功運 基礎運 社交運),
+    81 數理 吉／半吉／凶. Give `birth_date` (+ time, gender) to also map each 格's element to that person's 八字 喜用／忌 (人格 is what matters).
+    `full_name` is the Chinese full name; put a space between a compound/married surname and the given name (歐陽 娜娜). `stroke_basis`
+    kangxi|modern; `jiashu` on|off (假數 for single-character surname/given name). The reasoning_chain shows every stroke count and formula."""
+    from fortune.casting import xingming as xm
+    b = _birth(birth_date, birth_time, gender, place, None, None, None, False, None, full_name) if birth_date else None
+    return xm.build(full_name, b, stroke_basis=stroke_basis, jiashu=jiashu).model_dump(mode="json")
 
 
 def main(argv: list[str] | None = None) -> int:
