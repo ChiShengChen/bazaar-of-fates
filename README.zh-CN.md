@@ -2,16 +2,16 @@
 
 # 🔮 Bazaar of Fates · 算命
 
-### 十三套传统命理，一个生辰，确定性排盘＋可选语言的 AI 解读
+### 十三套传统命理＋姓名学，一个生辰，确定性排盘、专科命理师、可选语言的 AI 解读
 
-*西洋占星 · 八字 · 紫微斗数 · 梅花易数 · 六爻 · 小六壬 · 四柱推命 · 七政四余 · 铁板神数 · 奇门遁甲 · 大六壬 · 太乙神数 · Jyotiṣa*
+*西洋占星 · 八字 · 紫微斗数 · 梅花易数 · 六爻 · 小六壬 · 四柱推命 · 七政四余 · 铁板神数 · 奇门遁甲 · 大六壬 · 太乙神数 · Jyotiṣa · 姓名学*
 
 [English](README.md) · [繁體中文](README.zh-TW.md) · **简体中文**
 
-### 👉 [線上試玩 / Try it online](https://ms57rd-bazaar-of-fates.hf.space) — 免安裝、免金鑰 · `pip install bazaar-of-fates`
+### 👉 [在线试玩 / Try it online](https://ms57rd-bazaar-of-fates.hf.space) — 免安装、免密钥 · `pip install bazaar-of-fates`
 
 ![Python](https://img.shields.io/badge/Python-3.10–3.13-3776AB?logo=python&logoColor=white)
-![systems](https://img.shields.io/badge/命理系统-13-a78bfa)
+![systems](https://img.shields.io/badge/命理系统-13%20%2B%20姓名学-a78bfa)
 ![CI](https://github.com/ChiShengChen/bazaar-of-fates/actions/workflows/ci.yml/badge.svg)
 ![tests](https://img.shields.io/badge/tests-379%20passing-3fb950)
 ![license](https://img.shields.io/badge/license-MIT-green)
@@ -56,7 +56,7 @@ cd web && npm install && npm run dev             # 完整 UI → :3000
 
 | | |
 |---|---|
-| 🌏 **十三套系统，一个输入** | 一个出生时刻排出全部命盘；输入地名自动带入经纬度与时区（台湾历史日光节约时间会自动处理），可选**真太阳时**。 |
+| 🌏 **十三套系统＋姓名学，一个输入** | 一个出生时刻排出全部命盘（填中文姓名另得姓名学）；输入地名自动带入经纬度与时区（台湾历史日光节约时间会自动处理），可选**真太阳时**。 |
 | 🎯 **真实天文、精确到分** | 行星取出生当下、当日真春分点黄道；24 节气精确到分；六种宫位制对 Swiss Ephemeris 验证到 0.006° 以内。 |
 | 🔍 **每张盘都可核对** | 排盘步骤逐条列出：八字旺衰每一项计分、六壬课体所用规则、奇门遁元局的来源、择日每一分的加减。 |
 | 🧾 **八字完整排盘** | 十神、藏干、纳音、空亡、神煞、十二长生、胎元命宫、起运交运、刑冲合会、称骨、旺衰／用神／调候／格局，大运→流年→流月点击展开，黄历区块。 |
@@ -71,7 +71,7 @@ cd web && npm install && npm run dev             # 完整 UI → :3000
 | 🤖 **CLI・API・MCP** | `bazaar` 指令列、FastAPI、`bazaar-mcp` 让 Claude／Cursor 直接排盘，附 Claude Code skill。 |
 | 🗃️ **数据集** | 一行指令穷举紫微全部 518,400 张命盘（含七个主题的规则判断），八字依日期区间产出。 |
 
-## 🧭 十三套系统
+## 🧭 十三套系统（＋姓名学）
 
 | key | 系统 | 排盘内核 | 时辰 | 出生地 |
 |---|---|---|:--:|:--:|
@@ -96,7 +96,7 @@ cd web && npm install && npm run dev             # 完整 UI → :3000
 
 | 方法 | 路径 | 说明 |
 |---|---|---|
-| `GET` | `/systems` · `/geo?q=` | 系统清单；地名→经纬度时区 |
+| `GET` | `/systems` · `/geo?q=` | 系统清单（姓名学标 `needs_name`）；地名→经纬度时区 |
 | `POST` | `/cast/{system}` | 确定性命盘（不用 LLM） |
 | `POST` | `/reading/{system}` `[/stream]` | 命盘＋解读（`focus` 问题导向，`lang` 语言） |
 | `POST` | `/synthesis` | 综合会诊 |
@@ -115,22 +115,23 @@ pip install "bazaar-of-fates[mcp]"
 # {"mcpServers": {"bazaar-of-fates": {"command": "bazaar-mcp"}}}
 ```
 
-工具：`list_systems`、`geo_lookup`、`cast`、`reading`、`synthesis`、`zeri`、`day`、`synastry`。Skill 在 [`skills/bazaar-of-fates/SKILL.md`](skills/bazaar-of-fates/SKILL.md)。
+工具：`list_systems`、`geo_lookup`、`cast`、`reading`、`synthesis`、`zeri`、`day`、`synastry`、`love`、`consult`、`ask`、`name`。Skill 在 [`skills/bazaar-of-fates/SKILL.md`](skills/bazaar-of-fates/SKILL.md)。
 
 ## 🐳 部署
 
-`Dockerfile` 一个容器同时提供 API 与静态页（port 7860），可直接放 Hugging Face Docker Space，免密钥即可试玩；见 [deploy/hf-space-README.md](deploy/hf-space-README.md)。
+- **在线版**：[Hugging Face Space](https://ms57rd-bazaar-of-fates.hf.space)（Gradio，文件在 [deploy/hf-space/](deploy/hf-space/)），API 在 `/docs`、静态页在 `/web/`。
+- **Docker**：`docker build -t bazaar . && docker run -p 7860:7860 bazaar` → API 与静态页同一容器（port 7860），免密钥；见 [deploy/hf-space-README.md](deploy/hf-space-README.md)。。
 
 - **内置防线**：确定性端点的回应会缓存（`CACHE_TTL_SECONDS`，回应标头 `X-Cache`）；每个 IP 分两层限流（`RATE_LIMIT_PER_MINUTE` 一般、`LLM_RATE_LIMIT_PER_MINUTE` 会调用 LLM 的端点 → `429` 与 `Retry-After`）；LLM 同时调用数全站上限（`LLM_MAX_CONCURRENCY`；报告页一次只排两个解读）。`GET /health` 可看计数。设置见 [.env.example](.env.example)。
 
 ## 📖 文档
 
-每套系统一篇图解指南（[docs/](docs/README.md)），另有[择日规则](docs/zeri.md)、[引用与致谢](docs/CREDITS.md)（x-iztro、lunar-python、kinliuren、kinqimen、Swiss Ephemeris 等交叉验证来源与授权）、[发布素材](docs/LAUNCH.md)。
+每套系统一篇图解指南（[docs/](docs/README.md)，含[姓名学](docs/xingming.md)），另有[择日规则](docs/zeri.md)、[感情专科](docs/love.md)、[五科专科](docs/specialists.md)、[问事](docs/ask.md)、[引用与致谢](docs/CREDITS.md)（x-iztro、lunar-python、kinliuren、kinqimen、kintaiyi、Swiss Ephemeris、Unihan 等来源与授权）、[发布素材](docs/LAUNCH.md)。
 
 ## ✅ 测试
 
 ```bash
-pytest -q     # 379 tests，其中多个对外部引擎交叉验证（安装 oracles extra 时激活）
+pytest -q     # 379 tests：节气／行星／宫位对 Swiss Ephemeris、紫微对 x-iztro（全空间 518,400 盘）、六壬对 kinliuren（8,640 课）、奇门对 kinqimen、太乙对 kintaiyi、姓名学 166 字康熙笔画；交叉验证在未安装 oracles extra 时自动略过
 ```
 
 ## 📜 授权

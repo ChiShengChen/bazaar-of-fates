@@ -2,13 +2,13 @@
 
 # 🔮 Bazaar of Fates · 算命
 
-### Thirteen traditional divination systems, one birth moment — exact astronomy, auditable charts, readings in your language.
+### Thirteen traditional divination systems plus name numerology, one birth moment — exact astronomy, auditable charts, specialist readers, readings in your language.
 
-*西洋占星 · 八字 · 紫微斗數 · 梅花易數 · 六爻 · 小六壬 · 四柱推命 · 七政四餘 · 鐵板神數 · 奇門遁甲 · 大六壬 · 太乙神數 · Jyotiṣa*
+*西洋占星 · 八字 · 紫微斗數 · 梅花易數 · 六爻 · 小六壬 · 四柱推命 · 七政四餘 · 鐵板神數 · 奇門遁甲 · 大六壬 · 太乙神數 · Jyotiṣa · 姓名學*
 
 ![PyPI](https://img.shields.io/pypi/v/bazaar-of-fates?color=3776AB&logo=pypi&logoColor=white)
 ![Python](https://img.shields.io/badge/Python-3.10–3.13-3776AB?logo=python&logoColor=white)
-![systems](https://img.shields.io/badge/divination%20systems-13-a78bfa)
+![systems](https://img.shields.io/badge/divination%20systems-13%20%2B%20%E5%A7%93%E5%90%8D%E5%AD%B8-a78bfa)
 ![CI](https://github.com/ChiShengChen/bazaar-of-fates/actions/workflows/ci.yml/badge.svg)
 ![tests](https://img.shields.io/badge/tests-379%20passing-3fb950)
 ![readings](https://img.shields.io/badge/readings-中文%20%C2%B7%20EN%20%C2%B7%20both-ec4899)
@@ -39,7 +39,7 @@ pip install bazaar-of-fates && bazaar bazi 1990-06-15 14:30 --place 台北 --gen
 
 | | |
 |---|---|
-| 🌏 **13 systems, 1 input** | One birth moment → every chart. Type a city and lat/lon/time zone fill in (Taiwan historical DST applied); optional **true solar time** for the 干支 systems. |
+| 🌏 **13 systems + 姓名學, 1 input** | One birth moment → every chart (add a Chinese name for 姓名學). Type a city and lat/lon/time zone fill in (Taiwan historical DST applied); optional **true solar time** for the 干支 systems. |
 | 🎯 **Real astronomy, exact to the minute** | Planets at the **exact birth instant, true equinox of date** (`ephem`); all **24 節氣** to the minute; six house systems **validated against Swiss Ephemeris to <0.006°**. |
 | 🔍 **Every chart is auditable** | Each cast lists its reasoning: every term of the 八字 旺衰 score, the 六壬 course-type rule used, the 奇門 遁/元/局 derivation, every +/− of a 擇日 score. Cross-validated in tests against **Swiss Ephemeris, x-iztro (iztro), kinliuren, kinqimen, lunar-python** — the whole 518,400-chart 紫微 input space matches iztro. |
 | 🧾 **八字 full sheet** | 十神 · 藏干 · 納音 · 空亡 · 神煞 · 十二長生 · 胎元命宮 · 起運交運 · 刑沖合會 · 稱骨 · 黃曆, an auditable **旺衰 / 用神 / 調候 / 格局** analysis, 大運 → 流年 → 流月 drill-down. |
@@ -77,7 +77,7 @@ pip install bazaar-of-fates && bazaar bazi 1990-06-15 14:30 --place 台北 --gen
 </table>
 
 > 📖 **A visual guide per system** (how to read each chart): **[docs/](docs/README.md)** —
-> [astrology](docs/astrology.md) · [bazi](docs/bazi.md) · [ziwei](docs/ziwei.md) · [iching](docs/iching.md) · [liuyao](docs/liuyao.md) · [xiaoliuren](docs/xiaoliuren.md) · [suimei](docs/suimei.md) · [qizheng](docs/qizheng.md) · [tieban](docs/tieban.md) · [qimen](docs/qimen.md) · [liuren](docs/liuren.md) · [taiyi](docs/taiyi.md) · [jyotish](docs/jyotish.md) · [擇日 rules](docs/zeri.md)
+> [astrology](docs/astrology.md) · [bazi](docs/bazi.md) · [ziwei](docs/ziwei.md) · [iching](docs/iching.md) · [liuyao](docs/liuyao.md) · [xiaoliuren](docs/xiaoliuren.md) · [suimei](docs/suimei.md) · [qizheng](docs/qizheng.md) · [tieban](docs/tieban.md) · [qimen](docs/qimen.md) · [liuren](docs/liuren.md) · [taiyi](docs/taiyi.md) · [jyotish](docs/jyotish.md) · [xingming 姓名學](docs/xingming.md) · [擇日 rules](docs/zeri.md) · [感情專科](docs/love.md) · [五科專科](docs/specialists.md) · [問事](docs/ask.md)
 > · 🧾 one-page **[full report](docs/img/full-report.png)** (`/report`, print → PDF)
 
 ## ⚡ Quickstart
@@ -117,7 +117,7 @@ curl -s localhost:8000/cast/bazi -H 'content-type: application/json' \
 # "日主 辛金・身弱（喜生扶）・喜用 土、金"
 ```
 
-## 🧭 The thirteen systems
+## 🧭 The thirteen systems (+ 姓名學)
 
 | key | System | 系統 | engine | 時辰 | 出生地 |
 |---|---|---|---|:--:|:--:|
@@ -168,7 +168,7 @@ pip install "bazaar-of-fates[mcp]"
 # {"mcpServers": {"bazaar-of-fates": {"command": "bazaar-mcp"}}}
 ```
 
-Tools: `list_systems` · `geo_lookup` · `cast` · `reading` · `synthesis` · `zeri` · `day` · `synastry` — every result carries the chart's `reasoning_chain`, so the model reads from facts. Skill: [`skills/bazaar-of-fates/SKILL.md`](skills/bazaar-of-fates/SKILL.md). Directory listings and launch copy: [docs/LAUNCH.md](docs/LAUNCH.md).
+Tools: `list_systems` · `geo_lookup` · `cast` · `reading` · `synthesis` · `zeri` · `day` · `synastry` · `love` · `consult` · `ask` · `name` — every result carries the chart's `reasoning_chain`, so the model reads from facts. Skill: [`skills/bazaar-of-fates/SKILL.md`](skills/bazaar-of-fates/SKILL.md). Directory listings and launch copy: [docs/LAUNCH.md](docs/LAUNCH.md).
 
 ## 🐳 Deploy
 
@@ -181,7 +181,7 @@ Tools: `list_systems` · `geo_lookup` · `cast` · `reading` · `synthesis` · `
 
 | method | path | |
 |---|---|---|
-| `GET` | `/systems` · `/geo?q=&on=` · `/cities` | the 13 systems; birthplace → lat/lon/tz (offline table, Taiwan DST by date) |
+| `GET` | `/systems` · `/geo?q=&on=` · `/cities` | the 13 systems + 姓名學 (`needs_name`); birthplace → lat/lon/tz (offline table, Taiwan DST by date) |
 | `POST` | `/cast/{system}` | deterministic chart, no LLM → `Chart` |
 | `POST` | `/reading/{system}` `[/stream]` | chart + reading (`focus`, `lang`; `/stream` = SSE) → `Reading` |
 | `POST` | `/synthesis` | one question across all (or chosen) systems: verdicts + facts, tally, consensus/conflicts, panel reading |
@@ -194,7 +194,7 @@ Tools: `list_systems` · `geo_lookup` · `cast` · `reading` · `synthesis` · `
 | `POST` | `/synastry` · `/group` | relationship / group charts + readings |
 | `POST` | `/annual-report` · `/annual-overview` | one-year report / multi-year arc |
 
-Options: astrology `house_system` · `transits` · `transit_date` · `progress` · `progress_method` · `solar_return` · `lunar_return`; 奇門 `qimen_method` (`chaibu` | `zhirun`); `BirthInput.true_solar_time`; `lang` (`zh` | `en` | `both`, default `both`); `focus` for question-oriented extraction. Supported birth years: 1900–2099.
+Options: astrology `house_system` · `transits` · `transit_date` · `progress` · `progress_method` · `solar_return` · `lunar_return`; 奇門 `qimen_method` (`chaibu` | `zhirun`); 紫微 `brightness_school` (`quanshu` | `zhongzhou` | `simple`); 太乙 `taiyi_method` (`tongzong` | `jinjing` | `taojinge`); 姓名學 `stroke_basis` · `numeral_strokes` · `jiashu`; `BirthInput.true_solar_time` · `full_name`; `lang` (`zh` | `en` | `both`, default `both`); `focus` for question-oriented extraction. Supported birth years: 1900–2099.
 
 ## 🏗️ Architecture
 
@@ -207,21 +207,29 @@ fortune/
   ziwei_ext.py        紫微 with the real 時辰, 閏月/晚子時, 36 stars, 大限/流年, x-iztro enrichment
   jyotish_ext.py      grahas / nakṣatra / Vimśottarī daśā at the exact birth instant
   qimen_ext.py        時家奇門 轉盤 起局, 拆補法 / 置閏法 (遁/元/局, 地盤, 值符值使, 天盤 九星八門八神)
-  liuren_ext.py       大六壬 九宗門 + 十二天將
+  liuren_ext.py       大六壬 九宗門 + 十二天將 (8,640-course check in scripts/liuren_fullspace_check.py)
+  taiyi_ext.py        太乙 年計 board — 統宗 積年, 七十二局, 十六神, 主客算, 八門, 斷例
+  xingming/           姓名學 engine (康熙筆畫 table from Unihan, 五格, 三才, 81 數理) + tools/build_strokes.py
   liuyao_ext.py       六爻 納甲 / 八宮世應 / 六親六神 / 伏神 / 旺衰
   lunar.py            農曆 conversion (lunar-python → sxtwl → lunardate; lunardate has 3 wrong months)
   geo.py              offline city → lat/lon/tz, Taiwan historical DST
   almanac.py          黃曆 block via lunar-python (正體 via OpenCC)
-  casting/<system>.py per-system adapter: birth → Chart (the 13 systems)
+  casting/<system>.py per-system adapter: birth → Chart (the 13 systems + xingming)
   focus.py            question → topic; per-system relevant facts + rule-based verdict; cross-system tally
   zeri.py             擇日 scorer + daily outlook
+  love.py             感情專科 — natal love disposition, 桃花年／婚緣年 scan, 合婚
+  specialist.py       事業／財運／健康／學業／家庭 specialist readers (one SPEC per topic)
+  ask.py              問事 — 奇門／六壬／梅花／六爻／小六壬 for the moment of a question; 數字起卦, 字占, 金錢卦
+  prompts/<system>/   author voices + 專科 personas (ship inside the package)
+  shared/throttle.py  response cache + per-IP rate limit; shared/llm.py  LLM gateway with a concurrency gate
   timeline.py · synastry.py · group.py · annual.py   life timelines, relationships, forecasts
   interpret.py        facts + tradition prompt → reading (zh / en / both), synthesis & 擇日 prompts
   api/main.py         FastAPI (+ serves web/index.html)
   cli.py              `bazaar` terminal CLI · mcp_server.py  `bazaar-mcp` MCP server
 web/                  Next.js app + static index.html (no-build fallback)
 docs/                 per-system guides, 擇日 rules, credits, launch kit, screenshots
-scripts/              screenshots, hero GIF / social card, full-space check, dataset builder
+scripts/              screenshots, hero GIF / social card, 紫微 + 六壬 full-space checks, dataset builder
+.github/workflows/    CI — pytest on 3.10–3.12 with the oracle packages, web typecheck + build, package check
 deploy/               Hugging Face Space app, Dockerfile companion README
 skills/               Claude Code skill
 ```
@@ -232,7 +240,7 @@ skills/               Claude Code skill
 pytest -q     # 379 tests
 ```
 
-Every system casts · reference 節氣 instants (USNO, 台北市曆象表) · planets and six house systems vs Swiss Ephemeris · the 八字 sheet vs a published 排盤 · 旺衰/起運/真太陽時/geo-DST · 紫微 placement, 長生/博士, 大限 vs x-iztro · 六壬 四課/天將/課體 vs kinliuren · 奇門 局/值符值使/盤 vs kinqimen · 四柱/節氣/大運 vs lunar-python · transits, progressions, returns, synastry, group, annual · focus extraction, synthesis, 擇日, CLI, MCP. Cross-validation tests skip when the optional packages are absent.
+Every system casts · reference 節氣 instants (USNO, 台北市曆象表) · planets and six house systems vs Swiss Ephemeris · the 八字 sheet vs a published 排盤 · 旺衰/起運/真太陽時/geo-DST · 神煞 table · 紫微 placement, 長生/博士, 大限 vs x-iztro, brightness schools · 六壬 四課/天將/課體 vs kinliuren (plus the 8,640-course script) · 奇門 局/值符值使/盤 vs kinqimen · 太乙 年計 vs kintaiyi · 姓名學 166 康熙筆畫 + standard cases · 四柱/節氣/大運 vs lunar-python · transits, progressions, returns, synastry, group, annual · focus extraction, synthesis, 擇日, 專科, 問事, cache & rate limit, CLI, MCP. Cross-validation tests skip when the optional packages are absent.
 
 ## 🗃️ Datasets（no LLM needed）
 
@@ -255,7 +263,7 @@ Each row is a complete deterministic chart (紫微: palaces with brightness/雜�
 
 ## 🙏 Acknowledgements / 引用
 
-Built on **PyEphem** and **lunar-python**; optionally enriched by **x-iztro** (iztro port — 紫微 brightness, 雜曜, 格局) and **OpenCC**; cross-validated in the test suite against **x-iztro**, **kinliuren**, **kinqimen**, **lunar-python** and **Swiss Ephemeris**; rules consulted from **mingpan**, **jishiyu** and **ziwei-doushu**. Full list with licences and how each is used: **[docs/CREDITS.md](docs/CREDITS.md)**.
+Built on **PyEphem** and **lunar-python**; optionally enriched by **x-iztro** (iztro port — 紫微 brightness, 雜曜, 格局) and **OpenCC**; cross-validated in the test suite against **x-iztro**, **kinliuren**, **kinqimen**, **kintaiyi**, **lunar-python** and **Swiss Ephemeris**; the 姓名學 stroke table is built from the **Unicode Unihan** database; rules consulted from **mingpan**, **jishiyu** and **ziwei-doushu**. Full list with licences and how each is used: **[docs/CREDITS.md](docs/CREDITS.md)**.
 
 ## 📜 License
 
