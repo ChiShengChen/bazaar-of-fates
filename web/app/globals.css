@@ -91,6 +91,9 @@ th { color: var(--dim); font-weight: 500; }
 .bz-cell.static { cursor: default; flex-basis: 56px; }
 .bz-cell .bz-gz { margin: 2px 0; }
 .bz-months .bz-cell { background: #0e0e14; }
+/* 時日月年 (Taiwanese traditional): the 大運 / 流年 / 流月 strips run right-to-left and open scrolled to their first cell */
+.bz-strip.rtl { direction: rtl; }
+.bz-strip.rtl > * { direction: ltr; }
 .bz-sub { border-top: 1px solid var(--line); padding: 8px 0 2px; line-height: 1.7; }
 
 /* 奇門 九宮 */

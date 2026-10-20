@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
+import { PillarOrderSwitch, inOrder, usePillarOrder } from "./PillarOrder";
 
 // 八字 almanac-style 排盤 sheet (the layout of a traditional 四柱八字排盤 page):
 //   BaziBoard — header facts (胎元/命宮/節氣/起運/交運/農曆), the four-pillar table
@@ -47,8 +48,10 @@ const Notes = ({ label, xs }: { label: string; xs: string[] }) =>
   <div className="bz-note"><span className="muted">{label}：</span>{xs.length ? xs.join("；") : <span className="muted">—</span>}</div>;
 
 export function BaziBoard({ c, name }: { c: BaziChart; name?: string }) {
+  const [order, setOrder] = usePillarOrder();
   if (!c?.pillars?.length) return null;
   const dm = c.day_master;
+  const pillars = inOrder(c.pillars, order);
   return (
     <div className="bz">
       <div className="bz-head">
@@ -66,17 +69,18 @@ export function BaziBoard({ c, name }: { c: BaziChart; name?: string }) {
         )}
       </div>
 
+      <PillarOrderSwitch order={order} onChange={setOrder} />
       <table className="bz-table">
-        <thead><tr><th>四柱</th>{c.pillars.map((p) => <th key={p.role}>{p.pillar}</th>)}</tr></thead>
+        <thead><tr><th>四柱</th>{pillars.map((p) => <th key={p.role}>{p.pillar}</th>)}</tr></thead>
         <tbody>
-          <tr><td className="muted">十神</td>{c.pillars.map((p) => <td key={p.role}>{p.stem_god}</td>)}</tr>
-          <tr><td className="muted">天干</td>{c.pillars.map((p) => <td key={p.role}><Char c={p.stem} big /></td>)}</tr>
-          <tr><td className="muted">地支</td>{c.pillars.map((p) => <td key={p.role}><Char c={p.branch} big /> <span className="muted">{p.zodiac}</span></td>)}</tr>
-          <tr><td className="muted">藏干</td>{c.pillars.map((p) => <td key={p.role}>{p.hidden.map((h) => <div key={h.stem}><Char c={h.stem} />（{h.god}）</div>)}</td>)}</tr>
-          <tr><td className="muted">納音</td>{c.pillars.map((p) => <td key={p.role}>{p.nayin}</td>)}</tr>
-          <tr><td className="muted">長生</td>{c.pillars.map((p) => <td key={p.role}>{p.changsheng}</td>)}</tr>
-          <tr><td className="muted">空亡</td>{c.pillars.map((p) => <td key={p.role}>{p.kong_wang}</td>)}</tr>
-          <tr><td className="muted">神煞</td>{c.pillars.map((p) => <td key={p.role}>{p.shensha.length ? p.shensha.map((s) => <div key={s}>{s}</div>) : <span className="muted">—</span>}</td>)}</tr>
+          <tr><td className="muted">十神</td>{pillars.map((p) => <td key={p.role}>{p.stem_god}</td>)}</tr>
+          <tr><td className="muted">天干</td>{pillars.map((p) => <td key={p.role}><Char c={p.stem} big /></td>)}</tr>
+          <tr><td className="muted">地支</td>{pillars.map((p) => <td key={p.role}><Char c={p.branch} big /> <span className="muted">{p.zodiac}</span></td>)}</tr>
+          <tr><td className="muted">藏干</td>{pillars.map((p) => <td key={p.role}>{p.hidden.map((h) => <div key={h.stem}><Char c={h.stem} />（{h.god}）</div>)}</td>)}</tr>
+          <tr><td className="muted">納音</td>{pillars.map((p) => <td key={p.role}>{p.nayin}</td>)}</tr>
+          <tr><td className="muted">長生</td>{pillars.map((p) => <td key={p.role}>{p.changsheng}</td>)}</tr>
+          <tr><td className="muted">空亡</td>{pillars.map((p) => <td key={p.role}>{p.kong_wang}</td>)}</tr>
+          <tr><td className="muted">神煞</td>{pillars.map((p) => <td key={p.role}>{p.shensha.length ? p.shensha.map((s) => <div key={s}>{s}</div>) : <span className="muted">—</span>}</td>)}</tr>
         </tbody>
       </table>
 
@@ -89,6 +93,8 @@ export function BaziBoard({ c, name }: { c: BaziChart; name?: string }) {
 }
 
 export function BaziLuck({ c }: { c: BaziChart }) {
+  const [order] = usePillarOrder();   // 時日月年 → the 大運 / 流年 / 流月 strips run right-to-left too
+  const strip = `bz-strip${order === "hdmy" ? " rtl" : ""}`;
   const dy = c?.dayun || [];
   const [di, setDi] = useState(() => Math.max(0, dy.findIndex((d) => d.current)));
   const [li, setLi] = useState(() => Math.max(0, (dy[Math.max(0, dy.findIndex((d) => d.current))]?.liunian || []).findIndex((l) => l.current)));
@@ -106,7 +112,7 @@ export function BaziLuck({ c }: { c: BaziChart }) {
       {c.xiaoyun.length > 0 && (
         <div className="bz-note"><span className="muted">小運（起運前）：</span>{c.xiaoyun.map((x) => `${x.age}歲 ${x.year} ${x.gz}（${x.stem_god}）`).join("　")}</div>
       )}
-      <div className="bz-strip">
+      <div className={strip}>
         {dy.map((x, i) => (
           <div key={x.index} className={`bz-cell nat-${x.nature}${i === di ? " on" : ""}${x.current ? " now" : ""}`} onClick={() => { setDi(i); setLi(0); }}>
             <div className="muted">{x.start_age}歲 · {x.start_year}</div>
@@ -122,7 +128,7 @@ export function BaziLuck({ c }: { c: BaziChart }) {
         <Notes label="大運神煞" xs={d.shensha} />
       </div>
 
-      <div className="bz-strip">
+      <div className={strip}>
         {d.liunian.map((x, i) => (
           <div key={x.year} className={`bz-cell nat-${x.nature}${i === li ? " on" : ""}${x.current ? " now" : ""}`} onClick={() => setLi(i)}>
             <div className="muted">{x.age}歲 · {x.year}</div>
@@ -140,7 +146,7 @@ export function BaziLuck({ c }: { c: BaziChart }) {
         <Notes label="地支留意" xs={ln.branch_notes} />
       </div>
 
-      <div className="bz-strip bz-months">
+      <div className={`${strip} bz-months`}>
         {ln.liuyue.map((m) => (
           <div key={m.gz} className="bz-cell static">
             <div className="muted">{m.jie}</div>

@@ -4,6 +4,7 @@ import { StarChart } from "../_charts/StarChart";
 import { RashiChart } from "../_charts/RashiChart";
 import { QizhengChart } from "../_charts/QizhengChart";
 import { BaziBoard } from "./BaziBoard";
+import { PillarOrderSwitch, inOrder, usePillarOrder } from "./PillarOrder";
 
 // Dispatch each system to its richest available renderer; fall back to a clean
 // reasoning panel for the text-only divinations.
@@ -48,7 +49,8 @@ export function ChartView({ r, tightOnly = false }: { r: Chart; tightOnly?: bool
   }
 
   if (r.system === "bazi" && c.dayun) return <BaziBoard c={c as any} name={r.subject.split(" · ")[0]} />;
-  if (r.system === "bazi" || r.system === "suimei") return <PillarsTable pillars={c.pillars || []} />;
+  if (r.system === "bazi") return <BaziPillarsTable pillars={c.pillars || []} />;
+  if (r.system === "suimei") return <PillarsTable pillars={c.pillars || []} />;
   if (r.system === "ziwei") return <ZiweiBoard palaces={c.palaces || []} readings={r.readings || {}} subject={r.subject} />;
   if (r.system === "iching") return <HexagramView hex={c.hexagram} diagram={c.diagram || []} />;
   if (r.system === "qimen" && c.palaces) return <QimenBoard palaces={c.palaces} ju={c.ju} zhifu={c.zhifu} zhishi={c.zhishi} />;
@@ -57,6 +59,13 @@ export function ChartView({ r, tightOnly = false }: { r: Chart; tightOnly?: bool
   if (r.system === "xiaoliuren" && c.result) return <XiaoLiurenView c={c} />;
 
   return <p className="muted">See the casting steps & elements below. / 詳見下方排盤步驟與命盤要素。</p>;
+}
+
+// 八字 without the full sheet: same simple table, with the 年月日時 / 時日月年 switch
+function BaziPillarsTable({ pillars }: { pillars: any[] }) {
+  const [order, setOrder] = usePillarOrder();
+  if (!pillars.length) return null;
+  return <><PillarOrderSwitch order={order} onChange={setOrder} /><PillarsTable pillars={inOrder(pillars, order)} /></>;
 }
 
 function PillarsTable({ pillars }: { pillars: any[] }) {
