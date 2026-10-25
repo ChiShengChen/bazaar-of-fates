@@ -63,6 +63,19 @@ def test_rate_limit_general_and_llm_tiers(client):
     assert client.get("/health").status_code == 200              # never limited
 
 
+def test_cors_headers_survive_cache_hits_and_429(client):
+    # the Next.js front end lives on another origin: a cached reply or a 429 without the CORS header is unreadable there
+    origin = {"Origin": "http://localhost:3000"}
+    first, again = client.get("/systems", headers=origin), client.get("/systems", headers=origin)
+    assert again.headers["x-cache"] == "HIT"
+    assert first.headers["access-control-allow-origin"] == again.headers["access-control-allow-origin"] == "http://localhost:3000"
+    app.state.limiter.per_minute = 1
+    app.state.limiter.reset()
+    client.post("/cast/bazi", json=BIRTH, headers=origin)
+    r = client.post("/cast/bazi", json=BIRTH, headers=origin)
+    assert r.status_code == 429 and r.headers["access-control-allow-origin"] == "http://localhost:3000"
+
+
 def test_rate_limit_is_per_client(client):
     app.state.limiter.per_minute = 1
     app.state.limiter.reset()
@@ -88,7 +101,7 @@ def test_ttl_cache_expires_and_evicts():
     c = T.TTLCache(max_entries=2, ttl=0.05)
     c.put("a", b"1", "application/json", 200); c.put("b", b"2", "application/json", 200); c.put("c", b"3", "application/json", 200)
     assert len(c) == 2 and c.get("a") is None and c.get("c")[0] == b"3"
-    time.sleep(0.06)
+    time.sleep(0.12)              # Windows' monotonic clock ticks every ~15.6 ms, so 0.06 s could read as < ttl
     assert c.get("c") is None
 
 

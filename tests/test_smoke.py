@@ -839,6 +839,7 @@ def test_oracle_kinliuren_courses_and_generals():
 
 def test_oracle_kinqimen_hour_chart():
     pytest.importorskip("kinqimen")
+    pytest.importorskip("sxtwl", reason="kinqimen is installed --no-deps and needs sxtwl, which has no wheel on some interpreters")
     import os, sys, kinqimen as _kq
     sys.modules.pop("config", None)                                  # kintaiyi (another oracle) ships a top-level `config` too
     sys.path.insert(0, os.path.dirname(_kq.__file__))

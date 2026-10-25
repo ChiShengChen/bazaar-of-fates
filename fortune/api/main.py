@@ -35,12 +35,6 @@ log = get_logger("api")
 settings = get_settings()
 
 app = FastAPI(title="Bazaar of Fates · 算命 Divination Suite", version="0.1.0")
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=settings.cors_origin_list,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
 from fortune.shared.throttle import CacheMiddleware, RateLimiter, RateLimitMiddleware, TTLCache  # noqa: E402
 
 app.state.cache = TTLCache(max_entries=settings.cache_max_entries, ttl=settings.cache_ttl_seconds)
@@ -49,6 +43,14 @@ if settings.cache_enabled:
     app.add_middleware(CacheMiddleware, cache=app.state.cache)          # inner: serves hits before the handler runs
 if settings.rate_limit_enabled:
     app.add_middleware(RateLimitMiddleware, limiter=app.state.limiter)  # outer: counts every request, hits included
+# CORS is added last = outermost, so every response carries the headers — cache hits and 429s included.
+# (Added first it sat inside CacheMiddleware, and replayed hits reached the browser without Access-Control-Allow-Origin.)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=settings.cors_origin_list,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 class ReadingRequest(BaseModel):
