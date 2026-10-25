@@ -74,6 +74,7 @@ th { color: var(--dim); font-weight: 500; }
 .zw-major { font-weight: 700; color: var(--ink); }
 .zw-minor { font-size: 10px; color: var(--dim); }
 .zw-name { color: var(--accent); margin-top: 3px; }
+.zw-laiyin { margin-left: 4px; padding: 0 3px; border: 1px solid var(--warn); border-radius: 3px; color: var(--warn); font-size: 9.5px; cursor: help; }
 .zw-center { grid-row: 2 / 4; grid-column: 2 / 4; border: 1px solid var(--line); border-radius: 8px; padding: 10px; display: flex; flex-direction: column; justify-content: center; gap: 4px; font-size: 12px; text-align: center; }
 
 /* 八字 almanac sheet (四柱 table + 大運/流年/流月 strips) */

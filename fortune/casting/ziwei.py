@@ -55,6 +55,8 @@ def cast(birth: BirthInput, *, brightness_school: str = "quanshu") -> Chart:
         readings["note"] = "性別未填，大限方向以男命推算 / gender unset → assumed male"
     readings["life_palace_branch"] = natal["life_branch"]
     readings["body_palace"] = next((p["name"] for p in natal["palaces"] if p["is_body"]), "")
+    laiyin = next((p for p in natal["palaces"] if p.get("is_laiyin")), None)
+    readings["laiyin_palace"] = f"{laiyin['name']}（{laiyin['stem']}{laiyin['branch']}）" if laiyin else ""
     readings["hour_branch"] = natal["hour_branch"]
     readings["lunar_birth"] = f"農曆 {natal['lunar']['year_gz']}年 {natal['lunar']['month']} 月 {natal['lunar']['day']} 日 {natal['hour_branch']}時"
     life = next((p for p in natal["palaces"] if p["name"] == "命宮"), None)
@@ -80,6 +82,8 @@ def cast(birth: BirthInput, *, brightness_school: str = "quanshu") -> Chart:
         f"排盤：命宮在 {natal['life_branch']}宮（{life_stars}）、身宮在 {readings['body_palace']}宮（{body_stars}）、"
         f"{readings.get('five_elements_class', '')}；命主星 {readings.get('soul_star', '?')}、身主星 {readings.get('body_star', '?')}",
         f"生年四化（{natal['lunar']['year_gz'][0]}干）：{natal.get('natal_sihua', '')}。",
+        f"來因宮＝宮干等於生年天干（{natal['lunar']['year_gz'][0]}）的那一宮，子丑不取：{readings['laiyin_palace']}"
+        "（欽天四化／北派認為生年四化由此宮發出，三合派一般不論）。",
         f"流年天干＝{readings['liunian_stem']}（農曆年），四化：{readings['liunian_sihua']}。",
         f"四化飛星落宮：{readings['sihua_landing']}。",
     ]

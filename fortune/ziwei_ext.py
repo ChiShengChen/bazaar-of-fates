@@ -100,6 +100,9 @@ def build_chart_lunar(lunar_year: int, lunar_month: int, lunar_day: int, hour_br
     body_b = (((2 + (lunar_month - 1)) % 12) + hour_branch) % 12
     year_branch = (lunar_year - 4) % 12
     year_stem = (lunar_year - 4) % 10
+    # 來因宮 (欽天四化 / 北派): the palace whose 宮干 equals the year 天干. 寅…亥 carry the ten stems once each;
+    # 子 / 丑 repeat 寅 / 卯's stems and are excluded by convention, so the answer is always unique.
+    laiyin_b = next(b for b in range(2, 12) if ZC.life_palace_stem(lunar_year, b) == year_stem)
     elem, juju = ZC.five_elements_class(lunar_year, life_b)
     zw = ZC.ziwei_branch(juju, lunar_day)
 
@@ -119,12 +122,12 @@ def build_chart_lunar(lunar_year: int, lunar_month: int, lunar_day: int, hour_br
         stars = sorted([s for s, bb in star_branch.items() if bb == b], key=lambda s: (rank.get(s, 3), s))
         palaces.append({"name": branch_palace[b], "branch": ZC.BRANCHES[b],
                         "stem": STEMS[ZC.life_palace_stem(lunar_year, b)],
-                        "is_body": b == body_b, "stars": stars})
+                        "is_body": b == body_b, "is_laiyin": b == laiyin_b, "stars": stars})
     return {
         "soul": ZC._MING_ZHU[life_b], "body": _SHEN_ZHU[year_branch],
         "five_elements_class": f"{elem}{'二三四五六'[juju - 2]}局",
         "palaces": palaces, "star_palace": star_palace,
-        "life_branch": ZC.BRANCHES[life_b], "ziwei_branch": ZC.BRANCHES[zw],
+        "life_branch": ZC.BRANCHES[life_b], "laiyin_branch": ZC.BRANCHES[laiyin_b], "ziwei_branch": ZC.BRANCHES[zw],
         "hour_branch": ZC.BRANCHES[hour_branch],
         "lunar": {"year": lunar_year, "month": lunar_month, "day": lunar_day, "year_gz": STEMS[year_stem] + BRANCHES[year_branch],
                   "leap_shifted": leap_shift, "late_zi": False},

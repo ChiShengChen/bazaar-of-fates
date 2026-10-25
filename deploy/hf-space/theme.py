@@ -120,6 +120,7 @@ html, body{overflow-x:hidden}
 .zw{display:grid; grid-template-columns:repeat(4,1fr); grid-template-rows:repeat(4,1fr); gap:5px; max-width:640px; aspect-ratio:1}
 .zw .c{border:1px solid #b89a5a; border-radius:6px; padding:5px 7px; font-size:11.5px; display:flex; flex-direction:column; justify-content:space-between; overflow:hidden; background:rgba(255,250,235,.55)}
 .zw .c.body{background:#f6e2c4; border-color:var(--cinnabar)}
+.zw .ly{margin-left:4px; padding:0 3px; border:1px solid #8a6d1f; border-radius:3px; color:#8a6d1f; font-size:10px; font-weight:400; cursor:help}
 .zw .maj{font-weight:900; font-size:14px; color:#1f1a12} .zw .min{color:#7a6a4e; font-size:10.5px} .zw .nm{color:#5b1f1b; margin-top:3px; font-weight:700}
 .zw .ctr{grid-row:2/4; grid-column:2/4; border:1px solid #b89a5a; border-radius:8px; padding:10px; font-size:12.5px; text-align:center; display:flex; flex-direction:column; justify-content:center; gap:4px;
   background:radial-gradient(circle at 50% 50%, rgba(212,175,55,.18) 0%, transparent 70%), url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='46' fill='none' stroke='%23b89a5a' stroke-opacity='.35' stroke-width='1'/><circle cx='50' cy='50' r='30' fill='none' stroke='%23b89a5a' stroke-opacity='.25' stroke-width='.7'/><path d='M50 20a30 30 0 0 1 0 60a15 15 0 0 1 0-30a15 15 0 0 0 0-30z' fill='%23b89a5a' fill-opacity='.12'/></svg>") center/80% no-repeat}

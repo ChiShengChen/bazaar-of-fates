@@ -43,7 +43,7 @@ pip install bazaar-of-fates && bazaar bazi 1990-06-15 14:30 --place 台北 --gen
 | 🎯 **Real astronomy, exact to the minute** | Planets at the **exact birth instant, true equinox of date** (`ephem`); all **24 節氣** to the minute; six house systems **validated against Swiss Ephemeris to <0.006°**. |
 | 🔍 **Every chart is auditable** | Each cast lists its reasoning: every term of the 八字 旺衰 score, the 六壬 course-type rule used, the 奇門 遁/元/局 derivation, every +/− of a 擇日 score. Cross-validated in tests against **Swiss Ephemeris, x-iztro (iztro), kinliuren, kinqimen, lunar-python** — the whole 518,400-chart 紫微 input space matches iztro. |
 | 🧾 **八字 full sheet** | 十神 · 藏干 · 納音 · 空亡 · 神煞 · 十二長生 · 胎元命宮 · 起運交運 · 刑沖合會 · 稱骨 · 黃曆, an auditable **旺衰 / 用神 / 調候 / 格局** analysis, 大運 → 流年 → 流月 drill-down. |
-| 🌟 **紫微** | 36 stars + x-iztro brightness, 雜曜, 格局; 閏月 / 晚子時 conventions; **大限 → 流年** panel (四化落宮, 流曜, 歲前/將前). |
+| 🌟 **紫微** | 36 stars + x-iztro brightness, 雜曜, 格局; **來因宮** (欽天四化 / 北派) marked on the board; 閏月 / 晚子時 conventions; **大限 → 流年** panel (四化落宮, 流曜, 歲前/將前). |
 | 🧑‍⚖️ **Synthesis 綜合會診** | One question → all 13 systems, each with its own rule-based verdict and reason, agreement/conflict tallied, then one reading that explains why traditions differ. |
 | 📅 **Date picking 擇日 · 今日運勢** | Purpose (結婚/開業/搬家/簽約/手術/出行/求財) + range → every day scored from 黃曆, 八字 流日 (沖日柱/歲破/月破/空亡/神煞), 紫微 流日四化, 奇門 值使 + 吉方, 小六壬; calendar view, best 時辰 per day. |
 | 🗣️ **Readings in your language** | 中文 / English / both, streamed token-by-token. Ask a question and the prompt leads with the facts that bear on it. Runs fully offline (facts digest) with no API key. |

@@ -79,7 +79,7 @@ def _print_ziwei(c: dict) -> None:
             stars = " ".join(s for s in p["stars"] if s.split("(")[0] in {"紫微", "天機", "太陽", "武曲", "天同", "廉貞", "天府", "太陰", "貪狼", "巨門", "天相", "天梁", "七殺", "破軍"}) or "空"
             minor = " ".join(s for s in p["stars"] if s.split("(")[0] not in {"紫微", "天機", "太陽", "武曲", "天同", "廉貞", "天府", "太陰", "貪狼", "巨門", "天相", "天梁", "七殺", "破軍"})
             line1 += f"{stars[:w - 1]:<{w}}"
-            line2 += f"{(p['name'] + ' ' + p['stem'] + p['branch'] + (' 身' if p['is_body'] else '') + ' ' + minor)[:w - 1]:<{w}}"
+            line2 += f"{(p['name'] + ' ' + p['stem'] + p['branch'] + (' 身' if p['is_body'] else '') + (' 因' if p.get('is_laiyin') else '') + ' ' + minor)[:w - 1]:<{w}}"
         print(line1); print(line2); print()
     luck = c.get("luck", {})
     cur = next((d for d in luck.get("daxian", []) if d.get("current")), None)

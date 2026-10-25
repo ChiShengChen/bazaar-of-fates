@@ -16,7 +16,7 @@ LABELS = {
     "current_dayun_relations": "大運留意", "current_liunian": "今年流年", "current_liunian_relations": "流年留意", "almanac": "黃曆",
     "shen_gong_taixi": "身宮/胎息", "note": "註", "focus_topic": "問題主題", "focus_verdict": "本門派判斷", "focus_facts": None,
     "soul_star": "命主星", "body_star": "身主星", "five_elements_class": "五行局", "natal_sihua": "生年四化", "liunian_stem": "流年天干",
-    "liunian_sihua": "流年四化", "sihua_landing": "四化落宮", "ziwei_regime": "流年判定", "life_palace_branch": "命宮地支", "body_palace": "身宮",
+    "liunian_sihua": "流年四化", "sihua_landing": "四化落宮", "ziwei_regime": "流年判定", "life_palace_branch": "命宮地支", "body_palace": "身宮", "laiyin_palace": "來因宮",
     "hour_branch": "生時", "lunar_birth": "農曆生辰", "life_palace_stars": "命宮星曜", "body_palace_stars": "身宮星曜", "palaces": "十二宮",
     "current_daxian": "現行大限", "daxian_sequence": "大限", "brightness": "亮度", "patterns": "格局", "current_liuyue": "流月",
     "astro_regime": "狀態", "mercury_retrograde": "水星逆行", "moon_illumination_pct": "月亮光照%", "moon_phase": "月相", "sun_sign": "太陽星座",
@@ -86,6 +86,9 @@ def bazi(c: dict) -> str:
     return "".join(out)
 
 
+LAIYIN_TAG = "<span class='ly' title='來因宮：宮干＝生年天干（欽天四化／北派；子、丑不取）'>來因</span>"
+
+
 def ziwei(c: dict, readings: dict, subject: str) -> str:
     CELL = {5: (1, 1), 6: (1, 2), 7: (1, 3), 8: (1, 4), 4: (2, 1), 9: (2, 4), 3: (3, 1), 10: (3, 4), 2: (4, 1), 1: (4, 2), 0: (4, 3), 11: (4, 4)}
     B = "子丑寅卯辰巳午未申酉戌亥"
@@ -99,9 +102,11 @@ def ziwei(c: dict, readings: dict, subject: str) -> str:
             stars.append(f"<span class='{'maj' if bare in MAJOR else 'min'}'>{_e(s)}{('<sup>' + _e(br) + '</sup>') if br else ''}</span>")
         have = {st.split("(")[0] for st in p["stars"]}
         adj = " ".join(_e(a) for a in p.get("adjective_stars", []) if a not in have)
+        laiyin = LAIYIN_TAG if p.get("is_laiyin") else ""
         out.append(f"<div class='c{' body' if p['is_body'] else ''}' style='grid-row:{r};grid-column:{col}'><div>{' '.join(stars)}{('<div class=min>' + adj + '</div>') if adj else ''}</div>"
-                   f"<div class='nm'><b>{_e(p['name'])}</b> <span class='min'>{_e(p.get('stem', ''))}{_e(p['branch'])}{'·' + _e(p['changsheng']) + '·' + _e(p['boshi']) if p.get('changsheng') else ''}</span></div></div>")
+                   f"<div class='nm'><b>{_e(p['name'])}</b> <span class='min'>{_e(p.get('stem', ''))}{_e(p['branch'])}{'·' + _e(p['changsheng']) + '·' + _e(p['boshi']) if p.get('changsheng') else ''}</span>{laiyin}</div></div>")
     out.append(f"<div class='ctr'><div class='min'>{_e(subject)}</div><div>命主 <b>{_e(readings.get('soul_star', '?'))}</b>・身主 {_e(readings.get('body_star', '?'))}</div><div>{_e(readings.get('five_elements_class', ''))}・命宮 {_e(readings.get('life_palace_branch', ''))}</div>"
+               + (f"<div>來因宮 {_e(readings['laiyin_palace'])}</div>" if readings.get("laiyin_palace") else "") +
                f"<div class='min'>生年四化 {_e(readings.get('natal_sihua', ''))}</div><div class='min'>{_e(readings.get('current_daxian', ''))}</div></div></div>")
     luck = c.get("luck", {})
     if luck.get("daxian"):

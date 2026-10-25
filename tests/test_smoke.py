@@ -658,6 +658,29 @@ def test_ziwei_luck_periods():
     assert sum(1 for p in pal.values() if p["boshi"] == "博士") == 1
 
 
+@pytest.mark.parametrize("lunar_year,gz", [(1984, "甲戌"), (1985, "乙酉"), (1986, "丙申"), (1987, "丁未"), (1988, "戊午"),
+                                           (1989, "己巳"), (1990, "庚辰"), (1991, "辛卯"), (1992, "壬寅"), (1993, "癸亥")])
+def test_ziwei_laiyin_palace(lunar_year, gz):
+    # 來因宮 = the palace whose 宮干 equals the year 天干; 子/丑 are never it (辛年 丑 and 壬年 子 share the stem but are skipped)
+    from fortune import ziwei_ext
+    for month, day, hb in ((1, 1, 0), (6, 15, 7), (11, 28, 11)):           # the 地支 depends only on the year stem
+        ch = ziwei_ext.build_chart_lunar(lunar_year, month, day, hb)
+        laiyin = [p for p in ch["palaces"] if p["is_laiyin"]]
+        assert len(laiyin) == 1 and laiyin[0]["stem"] + laiyin[0]["branch"] == gz and ch["laiyin_branch"] == gz[1]
+        assert laiyin[0]["stem"] == ch["lunar"]["year_gz"][0]
+    skip = {1991: "丑", 1992: "子"}.get(lunar_year)
+    if skip:
+        p = next(p for p in ziwei_ext.build_chart_lunar(lunar_year, 6, 15, 7)["palaces"] if p["branch"] == skip)
+        assert p["stem"] == gz[0] and not p["is_laiyin"]
+
+
+def test_ziwei_laiyin_in_readings_and_chain():
+    c = casting.cast("ziwei", BIRTH)                                     # 庚午年 → 辰 = 僕役
+    assert c.readings["laiyin_palace"] == "僕役（庚辰）"
+    assert [p["branch"] for p in c.chart["palaces"] if p["is_laiyin"]] == ["辰"]
+    assert any("來因宮" in step and "子丑不取" in step for step in c.reasoning_chain)
+
+
 def test_liuren_nine_course_types():
     from fortune import liuren_ext as LX
     B = LX.BRANCHES

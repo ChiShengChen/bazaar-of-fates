@@ -111,7 +111,7 @@ function ZiweiBoard({ palaces, readings, subject }: { palaces: any[]; readings: 
               })}
               {(p.adjective_stars || []).length > 0 && <div className="zw-adj">{p.adjective_stars.join(" ")}</div>}
             </div>
-            <div className="zw-name"><b>{p.name}</b> <span className="muted">{p.stem}{p.branch}</span>{p.changsheng ? <span className="muted" style={{ float: "right" }}>{p.changsheng}·{p.boshi}</span> : null}</div>
+            <div className="zw-name"><b>{p.name}</b> <span className="muted">{p.stem}{p.branch}</span>{p.is_laiyin ? <span className="zw-laiyin" title="來因宮：宮干＝生年天干（欽天四化／北派；子、丑不取）">來因</span> : null}{p.changsheng ?<span className="muted" style={{ float: "right" }}>{p.changsheng}·{p.boshi}</span> : null}</div>
           </div>
         );
       })}
@@ -119,6 +119,7 @@ function ZiweiBoard({ palaces, readings, subject }: { palaces: any[]; readings: 
         <div className="muted" style={{ fontSize: 11 }}>{subject}</div>
         <div>命主 <b>{readings.soul_star || "?"}</b>・身主 {readings.body_star || "?"}</div>
         <div>{readings.five_elements_class || ""}・命宮 {readings.life_palace_branch || ""}</div>
+        {readings.laiyin_palace ? <div>來因宮 {readings.laiyin_palace}</div> : null}
         <div className="muted">生時 {readings.hour_branch || ""}・流年 {readings.ziwei_regime || ""}</div>
       </div>
     </div>

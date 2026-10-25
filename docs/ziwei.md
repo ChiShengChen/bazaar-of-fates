@@ -29,6 +29,7 @@ From your birth (converted to the lunar calendar) it casts a **12-palace chart**
 | body_star 身主星 | 後天、身的主星 |
 | five_elements_class 五行局 | 水二局…火六局，定起運與紫微落點 |
 | life_palace_branch 命宮 | 命宮所在地支 |
+| laiyin_palace 來因宮 | 宮干等於生年天干的那一宮（例「僕役（庚辰）」）；欽天四化／北派用，見下方慣例 |
 | 流年四化 (timeline) | 每年的祿/權/科/忌飛入哪些星 |
 
 > 時間軸 Timeline：紫微附 **流年四化**——未來每年「化祿/化權/化科/化忌」落在哪顆星，看那年得失重點。
@@ -41,6 +42,7 @@ From your birth (converted to the lunar calendar) it casts a **12-palace chart**
 | 四化 祿權科忌 | 星曜的四種變化：祿=利、權=勢、科=名、忌=阻 |
 | 五行局 | 命局的元素級數，影響紫微星安放 |
 | 飛星 | 四化「飛」入某宮，啟動該領域 |
+| 來因宮 | 宮干與生年天干相同的宮；飛星派視為生年四化發出的地方 |
 
 > 純 Python 重寫，cell-by-cell 對過 py-iztro oracle；命宮目前以生時排（流年四化以立春為界）。
 
@@ -49,6 +51,7 @@ From your birth (converted to the lunar calendar) it casts a **12-palace chart**
 - **閏月**：上半月（≤15 日）歸本月，下半月歸次月。**晚子時**（23 時後）以次日論。排盤步驟會註明。
 - 主星 14 顆（紫微系、天府系）＋ 文昌 文曲 左輔 右弼 天魁 天鉞 祿存 天馬（吉）＋ 擎羊 陀羅 火星 鈴星 地空 地劫（煞）＋ 紅鸞 天喜 龍池 鳳閣 天哭 天虛 天刑 天姚 天才 天壽 孤辰 寡宿。盤面主星粗體、輔煞星小字。
 - 每宮標示宮干（五虎遁）；生年四化與流年四化都以**農曆年干**起（與命宮五虎遁同一曆法）。
+- **來因宮**（盤面金框「來因」、`is_laiyin`、readings `laiyin_palace`）：宮干等於生年天干的那一宮。欽天四化（北派、飛星派）把它看成生年四化發出的地方；三合派一般不論。寅到亥十宮剛好各一個天干，子、丑兩宮的天干與寅、卯重複，傳統不作來因宮，所以結果固定：甲年戌、乙年酉、丙年申、丁年未、戊年午、己年巳、庚年辰、辛年卯、壬年寅、癸年亥（再看該地支是哪一宮）。
 
 ## 大限與流年 / Decade and annual periods
 
